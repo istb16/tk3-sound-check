@@ -1,0 +1,24 @@
+{
+  "name": "tk3-sound-check",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@vitest/browser": "^4.1.10",
+    "@vitest/browser-playwright": "^4.1.10",
+    "playwright": "^1.61.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.3",
+    "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.2.0",
+    "svelte": "^5.56.4"
+  }
+}
