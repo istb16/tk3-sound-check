@@ -21,6 +21,9 @@ jobs:
       - name: install
         working-directory: ${{ env.working-directory }}
         run: npm ci
+      - name: Install Playwright browsers
+        working-directory: ${{ env.working-directory }}
+        run: npx playwright install --with-deps chromium
       - name: Test
         working-directory: ${{ env.working-directory }}
         run: npm test
