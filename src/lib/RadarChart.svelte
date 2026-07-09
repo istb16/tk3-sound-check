@@ -15,41 +15,37 @@
 
   const levels = 4;
 
-  function cx(): number { return size / 2; }
-  function cy(): number { return size / 2; }
-  function r(): number  { return size * 0.36; }
+  const cx   = $derived(size / 2);
+  const cy   = $derived(size / 2);
+  const r    = $derived(size * 0.36);
+  const step = $derived(labels.length > 0 ? 360 / labels.length : 0);
 
   function toXY(angle: number, radius: number): Point {
     const rad = (angle - 90) * (Math.PI / 180);
-    return {
-      x: cx() + radius * Math.cos(rad),
-      y: cy() + radius * Math.sin(rad),
-    };
+    return { x: cx + radius * Math.cos(rad), y: cy + radius * Math.sin(rad) };
   }
 
-  function angleStep(): number { return 360 / labels.length; }
-
-  function gridPolygons(): Point[][] {
-    return Array.from({ length: levels }, (_, i) => {
+  const gridPolygons = $derived(
+    Array.from({ length: levels }, (_, i) => {
       const ratio = (i + 1) / levels;
-      return labels.map((_, j) => toXY(j * angleStep(), r() * ratio));
-    });
-  }
+      return labels.map((_, j) => toXY(j * step, r * ratio));
+    })
+  );
 
-  function axes(): Array<{ end: Point; labelPos: Point; label: string }> {
-    return labels.map((_, i) => ({
-      end:      toXY(i * angleStep(), r()),
-      labelPos: toXY(i * angleStep(), r() * 1.22),
+  const axes = $derived(
+    labels.map((_, i) => ({
+      end:      toXY(i * step, r),
+      labelPos: toXY(i * step, r * 1.22),
       label:    axisLabels[i] ?? labels[i],
-    }));
-  }
+    }))
+  );
 
-  function dataPoints(): Point[] {
-    return labels.map((key, i) => {
+  const dataPoints = $derived(
+    labels.map((key, i) => {
       const val = (scores[key] ?? 0) / 100;
-      return toXY(i * angleStep(), r() * Math.max(val, 0.02));
-    });
-  }
+      return toXY(i * step, r * Math.max(val, 0.02));
+    })
+  );
 
   function polyStr(pts: Point[]): string {
     return pts.map((p) => `${p.x},${p.y}`).join(' ');
@@ -57,7 +53,7 @@
 </script>
 
 <svg width={size} height={size} viewBox="0 0 {size} {size}" aria-hidden="true">
-  {#each gridPolygons() as pts, lvl}
+  {#each gridPolygons as pts, lvl}
     <polygon
       points={polyStr(pts)}
       fill={lvl === levels - 1 ? '#F3F4FA' : 'none'}
@@ -66,12 +62,8 @@
     />
   {/each}
 
-  {#each axes() as ax}
-    <line
-      x1={cx()} y1={cy()}
-      x2={ax.end.x} y2={ax.end.y}
-      stroke="#DDE0EE" stroke-width="1"
-    />
+  {#each axes as ax}
+    <line x1={cx} y1={cy} x2={ax.end.x} y2={ax.end.y} stroke="#DDE0EE" stroke-width="1" />
     <text
       x={ax.labelPos.x}
       y={ax.labelPos.y}
@@ -87,16 +79,15 @@
   {/each}
 
   <polygon
-    points={polyStr(dataPoints())}
+    points={polyStr(dataPoints)}
     fill="rgba(0,110,128,0.12)"
     stroke="#006E80"
     stroke-width="2"
     stroke-linejoin="round"
   />
 
-  {#each dataPoints() as pt, i}
-    {@const key = labels[i]}
-    {@const val = scores[key] ?? 0}
+  {#each dataPoints as pt, i}
+    {@const val = scores[labels[i]] ?? 0}
     <circle cx={pt.x} cy={pt.y} r="4.5" fill={scoreColor(val)} stroke="#FFFFFF" stroke-width="1.5" />
   {/each}
 </svg>

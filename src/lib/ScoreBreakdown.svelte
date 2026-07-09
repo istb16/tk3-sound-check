@@ -1,9 +1,7 @@
 <script lang="ts">
-  import { scoreColor } from './scores.ts';
+  import { scoreColor, LABELS } from './scores.ts';
   import type { AudioScores } from './AudioAnalyzer.ts';
   import type { Translations } from './i18n.ts';
-
-  const LABELS = ['noise', 'distortion', 'reverb', 'echo', 'clarity'] as const;
 
   interface Props {
     scores: AudioScores;

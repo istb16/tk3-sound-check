@@ -161,14 +161,10 @@ function calcEchoScore(data: Float32Array, sampleRate: number): number {
 // 旧実装は絶対比率で判定していたため44kHz録音(音声帯域14%しかない)では常に0になるバグを修正
 // 正規化比率はサンプルレートに依存しない
 function calcClarityScore(data: Float32Array, sampleRate: number): number {
-  const N      = 2048;
+  const N      = FFT_SIZE;
   const hop    = N;
   const chunks = Math.floor(data.length / hop);
   if (chunks === 0) return 50;
-
-  // ハミング窓
-  const win = new Float32Array(N);
-  for (let i = 0; i < N; i++) win[i] = 0.54 - 0.46 * Math.cos((2 * Math.PI * i) / (N - 1));
 
   const freqPerBin = sampleRate / N;
   const halfN      = N / 2;
@@ -187,7 +183,7 @@ function calcClarityScore(data: Float32Array, sampleRate: number): number {
   for (let c = 0; c < chunks; c++) {
     const re = new Float32Array(N);
     const im = new Float32Array(N);
-    for (let i = 0; i < N; i++) re[i] = data[c * hop + i] * win[i];
+    for (let i = 0; i < N; i++) re[i] = data[c * hop + i] * HAMMING_WIN[i];
     fft(re, im);
 
     for (let k = 1; k < halfN; k++) {
@@ -249,6 +245,16 @@ function fft(re: Float32Array, im: Float32Array): void {
     }
   }
 }
+
+// ---- ハミング窓 (N=2048 固定) ----
+const FFT_SIZE = 2048;
+const HAMMING_WIN = (() => {
+  const win = new Float32Array(FFT_SIZE);
+  for (let i = 0; i < FFT_SIZE; i++) {
+    win[i] = 0.54 - 0.46 * Math.cos((2 * Math.PI * i) / (FFT_SIZE - 1));
+  }
+  return win;
+})();
 
 // ---- ユーティリティ ----
 function rms(data: Float32Array, offset: number, len: number): number {

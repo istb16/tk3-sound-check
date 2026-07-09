@@ -2,6 +2,7 @@
   import { analyzeAudio, type AudioScores } from './lib/AudioAnalyzer.ts';
   import { decodeFile, recordMicrophone } from './lib/audio.ts';
   import { T, initLang, type Lang } from './lib/i18n.ts';
+  import { LABELS } from './lib/scores.ts';
   import RadarChart from './lib/RadarChart.svelte';
   import LangToggle from './lib/LangToggle.svelte';
   import AudioInput from './lib/AudioInput.svelte';
@@ -11,7 +12,6 @@
   import AudioPlayer from './lib/AudioPlayer.svelte';
 
   const RECORD_DURATION = 10000;
-  const LABELS = ['noise', 'distortion', 'reverb', 'echo', 'clarity'] as const;
 
   type AppState = 'idle' | 'recording' | 'analyzing' | 'done' | 'error';
   type ErrorKey = '' | 'invalid-file' | 'analysis-failed' | 'mic-denied' | 'recording-failed';
@@ -115,7 +115,7 @@
       <VuMeter score={scores.overall} {t} />
       <div class="panel chart-panel">
         <p class="panel-label">SPECTRUM</p>
-        <RadarChart scores={scores} labels={[...LABELS]} displayLabels={t.radarLabels} size={255} />
+        <RadarChart scores={scores} labels={LABELS} displayLabels={t.radarLabels} size={255} />
       </div>
       <div class="result-full">
         <ScoreBreakdown {scores} {t} />
