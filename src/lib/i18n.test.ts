@@ -32,8 +32,8 @@ describe('T — 翻訳データの完整性', () => {
     expect(Object.keys(T.ja)).toEqual(Object.keys(T.en));
   });
 
-  it('categoryNames が両言語で noise/distortion/reverb/echo/clarity を持つ', () => {
-    const keys = ['noise', 'distortion', 'reverb', 'echo', 'clarity'] as const;
+  it('categoryNames が両言語で volume/frequency/clip/noise を持つ', () => {
+    const keys = ['volume', 'frequency', 'clip', 'noise'] as const;
     for (const k of keys) {
       expect(T.ja.categoryNames[k]).toBeTruthy();
       expect(T.en.categoryNames[k]).toBeTruthy();
@@ -48,9 +48,9 @@ describe('T — 翻訳データの完整性', () => {
     }
   });
 
-  it('radarLabels が両言語で 5 要素を持つ', () => {
-    expect(T.ja.radarLabels).toHaveLength(5);
-    expect(T.en.radarLabels).toHaveLength(5);
+  it('radarLabels が両言語で 4 要素を持つ', () => {
+    expect(T.ja.radarLabels).toHaveLength(4);
+    expect(T.en.radarLabels).toHaveLength(4);
   });
 
   it('micBtn は秒数を受け取って文字列を返す', () => {

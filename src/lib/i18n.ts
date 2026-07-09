@@ -1,5 +1,5 @@
 export type Lang = 'ja' | 'en';
-export type CategoryKey = 'noise' | 'distortion' | 'reverb' | 'echo' | 'clarity';
+export type CategoryKey = 'volume' | 'frequency' | 'clip' | 'noise';
 export type GradeKey = 'good' | 'ok' | 'warn' | 'bad';
 
 export type Translations = {
@@ -19,6 +19,7 @@ export type Translations = {
   categoryDescs: Record<CategoryKey, string>;
   resetBtn: string;
   radarLabels: string[];
+  adviceLabel: string;
 };
 
 export const T: Record<Lang, Translations> = {
@@ -35,16 +36,16 @@ export const T: Record<Lang, Translations> = {
     errorRecording:   (msg) => `録音に失敗しました: ${msg}`,
     vuAriaLabel:      (score) => `総合スコア ${score}点`,
     grades: { good: '優秀', ok: '良好', warn: '普通', bad: '要改善' },
-    categoryNames: { noise: 'ノイズ', distortion: '歪み', reverb: '残響', echo: 'エコー', clarity: '明瞭度' },
+    categoryNames: { volume: '音量', frequency: '周波数バランス', clip: '音割れ', noise: 'ノイズ・無音' },
     categoryDescs: {
-      noise:      '背景雑音の少なさ',
-      distortion: '音割れ・歪みのなさ',
-      reverb:     '反響・残響のなさ',
-      echo:       'エコーのなさ',
-      clarity:    '声の聞き取りやすさ',
+      volume:    '音量レベルと抑揚の適切さ',
+      frequency: 'こもり・キンキン音のなさと明瞭度',
+      clip:      'クリッピングのなさ',
+      noise:     '背景雑音・無音バランスの適切さ',
     },
     resetBtn:    'もう一度チェックする',
-    radarLabels: ['ノイズ', '歪み', '残響', 'エコー', '明瞭度'],
+    radarLabels: ['音量', '周波数バランス', '音割れ', 'ノイズ・無音'],
+    adviceLabel: 'アドバイス',
   },
   en: {
     title:         'Audio Quality Checker',
@@ -59,16 +60,16 @@ export const T: Record<Lang, Translations> = {
     errorRecording:   (msg) => `Recording failed: ${msg}`,
     vuAriaLabel:      (score) => `Overall score: ${score}`,
     grades: { good: 'Excellent', ok: 'Good', warn: 'Fair', bad: 'Poor' },
-    categoryNames: { noise: 'Noise', distortion: 'Distortion', reverb: 'Reverb', echo: 'Echo', clarity: 'Clarity' },
+    categoryNames: { volume: 'Volume', frequency: 'Frequency Balance', clip: 'Clipping', noise: 'Noise/Silence' },
     categoryDescs: {
-      noise:      'Absence of background noise',
-      distortion: 'Absence of distortion / clipping',
-      reverb:     'Absence of reverb',
-      echo:       'Absence of echo',
-      clarity:    'Voice intelligibility',
+      volume:    'Appropriate loudness and dynamics',
+      frequency: 'Absence of muddiness/harshness and clarity',
+      clip:      'Absence of clipping/distortion',
+      noise:     'Balance of background noise and silence',
     },
     resetBtn:    'Check again',
-    radarLabels: ['Noise', 'Distortion', 'Reverb', 'Echo', 'Clarity'],
+    radarLabels: ['Volume', 'Frequency Balance', 'Clipping', 'Noise/Silence'],
+    adviceLabel: 'Advice',
   },
 };
 

@@ -78,7 +78,7 @@ describe('App — エラー処理', () => {
 // ---- 解析結果表示 ----
 describe('App — 解析結果表示', () => {
   const mockScores: AudioScores = {
-    overall: 82, noise: 90, distortion: 95, reverb: 70, echo: 80, clarity: 75,
+    overall: 82, volume: 25, frequency: 24, clip: 18, noise: 15, advice: ['声の明瞭度がやや低めです。マイクを口元に向け、はっきりと発声してください。'],
   };
 
   it('WAV ファイルを投入すると結果セクションが表示される', async () => {
@@ -95,7 +95,7 @@ describe('App — 解析結果表示', () => {
     await expect.element(page.getByText('BREAKDOWN')).toBeVisible();
   });
 
-  it('カテゴリ名（ノイズ・歪み・残響・エコー・明瞭度）がすべて表示される', async () => {
+  it('カテゴリ名（音量・周波数バランス・音割れ・ノイズ／無音）がすべて表示される', async () => {
     vi.mocked(decodeFile).mockResolvedValue({ sampleRate: 16000 } as unknown as AudioBuffer);
     vi.mocked(analyzeAudio).mockResolvedValue(mockScores);
 
@@ -108,7 +108,7 @@ describe('App — 解析結果表示', () => {
     await expect.element(page.getByText('SIGNAL QUALITY')).toBeVisible({ timeout: 3000 });
 
     const list = page.getByRole('list');
-    for (const label of ['ノイズ', '歪み', '残響', 'エコー', '明瞭度']) {
+    for (const label of ['音量', '周波数バランス', '音割れ', 'ノイズ・無音']) {
       await expect.element(list.getByText(label, { exact: true })).toBeVisible();
     }
   });

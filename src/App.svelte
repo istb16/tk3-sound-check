@@ -120,6 +120,16 @@
       <div class="result-full">
         <ScoreBreakdown {scores} {t} />
       </div>
+      {#if scores.advice.length > 0}
+        <div class="panel result-full">
+          <p class="panel-label">{t.adviceLabel}</p>
+          <ul class="advice-list">
+            {#each scores.advice as tip}
+              <li>{tip}</li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
       <button class="btn-reset result-full" onclick={reset}>{t.resetBtn}</button>
     </section>
   {/if}
@@ -242,6 +252,18 @@
   }
 
   .chart-panel .panel-label { align-self: flex-start; }
+
+  /* ---- アドバイスパネル ---- */
+  .advice-list {
+    list-style: disc;
+    padding-left: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: #474964;
+  }
 
   /* ---- リセットボタン ---- */
   .btn-reset {

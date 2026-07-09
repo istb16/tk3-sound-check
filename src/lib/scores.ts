@@ -1,7 +1,7 @@
 export type GradeCls = 'good' | 'ok' | 'warn' | 'bad';
-export type ScoreLabel = 'noise' | 'distortion' | 'reverb' | 'echo' | 'clarity';
+export type ScoreLabel = 'volume' | 'frequency' | 'clip' | 'noise';
 
-export const LABELS: ScoreLabel[] = ['noise', 'distortion', 'reverb', 'echo', 'clarity'];
+export const LABELS: ScoreLabel[] = ['volume', 'frequency', 'clip', 'noise'];
 export const SEGMENTS = 20;
 
 export function gradeCls(v: number): GradeCls {
