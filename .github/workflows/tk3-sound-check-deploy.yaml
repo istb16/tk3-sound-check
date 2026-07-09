@@ -1,0 +1,46 @@
+name: Deploy tk3-sound-check
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      working-directory: ./
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - name: install
+        working-directory: ${{ env.working-directory }}
+        run: npm ci
+      - name: Test
+        working-directory: ${{ env.working-directory }}
+        run: npm test
+      - name: Build
+        working-directory: ${{ env.working-directory }}
+        run: npm run build
+      - name: Deploy to firebase
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TK3_SOUND_CHECK }}
+        run: |
+          echo "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > /tmp/sa.json
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          set +e
+          npx firebase-tools@latest deploy --only hosting --project tk3-sound-check --json 2>&1 | tee /tmp/firebase_out.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+          if [ $EXIT_CODE -ne 0 ]; then
+            if grep -q "is the current active version" /tmp/firebase_out.txt; then
+              echo "Build output unchanged — already the current live version. Skipping."
+              exit 0
+            fi
+            exit $EXIT_CODE
+          fi
