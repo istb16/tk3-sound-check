@@ -1,0 +1,75 @@
+/**
+ * アプリ全体で共有する下地。
+ *
+ * ここに置くのは「どの機能でも同じ意味を持つもの」だけ——配色、余白の基準、
+ * パネルという入れ物、控えめなボタン。機能固有の見た目は各コンポーネントの
+ * <style> に置く（Svelte のスコープが効くので混ざらない）。
+ *
+ * パネルは以前 4 つのコンポーネントに同じ定義が複製されていた。機能が増えるたびに
+ * 複製が増える形だったので、ここに集約した。個別の差分（余白やアクセント）は
+ * コンポーネント側で上書きする——スコープ付きセレクタのほうが詳細度が高いため、
+ * 上書きは素直に効く。
+ */
+
+:root {
+  --bg:      #ECEEF5;
+  --ink:     #1A1C2E;
+  --body:    #474964;
+  --muted:   #8A8CA8;
+  --line:    #CDD0E0;
+  --surface: #FFFFFF;
+  --accent:  #006E80;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Hiragino Sans', 'Yu Gothic UI', system-ui, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 2.5rem 1.5rem 5rem;
+}
+
+/* 入力・ステータスのような単段の画面を中央に固定幅で置く */
+.narrow-wrap {
+  width: 100%;
+  max-width: max(55vw, 480px);
+  margin: 0 auto;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1.2rem;
+}
+
+.panel-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+
+/* 主張しないボタン（やり直す・戻る） */
+.btn-quiet {
+  width: 100%;
+  padding: 0.8rem;
+  background: transparent;
+  color: var(--body);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-quiet:hover { border-color: var(--ink); color: var(--ink); }
+.btn-quiet:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

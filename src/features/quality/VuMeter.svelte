@@ -1,10 +1,10 @@
 <script lang="ts">
   import { segColor, gradeCls, SEGMENTS } from './scores.ts';
-  import type { Translations } from './i18n.ts';
+  import type { QualityText } from './i18n.ts';
 
   interface Props {
     score: number;
-    t: Translations;
+    t: QualityText;
   }
 
   let { score, t }: Props = $props();

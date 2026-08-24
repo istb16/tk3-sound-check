@@ -1,25 +1,31 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount } from 'svelte';
 import { page } from 'vitest/browser';
-import type { AudioScores } from './lib/AudioAnalyzer.ts';
 
 // vi.mock はホイストされるため、他のインポートより先に実行される
 vi.mock('./lib/audio.ts', () => ({
   decodeFile:       vi.fn(),
   recordMicrophone: vi.fn(),
 }));
-vi.mock('./lib/AudioAnalyzer.ts', () => ({
+vi.mock('./features/quality/AudioAnalyzer.ts', () => ({
   analyzeAudio: vi.fn(),
 }));
 
 import App from './App.svelte';
-import { decodeFile, recordMicrophone, type Recording } from './lib/audio.ts';
-import { analyzeAudio } from './lib/AudioAnalyzer.ts';
+import { router, normalizePath } from './shell/router.svelte.ts';
+import { decodeFile } from './lib/audio.ts';
+import { analyzeAudio, type AudioScores } from './features/quality/AudioAnalyzer.ts';
 
-// 実データを通したフルフローは e2e.test.ts が担当する。
-// このファイルは audio.ts / AudioAnalyzer.ts をモックし、UI の状態遷移のみを検証する。
+/**
+ * シェルのテスト。ルーティング・ヘッダー・言語切替を見る。
+ *
+ * 個々の機能の中身は各機能のテストが見る（音質チェックなら
+ * features/quality/QualityCheck.test.ts）。ここで機能の内部に踏み込むのは、
+ * 言語がシェルから機能へ伝わることを確かめる箇所だけ。
+ */
 
 let app: Record<string, unknown> | null = null;
+const originalUrl = location.pathname + location.search;
 
 function mountApp(): void {
   const target = document.createElement('div');
@@ -27,40 +33,18 @@ function mountApp(): void {
   app = mount(App, { target });
 }
 
-// 加工の痕跡なし（フルバンド・自然なノイズフロア）の provenance
-const cleanProvenance = {
-  bandwidthHz: 8000,
-  cutoffDropDb: 4,
-  silenceFloorDb: -52,
-  maxZeroRunMs: 0,
-  processed: false,
-  flags: [],
-} satisfies AudioScores['provenance'];
-
 const mockScores: AudioScores = {
   overall: 82, noise: 22, reverb: 17, frequency: 21, volume: 13, clip: 9,
-  advice: [{ code: 'muffled' as const, value: -15 }],
-  provenance: cleanProvenance,
+  advice: [],
+  provenance: {
+    bandwidthHz: 8000, cutoffDropDb: 4, silenceFloorDb: -52,
+    maxZeroRunMs: 0, processed: false, flags: [],
+  },
   rt60Sec: 0.45,
   unreliable: [],
   verdict: { level: 'usable', limitingAxis: 'clip', unconfirmed: false },
-  measured: {
-    snrDb: 28.4,
-    rt60Sec: 0.45,
-    bandwidthHz: 8000,
-    activeSpeechDbfs: -17.2,
-    clipRate: 0,
-  },
+  measured: { snrDb: 28.4, rt60Sec: 0.45, bandwidthHz: 8000, activeSpeechDbfs: -17.2, clipRate: 0 },
 };
-
-const wavFile = (name = 'sample.wav'): File =>
-  new File(['RIFF....'], name, { type: 'audio/wav' });
-
-// 解析が成功する状態にモックを整える
-function mockAnalysisSuccess(scores: AudioScores = mockScores): void {
-  vi.mocked(decodeFile).mockResolvedValue({ sampleRate: 16000 } as unknown as AudioBuffer);
-  vi.mocked(analyzeAudio).mockResolvedValue(scores);
-}
 
 function selectFile(file: File): void {
   const input = document.getElementById('fileInput') as HTMLInputElement;
@@ -68,105 +52,118 @@ function selectFile(file: File): void {
   input.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
-function dropFile(file: File): void {
-  const dropzone = document.querySelector('.dropzone') as HTMLElement;
-  const dataTransfer = new DataTransfer();
-  dataTransfer.items.add(file);
-  dropzone.dispatchEvent(new DragEvent('drop', { dataTransfer, bubbles: true, cancelable: true }));
-}
-
-function dispatchDrag(type: 'dragover' | 'dragleave'): void {
-  const dropzone = document.querySelector('.dropzone') as HTMLElement;
-  dropzone.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true }));
-}
-
-// テスト側から解決タイミングを制御できる Promise
-function deferred<T>(): { promise: Promise<T>; resolve: (v: T) => void } {
-  let resolve!: (v: T) => void;
-  const promise = new Promise<T>((res) => { resolve = res; });
-  return { promise, resolve };
-}
-
 beforeEach(() => {
   document.body.innerHTML = '';
   localStorage.setItem('aqc-lang', 'ja');
   vi.clearAllMocks();
+  // ルーターはモジュール状態なのでテスト間で持ち越される
+  router.path = '/';
 });
 
 afterEach(() => {
   if (app) { unmount(app); app = null; }
   document.body.innerHTML = '';
+  history.replaceState({}, '', originalUrl);
 });
 
-// ---- アイドル状態 ----
-describe('App — アイドル状態', () => {
-  it('タイトル「音質チェッカー」が表示される', async () => {
-    mountApp();
-    await expect.element(page.getByText('音質チェッカー')).toBeVisible();
+describe('normalizePath', () => {
+  it('末尾スラッシュを落とす', () => {
+    expect(normalizePath('/quality/')).toBe('/quality');
   });
 
-  it('AUDIO QUALITY のアイキャッチが表示される', async () => {
+  it('空とルートは / になる', () => {
+    expect(normalizePath('/')).toBe('/');
+    expect(normalizePath('')).toBe('/');
+  });
+});
+
+describe('シェル — メニュー', () => {
+  it('製品名が見出しに出る', async () => {
     mountApp();
-    await expect.element(page.getByText('AUDIO QUALITY')).toBeVisible();
+    await expect.element(page.getByRole('heading', { name: 'サウンドチェック' })).toBeVisible();
   });
 
-  it('ドロップゾーンが表示される', async () => {
+  it('3つの機能がすべてタイルとして並ぶ', async () => {
+    mountApp();
+    const names = (): (string | null)[] =>
+      [...document.querySelectorAll('.tile-name')].map((el) => el.textContent);
+    await expect.poll(names).toEqual(['音質チェック', 'ハウリングチェック', 'ボリュームチェック']);
+  });
+
+  it('未実装の機能だけに準備中バッジが付く', async () => {
+    mountApp();
+    const badged = [...document.querySelectorAll('.tile')]
+      .filter((tile) => tile.querySelector('.tile-badge'))
+      .map((tile) => tile.querySelector('.tile-name')?.textContent);
+    expect(badged).toEqual(['ハウリングチェック', 'ボリュームチェック']);
+  });
+
+  it('知らないパスはメニューに落とす', async () => {
+    router.path = '/nope';
+    mountApp();
+    await expect.element(page.getByRole('heading', { name: 'サウンドチェック' })).toBeVisible();
+  });
+});
+
+describe('シェル — ルーティング', () => {
+  it('タイルを押すと機能画面へ移り、URL も変わる', async () => {
+    mountApp();
+    await page.getByRole('button', { name: /音質チェック/ }).click();
+
+    await expect.element(page.getByText('WAV / MP3 をドロップ')).toBeVisible();
+    expect(location.pathname).toBe('/quality');
+  });
+
+  it('機能画面のヘッダーからメニューへ戻れる', async () => {
+    router.path = '/quality';
     mountApp();
     await expect.element(page.getByText('WAV / MP3 をドロップ')).toBeVisible();
+
+    await page.getByRole('button', { name: /SOUND CHECK/ }).click();
+    await expect.element(page.getByRole('heading', { name: 'サウンドチェック' })).toBeVisible();
   });
 
-  it('マイク録音ボタンに録音秒数が表示される', async () => {
+  it('見出しは機能名になり、製品名は戻るリンクとして残る', async () => {
+    router.path = '/quality';
     mountApp();
-    await expect.element(page.getByRole('button', { name: 'マイクで録音（10秒）' })).toBeVisible();
+    await expect.element(page.getByRole('heading', { name: '音質チェック' })).toBeVisible();
+    await expect.element(page.getByRole('button', { name: /SOUND CHECK/ })).toBeVisible();
   });
 
-  it('ファイル入力が audio/* を受け付ける', async () => {
+  it('document.title がルートごとに変わる', async () => {
     mountApp();
-    const input = document.getElementById('fileInput') as HTMLInputElement;
-    expect(input).not.toBeNull();
-    expect(input.accept).toContain('audio');
+    await expect.poll(() => document.title).toBe('サウンドチェック');
+
+    await page.getByRole('button', { name: /音質チェック/ }).click();
+    await expect.poll(() => document.title).toBe('音質チェック | サウンドチェック');
   });
 });
 
-// ---- ドラッグ&ドロップ ----
-describe('App — ドラッグ&ドロップ', () => {
-  it('dragover でドロップゾーンが強調され、dragleave で解除される', async () => {
+describe('シェル — 準備中の機能', () => {
+  it('何を測る機能なのかを説明したうえで準備中と伝える', async () => {
+    router.path = '/howling';
     mountApp();
-    const dropzone = document.querySelector('.dropzone') as HTMLElement;
 
-    dispatchDrag('dragover');
-    await expect.poll(() => dropzone.classList.contains('drag-over')).toBe(true);
-
-    dispatchDrag('dragleave');
-    await expect.poll(() => dropzone.classList.contains('drag-over')).toBe(false);
+    await expect.element(page.getByText('準備中')).toBeVisible();
+    await expect.element(page.getByText(/鳴っているハウリングの周波数/)).toBeVisible();
+    await expect.element(page.getByText(/この機能はまだ作っていません/)).toBeVisible();
   });
 
-  it('ファイルをドロップすると解析が始まり結果が表示される', async () => {
-    mockAnalysisSuccess();
+  it('準備中の画面からメニューへ戻れる', async () => {
+    router.path = '/volume';
     mountApp();
-    dropFile(wavFile());
-
-    await expect.element(page.getByText('SIGNAL QUALITY'), { timeout: 3000 }).toBeVisible();
-    expect(vi.mocked(decodeFile)).toHaveBeenCalledOnce();
-  });
-
-  it('非音声ファイルをドロップするとエラーになり解析は走らない', async () => {
-    mountApp();
-    dropFile(new File(['x'], 'document.txt', { type: 'text/plain' }));
-
-    await expect.element(page.getByText(/WAV または MP3/)).toBeVisible();
-    expect(vi.mocked(decodeFile)).not.toHaveBeenCalled();
+    await page.getByRole('button', { name: 'メニューに戻る' }).click();
+    await expect.element(page.getByRole('heading', { name: 'サウンドチェック' })).toBeVisible();
   });
 });
 
-// ---- 言語切替 ----
-describe('App — 言語切替', () => {
-  it('EN ボタンで UI が英語表示になる', async () => {
+describe('シェル — 言語切替', () => {
+  it('EN でメニューが英語になる', async () => {
     mountApp();
     await page.getByRole('button', { name: 'EN' }).click();
 
-    await expect.element(page.getByText('Audio Quality Checker')).toBeVisible();
-    await expect.element(page.getByText('Drop WAV / MP3')).toBeVisible();
+    await expect.element(page.getByRole('heading', { name: 'Sound Check' })).toBeVisible();
+    await expect.element(page.getByText('Audio Quality Check')).toBeVisible();
   });
 
   it('選択した言語が localStorage に保存される', async () => {
@@ -178,10 +175,13 @@ describe('App — 言語切替', () => {
     await expect.poll(() => localStorage.getItem('aqc-lang')).toBe('ja');
   });
 
-  it('結果表示中に言語を切り替えるとカテゴリ名も切り替わる', async () => {
-    mockAnalysisSuccess();
+  it('言語は機能の中身にも伝わる（結果のカテゴリ名）', async () => {
+    vi.mocked(decodeFile).mockResolvedValue({ sampleRate: 16000 } as unknown as AudioBuffer);
+    vi.mocked(analyzeAudio).mockResolvedValue(mockScores);
+    router.path = '/quality';
     mountApp();
-    selectFile(wavFile());
+
+    selectFile(new File(['RIFF....'], 'sample.wav', { type: 'audio/wav' }));
     await expect.element(page.getByText('BREAKDOWN'), { timeout: 3000 }).toBeVisible();
 
     const names = (): (string | null)[] =>
@@ -192,228 +192,14 @@ describe('App — 言語切替', () => {
     await expect.poll(names).toEqual(['Noise', 'Reverberation', 'Frequency Balance', 'Volume', 'Clipping']);
   });
 
-  it('エラーメッセージも言語切替に追従する', async () => {
+  it('言語は機能の中身にも伝わる（エラーメッセージ）', async () => {
+    router.path = '/quality';
     mountApp();
+
     selectFile(new File(['x'], 'document.txt', { type: 'text/plain' }));
     await expect.element(page.getByText(/WAV または MP3/)).toBeVisible();
 
     await page.getByRole('button', { name: 'EN' }).click();
     await expect.element(page.getByText('Please select a WAV or MP3 file.')).toBeVisible();
-  });
-});
-
-// ---- 録音フロー ----
-describe('App — 録音フロー', () => {
-  it('録音中は REC 表示と経過秒数の進捗が出る', async () => {
-    const rec = deferred<Recording>();
-    vi.mocked(recordMicrophone).mockImplementation((_ms, onTick) => {
-      onTick?.(0.5);
-      return rec.promise;
-    });
-    mountApp();
-    await page.getByRole('button', { name: /マイクで録音/ }).click();
-
-    await expect.element(page.getByText('REC')).toBeVisible();
-    // 録音中も読み上げ文が見えていること。消えると話す内容を思い出しながら喋る
-    // ことになり、間の取り方が不自然になる（無音区間が無いとSNRも残響も測れない）。
-    await expect.element(page.getByText('これはマイクのテストです。')).toBeVisible();
-    await expect.element(page.getByText('/ 10 sec')).toBeVisible();
-    await expect.poll(() => (document.querySelector('.progress-fill') as HTMLElement | null)?.style.width)
-      .toBe('50%');
-  });
-
-  it('録音完了後に解析へ進み結果が表示される', async () => {
-    const rec = deferred<Recording>();
-    vi.mocked(recordMicrophone).mockReturnValue(rec.promise);
-    vi.mocked(analyzeAudio).mockResolvedValue(mockScores);
-
-    mountApp();
-    await page.getByRole('button', { name: /マイクで録音/ }).click();
-    await expect.element(page.getByText('REC')).toBeVisible();
-
-    rec.resolve({
-      // WAV書き出しが解析対象のサンプルを読むので getChannelData も持たせる
-      buffer: {
-        sampleRate: 48000,
-        getChannelData: () => new Float32Array(4800),
-      } as unknown as AudioBuffer,
-      blob:       new Blob(['audio'], { type: 'audio/webm' }),
-      rawCapture: true,
-    });
-
-    await expect.element(page.getByText('SIGNAL QUALITY'), { timeout: 3000 }).toBeVisible();
-    await expect.element(page.getByText('SOURCE AUDIO')).toBeVisible();
-  });
-
-  it('マイクが拒否されると許可を促すエラーが表示される', async () => {
-    const denied = new Error('Permission denied');
-    denied.name = 'NotAllowedError';
-    vi.mocked(recordMicrophone).mockRejectedValue(denied);
-
-    mountApp();
-    await page.getByRole('button', { name: /マイクで録音/ }).click();
-
-    await expect.element(page.getByText(/マイクへのアクセスが拒否されました/)).toBeVisible();
-  });
-
-  it('録音自体が失敗すると理由付きのエラーが表示される', async () => {
-    vi.mocked(recordMicrophone).mockRejectedValue(new Error('device busy'));
-
-    mountApp();
-    await page.getByRole('button', { name: /マイクで録音/ }).click();
-
-    await expect.element(page.getByText('録音に失敗しました: device busy')).toBeVisible();
-  });
-
-  it('録音エラーのあとにファイル投入で復帰できる', async () => {
-    vi.mocked(recordMicrophone).mockRejectedValue(new Error('device busy'));
-    mountApp();
-    await page.getByRole('button', { name: /マイクで録音/ }).click();
-    await expect.element(page.getByText(/録音に失敗しました/)).toBeVisible();
-
-    mockAnalysisSuccess();
-    selectFile(wavFile());
-    await expect.element(page.getByText('SIGNAL QUALITY'), { timeout: 3000 }).toBeVisible();
-  });
-});
-
-// ---- 解析中 / 解析失敗 ----
-describe('App — 解析中と解析失敗', () => {
-  it('解析中は ANALYZING が表示される', async () => {
-    const pending = deferred<AudioScores>();
-    vi.mocked(decodeFile).mockResolvedValue({ sampleRate: 16000 } as unknown as AudioBuffer);
-    vi.mocked(analyzeAudio).mockReturnValue(pending.promise);
-
-    mountApp();
-    selectFile(wavFile());
-    await expect.element(page.getByText(/ANALYZING/)).toBeVisible();
-
-    pending.resolve(mockScores);
-    await expect.element(page.getByText('SIGNAL QUALITY'), { timeout: 3000 }).toBeVisible();
-  });
-
-  it('解析が失敗すると理由付きのエラーが表示される', async () => {
-    vi.mocked(decodeFile).mockResolvedValue({ sampleRate: 16000 } as unknown as AudioBuffer);
-    vi.mocked(analyzeAudio).mockRejectedValue(new Error('unsupported codec'));
-
-    mountApp();
-    selectFile(wavFile());
-
-    await expect.element(page.getByText('解析に失敗しました: unsupported codec')).toBeVisible();
-  });
-
-  it('デコードが失敗した場合もエラーが表示される', async () => {
-    vi.mocked(decodeFile).mockRejectedValue(new Error('EncodingError'));
-
-    mountApp();
-    selectFile(wavFile());
-
-    await expect.element(page.getByText(/解析に失敗しました: EncodingError/)).toBeVisible();
-    expect(vi.mocked(analyzeAudio)).not.toHaveBeenCalled();
-  });
-});
-
-// ---- エラー処理 ----
-describe('App — エラー処理', () => {
-  it('非音声ファイルを選択するとエラーメッセージが表示される', async () => {
-    mountApp();
-    selectFile(new File(['dummy content'], 'document.txt', { type: 'text/plain' }));
-
-    await expect.element(page.getByText(/WAV または MP3/)).toBeVisible();
-  });
-
-  it('拡張子が音声なら MIME が空でも受け付ける', async () => {
-    mockAnalysisSuccess();
-    mountApp();
-    selectFile(new File(['RIFF....'], 'recording.ogg', { type: '' }));
-
-    await expect.element(page.getByText('SIGNAL QUALITY'), { timeout: 3000 }).toBeVisible();
-  });
-});
-
-// ---- 解析結果表示 ----
-describe('App — 解析結果表示', () => {
-  it('WAV ファイルを投入すると結果セクションが表示される', async () => {
-    mockAnalysisSuccess();
-    mountApp();
-    selectFile(wavFile());
-
-    await expect.element(page.getByText('SIGNAL QUALITY'), { timeout: 3000 }).toBeVisible();
-    await expect.element(page.getByText('BREAKDOWN')).toBeVisible();
-  });
-
-  it('カテゴリ名（音量・周波数バランス・音割れ・ノイズ／無音）がすべて表示される', async () => {
-    mockAnalysisSuccess();
-    mountApp();
-    selectFile(wavFile());
-
-    await expect.element(page.getByText('SIGNAL QUALITY'), { timeout: 3000 }).toBeVisible();
-
-    const list = page.getByRole('list');
-    for (const label of ['ノイズ', '残響', '周波数バランス', '音量', '音割れ']) {
-      await expect.element(list.getByText(label, { exact: true })).toBeVisible();
-    }
-  });
-
-  it('各カテゴリの点数と総合スコアが解析結果どおりに描画される', async () => {
-    mockAnalysisSuccess();
-    mountApp();
-    selectFile(wavFile());
-    await expect.element(page.getByText('BREAKDOWN'), { timeout: 3000 }).toBeVisible();
-
-    // 表示順は scores.ts の LABELS 順（noise, reverb, frequency, volume, clip）
-    const values = [...document.querySelectorAll('.b-val')].map((el) => Number(el.textContent));
-    expect(values).toEqual([22, 17, 21, 13, 9]);
-    expect(document.querySelector('.vu-meter')?.getAttribute('aria-label')).toBe('総合スコア 82点');
-  });
-
-  it('アドバイスがある場合はアドバイスパネルが表示される', async () => {
-    mockAnalysisSuccess();
-    mountApp();
-    selectFile(wavFile());
-    await expect.element(page.getByText('BREAKDOWN'), { timeout: 3000 }).toBeVisible();
-
-    await expect.element(page.getByText('アドバイス')).toBeVisible();
-    expect(document.querySelectorAll('.advice-list li')).toHaveLength(1);
-  });
-
-  it('アドバイスが空の場合はアドバイスパネルが表示されない', async () => {
-    mockAnalysisSuccess({ ...mockScores, advice: [] });
-    mountApp();
-    selectFile(wavFile());
-    await expect.element(page.getByText('BREAKDOWN'), { timeout: 3000 }).toBeVisible();
-
-    expect(document.querySelector('.advice-list')).toBeNull();
-  });
-
-  it('「もう一度チェックする」ボタンでアイドル状態に戻る', async () => {
-    mockAnalysisSuccess();
-    mountApp();
-    selectFile(wavFile());
-
-    const resetBtn = page.getByRole('button', { name: /もう一度チェックする/ });
-    await expect.element(resetBtn, { timeout: 3000 }).toBeVisible();
-    await resetBtn.click();
-
-    await expect.element(page.getByText('WAV / MP3 をドロップ')).toBeVisible();
-  });
-
-  it('リセット後に別のファイルを投入すると再解析される', async () => {
-    mockAnalysisSuccess();
-    mountApp();
-    selectFile(wavFile('first.wav'));
-
-    const resetBtn = page.getByRole('button', { name: /もう一度チェックする/ });
-    await expect.element(resetBtn, { timeout: 3000 }).toBeVisible();
-    await resetBtn.click();
-    await expect.element(page.getByText('WAV / MP3 をドロップ')).toBeVisible();
-
-    mockAnalysisSuccess({ ...mockScores, overall: 40, volume: 10, frequency: 10, clip: 10, noise: 10 });
-    selectFile(wavFile('second.wav'));
-
-    await expect.element(page.getByText('BREAKDOWN'), { timeout: 3000 }).toBeVisible();
-    await expect.poll(() => document.querySelector('.vu-meter')?.getAttribute('aria-label'))
-      .toBe('総合スコア 40点');
-    expect(vi.mocked(analyzeAudio)).toHaveBeenCalledTimes(2);
   });
 });

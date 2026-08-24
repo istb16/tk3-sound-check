@@ -1,11 +1,11 @@
 <script lang="ts">
   import { scoreColor, LABELS, type ScoreLabel } from './scores.ts';
   import type { AudioScores } from './AudioAnalyzer.ts';
-  import type { Translations } from './i18n.ts';
+  import type { QualityText } from './i18n.ts';
 
   interface Props {
     scores: AudioScores;
-    t: Translations;
+    t: QualityText;
     /** 加工の痕跡により信用できない軸。バッジを付けて明示する */
     unreliable?: ScoreLabel[];
   }
@@ -38,22 +38,6 @@
 </div>
 
 <style>
-  .panel {
-    background: #FFFFFF;
-    border: 1px solid #CDD0E0;
-    border-radius: 6px;
-    padding: 1.2rem;
-  }
-
-  .panel-label {
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    color: #8A8CA8;
-    margin-bottom: 1rem;
-    text-transform: uppercase;
-  }
-
   .breakdown {
     list-style: none;
     display: flex;

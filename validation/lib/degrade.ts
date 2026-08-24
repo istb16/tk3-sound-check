@@ -7,7 +7,7 @@
  */
 
 import { makeNoiseRng } from './rng.ts';
-import { separateActiveFrames } from '../../src/lib/estimators.ts';
+import { separateActiveFrames } from '../../src/features/quality/estimators.ts';
 import { fftConvolve, lowpass, normalizePeak, rmsAll } from './dsp.ts';
 import { ifft } from '../../src/lib/signal.ts';
 

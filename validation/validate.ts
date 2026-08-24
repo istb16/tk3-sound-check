@@ -24,9 +24,9 @@ import { decodeWav } from './lib/wav.ts';
 import { MANIFEST, REPORT_JSON, REPORT_MD, ROOT, parseArgs } from './lib/paths.ts';
 import {
   estimateClipping, estimateLevel, estimateReverb, estimateSnr, estimateSpectralSlope,
-} from '../src/lib/estimators.ts';
-import { detectProvenance } from '../src/lib/provenance.ts';
-import { analyzeSamples, AXIS_MAX } from '../src/lib/AudioAnalyzer.ts';
+} from '../src/features/quality/estimators.ts';
+import { detectProvenance } from '../src/features/quality/provenance.ts';
+import { analyzeSamples, AXIS_MAX } from '../src/features/quality/AudioAnalyzer.ts';
 import { scoreMos } from './mos-oracle.ts';
 
 const args = parseArgs(process.argv.slice(2));

@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mount, unmount } from 'svelte';
 import { page } from 'vitest/browser';
-import App from './App.svelte';
-import { LABELS } from './lib/scores.ts';
-import { AXIS_MAX } from './lib/AudioAnalyzer.ts';
+import QualityCheck from './QualityCheck.svelte';
+import { LABELS } from './scores.ts';
+import { AXIS_MAX } from './AudioAnalyzer.ts';
 
 /** BREAKDOWN の並び順に依存せず軸を引く */
 function axisValue(values: number[], axis: (typeof LABELS)[number]): number {
@@ -87,10 +87,10 @@ function clippedWav(name = 'clipped.wav'): File {
 // ---- マウント / 操作ヘルパー ----
 let app: Record<string, unknown> | null = null;
 
-function mountApp(): void {
+function mountApp(lang: 'ja' | 'en' = 'ja'): void {
   const target = document.createElement('div');
   document.body.appendChild(target);
-  app = mount(App, { target });
+  app = mount(QualityCheck, { target, props: { lang } });
 }
 
 function selectFile(file: File): void {
@@ -279,10 +279,11 @@ describe('E2E — 異常系と復帰', () => {
 });
 
 // ---- 多言語 ----
-describe('E2E — 言語切替と実解析の組み合わせ', () => {
-  it('EN に切り替えたまま解析すると英語のカテゴリ名で結果が出る', async () => {
-    mountApp();
-    await page.getByRole('button', { name: 'EN' }).click();
+describe('E2E — 表示言語と実解析の組み合わせ', () => {
+  it('EN のまま解析すると英語のカテゴリ名で結果が出る', async () => {
+    // 言語トグルそのものはシェルの持ち物なので App.test.ts が見る。
+    // ここで確かめるのは「実解析の結果が選択中の言語で描かれるか」。
+    mountApp('en');
     await expect.element(page.getByText('Drop WAV / MP3')).toBeVisible();
 
     selectFile(cleanToneWav());
@@ -292,11 +293,10 @@ describe('E2E — 言語切替と実解析の組み合わせ', () => {
     expect(names).toEqual(['Noise', 'Reverberation', 'Frequency Balance', 'Volume', 'Clipping']);
   });
 
-  it('EN に切り替えるとアドバイスも英語で出る', async () => {
+  it('EN ではアドバイスも英語で出る', async () => {
     // 以前は分析側で日本語を組み立てていたため、ENモードでもアドバイスだけ
     // 日本語で表示されていた。
-    mountApp();
-    await page.getByRole('button', { name: 'EN' }).click();
+    mountApp('en');
     await expect.element(page.getByText('Drop WAV / MP3')).toBeVisible();
 
     selectFile(clippedWav());

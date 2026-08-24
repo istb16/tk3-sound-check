@@ -1,12 +1,16 @@
-export type Lang = 'ja' | 'en';
+/** 音質チェックの文言。他の機能はそれぞれ自分の i18n.ts を持つ。 */
+import type { Lang } from '../../shell/i18n.ts';
+import type { AdviceCode } from './AudioAnalyzer.ts';
+
 export type CategoryKey = 'volume' | 'frequency' | 'reverb' | 'clip' | 'noise';
 export type GradeKey = 'good' | 'ok' | 'warn' | 'bad';
 export type VerdictKey = 'good' | 'usable' | 'poor';
 
-import type { AdviceCode } from './AudioAnalyzer.ts';
-
-export type Translations = {
-  title: string;
+export type QualityText = {
+  /** 機能名。アプリ全体の名前（サウンドチェック）とは別物 */
+  name: string;
+  /** メニューのタイルに出す一行説明 */
+  summary: string;
   dropMain: string;
   dropSub: string;
   dropAriaLabel: string;
@@ -67,9 +71,10 @@ export type Translations = {
   micScript: string[];
 };
 
-export const T: Record<Lang, Translations> = {
+export const T: Record<Lang, QualityText> = {
   ja: {
-    title:         '音質チェッカー',
+    name:          '音質チェック',
+    summary:       '録音した音声が会議に使えるかを5軸で採点します。',
     dropMain:      'WAV / MP3 をドロップ',
     dropSub:       'クリックしてファイルを選択',
     dropAriaLabel: 'ファイルをドロップするか、クリックして選択',
@@ -162,7 +167,8 @@ export const T: Record<Lang, Translations> = {
     ],
   },
   en: {
-    title:         'Audio Quality Checker',
+    name:          'Audio Quality Check',
+    summary:       'Scores a recording on five axes to say whether it is good enough for meetings.',
     dropMain:      'Drop WAV / MP3',
     dropSub:       'Click to select a file',
     dropAriaLabel: 'Drop a file or click to select',
@@ -256,10 +262,3 @@ export const T: Record<Lang, Translations> = {
   },
 };
 
-export function initLang(): Lang {
-  try {
-    const stored = localStorage.getItem('aqc-lang');
-    if (stored === 'ja' || stored === 'en') return stored;
-  } catch {}
-  return navigator.language.startsWith('ja') ? 'ja' : 'en';
-}

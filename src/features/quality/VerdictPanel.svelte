@@ -1,10 +1,10 @@
 <script lang="ts">
   import type { AudioScores } from './AudioAnalyzer.ts';
-  import type { Translations } from './i18n.ts';
+  import type { QualityText } from './i18n.ts';
 
   interface Props {
     scores: AudioScores;
-    t: Translations;
+    t: QualityText;
   }
 
   let { scores, t }: Props = $props();
@@ -50,22 +50,10 @@
 </div>
 
 <style>
-  .panel {
-    background: #FFFFFF;
-    border: 1px solid #CDD0E0;
-    border-left-width: 4px;
-    border-radius: 6px;
-    padding: 1.2rem;
-  }
+  /* 下地(app.css)との差分だけ持つ。左の帯で判定の色を出す */
+  .panel { border-left-width: 4px; }
 
-  .panel-label {
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    color: #8A8CA8;
-    margin-bottom: 0.7rem;
-    text-transform: uppercase;
-  }
+  .panel-label { margin-bottom: 0.7rem; }
 
   .v-good   { border-left-color: #006E80; }
   .v-usable { border-left-color: #B86000; }

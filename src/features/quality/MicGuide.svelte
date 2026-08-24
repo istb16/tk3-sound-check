@@ -6,10 +6,10 @@
    * 思い出しながら喋ることになり、間の取り方が不自然になる。発話区間と無音区間の
    * 両方が無いとSNRも残響も測れないので、案内が見えていること自体が測定の前提。
    */
-  import type { Translations } from './i18n.ts';
+  import type { QualityText } from './i18n.ts';
 
   interface Props {
-    t: Translations;
+    t: QualityText;
   }
 
   let { t }: Props = $props();

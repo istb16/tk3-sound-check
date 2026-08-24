@@ -68,21 +68,8 @@
 </div>
 
 <style>
-  .panel {
-    background: #FFFFFF;
-    border: 1px solid #CDD0E0;
-    border-radius: 6px;
-    padding: 1.2rem;
-  }
-
-  .panel-label {
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    color: #8A8CA8;
-    margin-bottom: 0.85rem;
-    text-transform: uppercase;
-  }
+  /* 下地(app.css)との差分だけ持つ */
+  .panel-label { margin-bottom: 0.85rem; }
 
   .controls {
     display: flex;

@@ -17,7 +17,7 @@ import {
   frameRmsList,
   percentile,
   rms,
-} from './signal.ts';
+} from '../../lib/signal.ts';
 
 /** 解析に使うフレーム長[秒] */
 const FRAME_SEC = 0.02;

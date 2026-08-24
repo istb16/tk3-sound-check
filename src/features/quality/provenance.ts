@@ -20,7 +20,7 @@ import {
   dbfs,
   frameRmsList,
   percentile,
-} from './signal.ts';
+} from '../../lib/signal.ts';
 
 /** 加工の痕跡の種類 */
 export type ProvenanceFlag =

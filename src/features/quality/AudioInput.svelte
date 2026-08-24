@@ -1,9 +1,9 @@
 <script lang="ts">
-  import type { Translations } from './i18n.ts';
+  import type { QualityText } from './i18n.ts';
   import MicGuide from './MicGuide.svelte';
 
   interface Props {
-    t: Translations;
+    t: QualityText;
     recordDuration: number;
     errorMsg?: string;
     onFile: (file: File) => void;

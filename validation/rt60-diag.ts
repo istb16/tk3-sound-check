@@ -10,7 +10,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { decodeWav } from './lib/wav.ts';
-import { estimateReverb } from '../src/lib/estimators.ts';
+import { estimateReverb } from '../src/features/quality/estimators.ts';
 import { MANIFEST, ROOT } from './lib/paths.ts';
 
 const m = JSON.parse(readFileSync(MANIFEST, 'utf8'));
