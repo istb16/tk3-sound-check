@@ -53,6 +53,15 @@ interface Row {
   scores: { overall: number; volume: number; frequency: number; reverb: number; clip: number; noise: number };
   /** 残響推定に使えた減衰イベント数（rt60条件の診断用） */
   decayEvents: number | null;
+  /**
+   * 推定したRT60[秒]と、条件が持つRT60の真値。
+   *
+   * drr条件（マイク位置を振る条件）では単調性の軸に DRR を使うので、RT60の誤差が
+   * truthValue/estimate には載らない。どのマイク距離まで残響を判定できるかを見るため
+   * 別に持つ。
+   */
+  rt60Estimate: number | null;
+  rt60Truth: number | null;
   bandwidthHz: number;
   flags: string[];
   /**
@@ -236,6 +245,8 @@ function evaluate(item: ManifestItem, samples: Float32Array, mos: number | null)
       noise: scores.noise,
     },
     decayEvents: reverbEst.events,
+    rt60Estimate: reverbEst.rt60Sec,
+    rt60Truth: item.truth.rt60Sec ?? null,
     bandwidthHz: prov.bandwidthHz,
     flags: prov.flags,
     unreliable: scores.unreliable,
@@ -531,6 +542,57 @@ function weighting(rows: Row[]): WeightingReport | null {
         axisRho: axisRhoVsMos(g.list),
       })),
   };
+}
+
+// ==========================================================================
+// マイク位置ごとの残響の測定能力
+// ==========================================================================
+
+/**
+ * 直接音対残響比(DRR)ごとのRT60の誤差と測定不能率。
+ *
+ * 近似の開始点を発話の立ち下がりより下(-10dB)に置いた副作用として、残響が弱い
+ * （=マイクが近い）ほど観測できる減衰が浅くなり、測定できる条件が減る。
+ * どのマイク距離まで残響を判定できるのかを数値で押さえる。
+ */
+interface DrrCapability {
+  drrDb: number;
+  n: number;
+  /** 測定できた件数 */
+  measured: number;
+  bias: number | null;
+  mae: number | null;
+  maxAbs: number | null;
+  /** 平均の減衰イベント数 */
+  events: number;
+  /** 残響軸を参考値として開示した件数 */
+  unreliable: number;
+}
+
+function drrCapability(rows: Row[]): DrrCapability[] {
+  const list = rows.filter((r) => r.conditionType === 'drr');
+  const byDrr = new Map<number, Row[]>();
+  for (const r of list) {
+    const k = Number(r.params.targetDrrDb);
+    byDrr.set(k, [...(byDrr.get(k) ?? []), r]);
+  }
+
+  const out: DrrCapability[] = [];
+  for (const [drrDb, group] of [...byDrr].sort((a, b) => b[0] - a[0])) {
+    const ok = group.filter((r) => r.rt60Estimate !== null && r.rt60Truth !== null);
+    const errs = ok.map((r) => (r.rt60Estimate as number) - (r.rt60Truth as number));
+    out.push({
+      drrDb,
+      n: group.length,
+      measured: ok.length,
+      bias: errs.length ? round(errs.reduce((a, b) => a + b, 0) / errs.length, 3) : null,
+      mae: errs.length ? round(errs.reduce((a, b) => a + Math.abs(b), 0) / errs.length, 3) : null,
+      maxAbs: errs.length ? round(Math.max(...errs.map(Math.abs)), 3) : null,
+      events: round(group.reduce((a, r) => a + (r.decayEvents ?? 0), 0) / group.length, 1),
+      unreliable: group.filter((r) => r.unreliable.includes('reverb')).length,
+    });
+  }
+  return out;
 }
 
 /** 劣化の強さとスコアの向きが合っているか */
@@ -846,8 +908,27 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
     }
   }
 
+  if (report.drrCapability.length > 0) {
+    L.push('## 5. マイク位置ごとの残響の測定能力');
+    L.push('');
+    L.push('RT60を固定して直接音対残響比(DRR)だけを振った条件。DRRはマイク位置に相当し、');
+    L.push('了解度にはRT60よりこちらが効く。近接マイクなら同じ部屋でも残響はほとんど乗らない。');
+    L.push('');
+    L.push('目安: +15〜+25dB 近接(10〜30cm) / +5〜+15dB 卓上・ノートPC / -5〜+5dB 部屋の向こう');
+    L.push('');
+    L.push('| DRR[dB] | 件数 | 測定できた | バイアス[秒] | MAE[秒] | 最大誤差[秒] | 減衰イベント数 | 参考値扱い |');
+    L.push('|---:|---:|---:|---:|---:|---:|---:|---:|');
+    for (const d of report.drrCapability) {
+      L.push(
+        `| ${d.drrDb} | ${d.n} | ${d.measured} | ${d.bias ?? 'n/a'} | ${d.mae ?? 'n/a'} | ` +
+        `${d.maxAbs ?? 'n/a'} | ${d.events} | ${d.unreliable} |`,
+      );
+    }
+    L.push('');
+  }
+
   if (report.verdicts.some((v) => v.n > 0)) {
-    L.push('## 5. 判定の分離（複合条件）');
+    L.push('## 6. 判定の分離（複合条件）');
     L.push('');
     L.push('判定は**最弱の軸**で決まるので、複数の軸が同時に下がる複合条件でこそ意味を持つ。');
     L.push('「良好」の群と「不可」の群でMOSの分布が重なっているなら、閾値は意味をなしていない。');
@@ -863,7 +944,7 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
     L.push('');
   }
 
-  L.push('## 6. 劣化なし基準の挙動');
+  L.push('## 7. 劣化なし基準の挙動');
   L.push('');
   L.push('| id | 総合 | ノイズ | 残響 | 周波数 | 音量 | 音割れ | 帯域上限[Hz] | 検出フラグ | 参考値扱いの軸 |');
   L.push('|---|---:|---:|---:|---:|---:|---:|---:|---|---|');
@@ -885,7 +966,10 @@ function buildReport(rows: Row[], sources: string[], mosNote: string, mosAvailab
   const notImplemented = [...new Set(rows.map((r) => r.conditionType))]
     // clean は劣化なし、mixed は複合条件（物理量ごとの真値を定義できないので
     // 誤差の集計対象外。配点の検証にだけ使う）。どちらも未実装ではない。
-    .filter((t) => t !== 'clean' && t !== 'mixed' && !measuredTypes.has(t))
+    // clean は劣化なし。mixed は複合条件（物理量ごとの真値を定義できない）。
+    // drr はマイク位置の条件で、無参照でDRRを推定する器は持たない（残響軸の反応を
+    // 見るだけ）。いずれも未実装ではない。
+    .filter((t) => !['clean', 'mixed', 'drr'].includes(t) && !measuredTypes.has(t))
     .map((t) => {
       const list = rows.filter((r) => r.conditionType === t);
       return { conditionType: t, label: list[0].errorLabel, n: list.length };
@@ -936,6 +1020,7 @@ function buildReport(rows: Row[], sources: string[], mosNote: string, mosAvailab
       trustworthy: cleanBaseline !== null && cleanBaseline >= MOS_TRUSTWORTHY_BASELINE,
     },
     weighting: weighting(rows),
+    drrCapability: drrCapability(rows),
     verdicts: verdictStats(rows),
     cleanRows: rows.filter((r) => r.conditionType === 'clean'),
     rows,
@@ -1002,6 +1087,15 @@ async function main(): Promise<void> {
   console.log('\nスコアの単調性:');
   for (const m of report.monotonicity) {
     console.log(`  ${m.conditionType.padEnd(8)} ${m.axis.padEnd(10)} rho=${String(m.rho ?? 'n/a').padStart(6)}  ${m.verdict}`);
+  }
+  if (report.drrCapability.length > 0) {
+    console.log(`
+マイク位置ごとの残響の測定能力（RT60は固定）:`);
+    for (const d of report.drrCapability) {
+      console.log(`  DRR ${String(d.drrDb).padStart(4)}dB  測定 ${d.measured}/${d.n}  ` +
+        `bias=${String(d.bias ?? 'n/a').padStart(7)} MAE=${String(d.mae ?? 'n/a').padStart(6)}  ` +
+        `イベント${d.events}  参考値${d.unreliable}/${d.n}`);
+    }
   }
   if (report.verdicts.some((v) => v.n > 0)) {
     console.log(`
