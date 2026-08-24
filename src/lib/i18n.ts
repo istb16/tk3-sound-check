@@ -30,15 +30,13 @@ export type Translations = {
   adviceTexts: Record<AdviceCode, string | ((value: number) => string)>;
   /** 加工済み音声の警告パネル */
   provenanceLabel: string;
-  /** ファイルを分析したときの案内。このツールのマイク録音を勧める */
-  provenanceIntro: string;
   /**
-   * このツールのマイク録音でも痕跡が出たときの案内。
+   * この録音に見られる加工の説明。
    *
-   * ここで「このツールのマイク録音を使ってください」と言っても手詰まりになる。
-   * OSやドライバの音声処理は getUserMedia の制約では切れないので、案内する先が違う。
+   * 加工そのものを欠点として扱わないので、対処を促す文面にはしない。
+   * スコアがどう出ているかを理解するための情報として出す。
    */
-  provenanceIntroMic: string;
+  provenanceIntro: string;
   provenanceBandLimited: (hz: number) => string;
   provenanceDigitalSilence: string;
   provenanceZeroRun: string;
@@ -62,6 +60,9 @@ export type Translations = {
   factClip: (percent: number) => string;
   /** 録音前の案内 */
   micHint: string;
+  /** 録音をWAVで保存するリンクの文面 */
+  saveWav: string;
+  saveWavHint: string;
   micScriptLabel: string;
   micScript: string[];
 };
@@ -117,22 +118,16 @@ export const T: Record<Lang, Translations> = {
     },
     provenanceLabel: 'この録音について',
     provenanceIntro:
-      'この音声はすでに加工されています。録音環境のスコアは参考値として見てください。' +
-      '環境を正確に測るには、このツールのマイク録音を使ってください。',
-    provenanceIntroMic:
-      'このツールで録音しましたが、それでも加工の痕跡があります。OSやマイクのドライバが' +
-      '音声処理をしているため、ブラウザからは切れません。' +
-      'Windowsなら「サウンドの設定」から入力デバイスのプロパティを開き、' +
-      '「オーディオの拡張機能」をオフにしてから録り直してください。',
+      'この音声には次の加工が見られます。スコアはこの音声そのものに対する評価です。',
     provenanceBandLimited: (hz) =>
       `高音域が約 ${Math.round(hz / 100) / 10} kHz で切られています（圧縮・電話品質の痕跡）。` +
-      '削られた帯域は減点対象から消えるため、周波数バランスのスコアは実際より高く出ます。',
+      '子音が聞き取りにくくなるぶんは周波数バランスの点数に含まれています。',
     provenanceDigitalSilence:
       '無音区間が不自然に静かです（ノイズ抑制の痕跡）。' +
-      '背景ノイズはすでに除去されているため、ノイズのスコアは実際より高く出ます。',
+      '背景ノイズは録音時に除去されています。部屋が静かだったことを意味するものではありません。',
     provenanceZeroRun:
       '完全な無音が長く連続しています（ノイズゲートまたはDTXの痕跡）。' +
-      'ノイズのスコアは実際より高く出ます。',
+      '話していない区間が切り落とされています。',
     provenanceRawFallback:
       'このブラウザでは生の音声を取得できず、圧縮された録音を分析しました。' +
       'ノイズのスコアは参考値です。',
@@ -157,6 +152,8 @@ export const T: Record<Lang, Translations> = {
     factClipNone:  'クリッピング: なし',
     factClip:      (percent) => `クリッピング: 有音区間の ${percent.toFixed(2)}%`,
     micHint: '10秒間、いつも通りの声で話してください。文の区切りで一拍おくと、残響も測定できます。',
+    saveWav: '録音をWAVで保存',
+    saveWavHint: '解析したままの音声（32bit float・無圧縮）を保存します。',
     micScriptLabel: '読み上げ文の例',
     micScript: [
       'これはマイクのテストです。',
@@ -214,22 +211,16 @@ export const T: Record<Lang, Translations> = {
     },
     provenanceLabel: 'About this recording',
     provenanceIntro:
-      'This audio has already been processed. Treat the environment scores as indicative only. ' +
-      'To measure the environment accurately, record with this tool instead.',
-    provenanceIntroMic:
-      'You recorded with this tool, but processing traces are still present. Your operating ' +
-      'system or microphone driver is processing the audio, and the browser cannot turn that off. ' +
-      'On Windows, open Sound settings, go to your input device properties, turn off ' +
-      'audio enhancements, then record again.',
+      'The following processing is present in this audio. The scores describe this audio as it is.',
     provenanceBandLimited: (hz) =>
       `High frequencies are cut off at about ${Math.round(hz / 100) / 10} kHz (a sign of compression or telephone-grade audio). ` +
-      'The removed band can no longer be penalised, so the frequency balance score reads higher than reality.',
+      'The resulting loss of consonant clarity is already reflected in the frequency balance score.',
     provenanceDigitalSilence:
       'The silent passages are unnaturally quiet (a sign of noise suppression). ' +
-      'The background noise has already been removed, so the noise score reads higher than reality.',
+      'Background noise was removed during recording, which does not mean the room itself was quiet.',
     provenanceZeroRun:
       'There are long runs of absolute silence (a sign of a noise gate or DTX). ' +
-      'The noise score reads higher than reality.',
+      'The passages where nobody spoke have been cut away.',
     provenanceRawFallback:
       'This browser could not provide raw audio, so a compressed recording was analysed. ' +
       'The noise score is indicative only.',
@@ -254,6 +245,8 @@ export const T: Record<Lang, Translations> = {
     factClipNone:  'Clipping: none',
     factClip:      (percent) => `Clipping: ${percent.toFixed(2)}% of active audio`,
     micHint: 'Speak normally for 10 seconds. Pausing between sentences lets us measure reverberation too.',
+    saveWav: 'Save recording as WAV',
+    saveWavHint: 'Saves exactly what was analysed (32-bit float, uncompressed).',
     micScriptLabel: 'Example script',
     micScript: [
       'This is a microphone test.',

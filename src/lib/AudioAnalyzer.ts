@@ -222,24 +222,34 @@ function judge(scores: Record<ScoreAxis, number>, unreliable: ScoreAxis[]): Verd
 function calcVolumeScore(data: Float32Array, sampleRate: number, advice: AdviceItem[]): number {
   const MAX = AXIS_MAX.volume;
   /**
-   * 満点とする有効音声レベルの範囲[dBFS]。
+   * 減点しない有効音声レベルの範囲[dBFS]。
    *
-   * 以前は -20〜-14 dBFS だった。**これは放送・配信の制作目標であって、
-   * 録音が使えるかの基準ではない。** 実録音を入れて初めて分かった: PCの録音が
-   * -31.4dBFS、スマホの録音が -26.2dBFS で、どちらも音量軸だけで「不可」判定に
-   * なっていた（1/15点・7/15点）。実害はどこにも無いのに。
+   * **レベルはできあがった音声の品質属性ではない。** 正規化すれば直るし、
+   * 録音環境について何も語らない。だから減点するのは「レベルが低すぎて音質を
+   * 実際に損なう」ところだけにする。
    *
-   * 公表されている発話レベルの基準はいずれも、もっと低いところにある。
-   *   ITU-T P.56 系の試験手順 … 有効音声レベルを **-26 dBov** に正規化する
-   *   EBU R128 / ATSC A/85  … 番組ラウドネス目標 -23 LUFS / -24 LKFS
-   *   民生の録音アプリ・会議端末 … おおむね -30〜-18 dBFS
+   * 経緯: 最初は -20〜-14dBFS だった（放送・配信の制作目標）。実録音を入れると
+   * 全滅したので -30〜-12dBFS に広げたが、それでも足りなかった。実録音4本の
+   * 有効音声レベルは -26.2 / -31.4 / -35.4 / -47.4 dBFS で、民生機材はこの帯に
+   * 収まらない。-47.4dBFS の録音は SNR 28.5dB・全帯域・残響0.25秒・音割れ無しで、
+   * 正規化すれば何の問題も無いのに音量軸だけで「不可」になっていた。
    *
-   * 下限は -30dBFS に置いた。16bitでもここから量子化フロア(-96dBFS)まで65dBの
-   * 余裕があり、実害が出る水準ではない。上限は -12dBFS。発話の波高率は12〜18dBなので
-   * これ以上ではピークが0dBFSに達しはじめる（実際に割れているかは音割れ軸が測る）。
+   * 下限の根拠は量子化フロア。16bitのフロアは -96dBFS なので、発話が -50dBFS でも
+   * 46dBの余裕がある。それ以下になると量子化雑音が聞こえ始める。
+   * 上限は -12dBFS。発話の波高率は12〜18dBなのでこれ以上ではピークが0dBFSに
+   * 達しはじめる（実際に割れているかは音割れ軸が測る）。
    */
-  const IDEAL_LO = -30;
+  const IDEAL_LO = -50;
   const IDEAL_HI = -12;
+  /**
+   * 助言を出すレベル[dBFS]。**採点の範囲とは別に持つ。**
+   *
+   * 減点はしないが、入力ゲインを上げたほうがよいことは伝える価値がある。
+   * 次の録音のSNRが良くなるし、利用者が最も簡単に直せる要因でもある。
+   * ITU-T P.56 系の試験手順が有効音声レベルを -26dBov に正規化することと、
+   * 民生機材の実測（-26〜-47dBFS）を踏まえて -30dBFS に置いた。
+   */
+  const ADVISE_LOW_DBFS = -30;
   /** 1dB逸脱あたりの減点。12dB以上の逸脱でほぼ0点 */
   const PENALTY_PER_DB = MAX / 12;
 
@@ -254,7 +264,7 @@ function calcVolumeScore(data: Float32Array, sampleRate: number, advice: AdviceI
     score = clamp(MAX - deviation * PENALTY_PER_DB, 0, MAX);
   }
 
-  if (levelDb < IDEAL_LO - 3) {
+  if (levelDb < ADVISE_LOW_DBFS) {
     advice.push({ code: 'level-low' });
   } else if (levelDb > IDEAL_HI + 3) {
     advice.push({ code: 'level-high' });

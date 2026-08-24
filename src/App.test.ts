@@ -214,6 +214,9 @@ describe('App — 録音フロー', () => {
     await page.getByRole('button', { name: /マイクで録音/ }).click();
 
     await expect.element(page.getByText('REC')).toBeVisible();
+    // 録音中も読み上げ文が見えていること。消えると話す内容を思い出しながら喋る
+    // ことになり、間の取り方が不自然になる（無音区間が無いとSNRも残響も測れない）。
+    await expect.element(page.getByText('これはマイクのテストです。')).toBeVisible();
     await expect.element(page.getByText('/ 10 sec')).toBeVisible();
     await expect.poll(() => (document.querySelector('.progress-fill') as HTMLElement | null)?.style.width)
       .toBe('50%');
@@ -229,7 +232,11 @@ describe('App — 録音フロー', () => {
     await expect.element(page.getByText('REC')).toBeVisible();
 
     rec.resolve({
-      buffer:     { sampleRate: 48000 } as unknown as AudioBuffer,
+      // WAV書き出しが解析対象のサンプルを読むので getChannelData も持たせる
+      buffer: {
+        sampleRate: 48000,
+        getChannelData: () => new Float32Array(4800),
+      } as unknown as AudioBuffer,
       blob:       new Blob(['audio'], { type: 'audio/webm' }),
       rawCapture: true,
     });

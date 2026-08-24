@@ -99,13 +99,23 @@ describe('detectProvenance — ノイズ抑制の痕跡', () => {
 });
 
 describe('unreliableAxes', () => {
-  it('帯域制限は周波数バランスとノイズを信用できなくする', () => {
-    const axes = unreliableAxes(detectProvenance(bandLimitedNoise(4000), SR));
-    expect(axes).toContain('frequency');
-    expect(axes).toContain('noise');
+  // この道具が答えるのは「できあがった音声が会議の録音として使えるか」であって
+  // 「部屋の音響がよいか」ではない。ノイズ抑制が入っていて結果の音声に問題が
+  // なければ音質はよい。加工そのものを欠点として扱わないので、痕跡があっても
+  // 軸を参考値に落とさない。
+  //
+  // 以前は帯域制限で周波数軸とノイズ軸、ノイズ抑制でノイズ軸と残響軸を落として
+  // いた。帯域が削られたぶんは周波数軸の帯域幅の内訳が直接減点するので、
+  // 参考値扱いは二重の扱いでもあった。
+  it('痕跡があっても軸を参考値に落とさない', () => {
+    for (const cutoff of [3400, 4000, 8000]) {
+      const p = detectProvenance(bandLimitedNoise(cutoff), SR);
+      expect(p.flags, `cutoff=${cutoff}`).toContain('band-limited');
+      expect(unreliableAxes(p), `cutoff=${cutoff}`).toEqual([]);
+    }
   });
 
-  it('痕跡がなければ信用できない軸はない', () => {
+  it('痕跡がなければ当然何も落とさない', () => {
     const data = bandLimitedNoise(SR / 2, { slopeDbPerOct: -6 });
     for (let i = 0; i < SR * 0.5; i++) data[i] = 0.0025 * (Math.random() * 2 - 1);
     expect(unreliableAxes(detectProvenance(data, SR))).toEqual([]);
@@ -184,11 +194,10 @@ describe('detectProvenance — 48kHz録音', () => {
     return data;
   }
 
-  it('48kHz録音でも8kHzの帯域制限を見つけて警告する', () => {
+  it('48kHz録音でも8kHzの帯域制限を見つける', () => {
     const p = detectProvenance(noiseAt(MIC_SR, MIC_LEN, 8000), MIC_SR);
     expect(Math.abs(p.bandwidthHz - 8000)).toBeLessThanOrEqual(200);
     expect(p.flags).toContain('band-limited');
-    expect(unreliableAxes(p)).toContain('frequency');
   });
 
   it('48kHz録音の電話品質(3.4kHz)も同じ精度で見つける', () => {

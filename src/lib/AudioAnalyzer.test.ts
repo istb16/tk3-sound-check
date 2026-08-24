@@ -56,11 +56,14 @@ function pureNoiseBuffer(noiseAmp = 0.7, duration = 2, sr = 16000): AudioBuffer 
   }, duration, sr);
 }
 
-// 極端に音量が小さい（ボソボソ声）音声
-function quietBuffer(duration = 2, sr = 16000): AudioBuffer {
+/**
+ * 音量が小さい音声。振幅で指定する。
+ * 0.005 → 約 -49dBFS / 0.0005 → 約 -69dBFS
+ */
+function quietBuffer(amp = 0.005, duration = 2, sr = 16000): AudioBuffer {
   return makeBuffer((data, sampleRate) => {
     for (let i = 0; i < data.length; i++) {
-      data[i] = 0.005 * Math.sin(2 * Math.PI * 300 * i / sampleRate);
+      data[i] = amp * Math.sin(2 * Math.PI * 300 * i / sampleRate);
     }
   }, duration, sr);
 }
@@ -158,11 +161,22 @@ describe('analyzeAudio — 音量評価', () => {
     expect(result.volume).toBe(AXIS_MAX.volume);
   });
 
-  it('極端に音量が小さい音声は volume スコアが低く、アドバイスが出る', async () => {
-    const quiet = await analyzeAudio(quietBuffer());
-    const clean = await analyzeAudio(cleanSpeechBuffer());
-    expect(quiet.volume).toBeLessThan(clean.volume);
+  it('音量が小さければ減点しなくても助言は出す', async () => {
+    // レポートの評価とアドバイスを分けている。レベルは正規化すれば直るので
+    // 減点はしないが、入力ゲインを上げたほうがよいことは伝える価値がある。
+    // 実録音4本の有効音声レベルは -26.2〜-47.4dBFS で、民生機材はこの帯に入る。
+    const quiet = await analyzeAudio(quietBuffer(0.005)); // 約 -49dBFS
+    expect(quiet.volume).toBe(AXIS_MAX.volume);
     expect(quiet.advice.some((a) => a.code === 'level-low')).toBe(true);
+  });
+
+  it('量子化フロアに近づくと volume を減点する', async () => {
+    // 減点の根拠は量子化フロア。16bitのフロアは -96dBFS なので、発話が -50dBFS でも
+    // 46dBの余裕がある。それ以下になると量子化雑音が聞こえ始める。
+    const veryQuiet = await analyzeAudio(quietBuffer(0.0005)); // 約 -69dBFS
+    const clean = await analyzeAudio(cleanSpeechBuffer());
+    expect(veryQuiet.volume).toBeLessThan(clean.volume);
+    expect(veryQuiet.advice.some((a) => a.code === 'level-low')).toBe(true);
   });
 });
 

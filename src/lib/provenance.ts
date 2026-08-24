@@ -325,22 +325,28 @@ function measureMaxZeroRun(data: Float32Array, sampleRate: number): number {
   return (longest / sampleRate) * 1000;
 }
 
-/** provenance の影響を受ける（＝信用できなくなる）スコア軸 */
-export function unreliableAxes(p: Provenance): ProvenanceAffectedAxis[] {
-  const axes = new Set<ProvenanceAffectedAxis>();
-
-  // ノイズ抑制が入っていれば背景ノイズは測れない。
-  // 無音区間が削られると自由減衰も消えるため、残響も測れない。
-  if (p.flags.includes('digital-silence') || p.flags.includes('zero-run')) {
-    axes.add('noise');
-    axes.add('reverb');
-  }
-  // 帯域制限は周波数バランスを不当に高く見せる（削られた帯域は減点対象から消える）
-  if (p.flags.includes('band-limited')) {
-    axes.add('frequency');
-    axes.add('noise');
-  }
-  return [...axes];
+/**
+ * 加工痕跡によって信用できなくなる軸。**現在は常に空を返す。**
+ *
+ * 以前は、ノイズ抑制が入っていればノイズ軸と残響軸、帯域制限があれば周波数軸を
+ * 参考値として扱い、総合判定に「良好」を出さないようにしていた。加工済みの音声から
+ * 録音環境は推定できないという理由である。
+ *
+ * **この道具が答えるのは「できあがった音声が会議の録音として使えるか」であって、
+ * 「部屋の音響がよいか」ではない。** ノイズ抑制が入っていて、その結果の音声に
+ * 問題がなければ、音質はよい。加工そのものを欠点として扱わない。
+ *
+ * 帯域制限も同様に扱う。削られた高域は周波数軸の帯域幅の内訳が直接減点するので、
+ * 二重に扱う必要がない。
+ *
+ * 残っている限界: ノイズ抑制の副作用（ミュージカルノイズ、レベルのポンピング）は
+ * 聞き取りやすさを損なうのにSNRの測定値を上げる。この道具はそれを捉えられない。
+ *
+ * 関数は残してある。痕跡の情報自体は表示するので、将来「この加工は聞き取りやすさを
+ * 損なう」と言える根拠が得られたときにここへ戻せるようにしておく。
+ */
+export function unreliableAxes(_p: Provenance): ProvenanceAffectedAxis[] {
+  return [];
 }
 
 /**

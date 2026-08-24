@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Translations } from './i18n.ts';
+  import MicGuide from './MicGuide.svelte';
 
   interface Props {
     t: Translations;
@@ -70,16 +71,9 @@
     {t.micBtn(recordDuration / 1000)}
   </button>
 
-  <!-- 発話区間と無音区間の両方が無いとSNRも残響も測れないため、案内を出す -->
-  <div class="mic-guide">
-    <p class="mic-hint">{t.micHint}</p>
-    <p class="mic-script-label">{t.micScriptLabel}</p>
-    <ul class="mic-script">
-      {#each t.micScript as line}
-        <li>{line}</li>
-      {/each}
-    </ul>
-  </div>
+  <!-- 発話区間と無音区間の両方が無いとSNRも残響も測れないため、案内を出す。
+       録音中も同じものを出すのでコンポーネントに分けてある。 -->
+  <MicGuide {t} />
 
   {#if errorMsg}
     <div class="error-box" role="alert">
@@ -92,44 +86,6 @@
 </section>
 
 <style>
-  /* ---- 録音前の案内 ---- */
-  .mic-guide {
-    margin-top: 0.9rem;
-    padding: 0.85rem 1rem;
-    background: #F5F6FB;
-    border: 1px solid #DDE0EE;
-    border-radius: 6px;
-  }
-
-  .mic-hint {
-    font-size: 0.78rem;
-    line-height: 1.65;
-    color: #3C3E58;
-  }
-
-  .mic-script-label {
-    margin-top: 0.7rem;
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    color: #8A8CA8;
-    text-transform: uppercase;
-  }
-
-  .mic-script {
-    list-style: none;
-    margin-top: 0.35rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-  }
-
-  .mic-script li {
-    font-size: 0.82rem;
-    line-height: 1.6;
-    color: #1A1C2E;
-    font-weight: 700;
-  }
 
   .input-section {
     display: flex;

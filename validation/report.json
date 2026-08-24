@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-24T06:56:26.601Z",
+  "generatedAt": "2026-08-24T08:46:55.320Z",
   "sources": [
     "corpus:cmu-arctic-files-awb(3本)@16000Hz",
     "corpus:cmu-arctic-files-awb(3本)@48000Hz",
@@ -10,7 +10,7 @@
     "corpus:cmu-arctic-files-slt(3本)@16000Hz",
     "corpus:cmu-arctic-files-slt(3本)@48000Hz"
   ],
-  "itemCount": 520,
+  "itemCount": 528,
   "errors": [
     {
       "conditionType": "clip",
@@ -41,14 +41,14 @@
     {
       "conditionType": "level",
       "label": "有効音声レベル[dBFS]",
-      "n": 56,
+      "n": 64,
       "bias": 0,
       "mae": 0,
       "maxAbs": 0,
       "worst": {
-        "id": "s0-levelm45",
-        "truth": -45,
-        "estimate": -45
+        "id": "s0-levelm70",
+        "truth": -70,
+        "estimate": -70
       }
     },
     {
@@ -303,105 +303,105 @@
     {
       "conditionType": "level / corpus:cmu-arctic-files-awb(3本)@16000Hz",
       "label": "有効音声レベル[dBFS]",
-      "n": 7,
+      "n": 8,
       "bias": 0,
       "mae": 0,
       "maxAbs": 0,
       "worst": {
-        "id": "s0-levelm45",
-        "truth": -45,
-        "estimate": -45
+        "id": "s0-levelm70",
+        "truth": -70,
+        "estimate": -70
       }
     },
     {
       "conditionType": "level / corpus:cmu-arctic-files-awb(3本)@48000Hz",
       "label": "有効音声レベル[dBFS]",
-      "n": 7,
+      "n": 8,
       "bias": 0,
       "mae": 0,
       "maxAbs": 0,
       "worst": {
-        "id": "s1-levelm45",
-        "truth": -45,
-        "estimate": -45
+        "id": "s1-levelm70",
+        "truth": -70,
+        "estimate": -70
       }
     },
     {
       "conditionType": "level / corpus:cmu-arctic-files-bdl(4本)@16000Hz",
       "label": "有効音声レベル[dBFS]",
-      "n": 7,
+      "n": 8,
       "bias": 0,
       "mae": 0,
       "maxAbs": 0,
       "worst": {
-        "id": "s2-levelm45",
-        "truth": -45,
-        "estimate": -45
+        "id": "s2-levelm70",
+        "truth": -70,
+        "estimate": -70
       }
     },
     {
       "conditionType": "level / corpus:cmu-arctic-files-bdl(4本)@48000Hz",
       "label": "有効音声レベル[dBFS]",
-      "n": 7,
+      "n": 8,
       "bias": 0,
       "mae": 0,
       "maxAbs": 0,
       "worst": {
-        "id": "s3-levelm45",
-        "truth": -45,
-        "estimate": -45
+        "id": "s3-levelm70",
+        "truth": -70,
+        "estimate": -70
       }
     },
     {
       "conditionType": "level / corpus:cmu-arctic-files-ksp(3本)@16000Hz",
       "label": "有効音声レベル[dBFS]",
-      "n": 7,
+      "n": 8,
       "bias": 0,
       "mae": 0,
       "maxAbs": 0,
       "worst": {
-        "id": "s4-levelm45",
-        "truth": -45,
-        "estimate": -45
+        "id": "s4-levelm70",
+        "truth": -70,
+        "estimate": -70
       }
     },
     {
       "conditionType": "level / corpus:cmu-arctic-files-ksp(3本)@48000Hz",
       "label": "有効音声レベル[dBFS]",
-      "n": 7,
+      "n": 8,
       "bias": 0,
       "mae": 0,
       "maxAbs": 0,
       "worst": {
-        "id": "s5-levelm45",
-        "truth": -45,
-        "estimate": -45
+        "id": "s5-levelm70",
+        "truth": -70,
+        "estimate": -70
       }
     },
     {
       "conditionType": "level / corpus:cmu-arctic-files-slt(3本)@16000Hz",
       "label": "有効音声レベル[dBFS]",
-      "n": 7,
+      "n": 8,
       "bias": 0,
       "mae": 0,
       "maxAbs": 0,
       "worst": {
-        "id": "s6-levelm45",
-        "truth": -45,
-        "estimate": -45
+        "id": "s6-levelm70",
+        "truth": -70,
+        "estimate": -70
       }
     },
     {
       "conditionType": "level / corpus:cmu-arctic-files-slt(3本)@48000Hz",
       "label": "有効音声レベル[dBFS]",
-      "n": 7,
+      "n": 8,
       "bias": 0,
       "mae": 0,
       "maxAbs": 0,
       "worst": {
-        "id": "s7-levelm45",
-        "truth": -45,
-        "estimate": -45
+        "id": "s7-levelm70",
+        "truth": -70,
+        "estimate": -70
       }
     },
     {
@@ -777,7 +777,7 @@
       "conditionType": "level",
       "axis": "volume",
       "expectedSign": 1,
-      "rho": 0.809,
+      "rho": 0.768,
       "axisRange": 15,
       "axisMax": 15,
       "verdict": "ok"
@@ -795,7 +795,7 @@
   "mos": {
     "available": true,
     "note": "C:\\Projects\\tk3-sound-check\\fixtures\\models\\sig_bak_ovr.onnx (入力 input_1 / 出力 Identity:0 / 9.01秒 16000Hz)",
-    "rhoOverall": 0.774,
+    "rhoOverall": 0.762,
     "rhoByCondition": {
       "clean": {
         "rho": 0.252,
@@ -834,10 +834,10 @@
         "spread": 2.419
       },
       "level": {
-        "rho": 0.654,
-        "n": 56,
-        "distinct": 46,
-        "spread": 0.762
+        "rho": 0.737,
+        "n": 64,
+        "distinct": 52,
+        "spread": 1.479
       },
       "tilt": {
         "rho": 0.503,
@@ -1554,12 +1554,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.310611619785607
     },
     {
@@ -1585,12 +1582,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.387414790487124
     },
     {
@@ -1616,12 +1610,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.4035609172584276
     },
     {
@@ -1648,8 +1639,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -1680,8 +1669,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -1712,8 +1699,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -1744,8 +1729,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -2465,10 +2448,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 3.302280617246904
@@ -2498,10 +2478,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 3.3095275978406358
@@ -2531,12 +2508,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.319924378206177
     },
     {
@@ -2830,14 +2804,14 @@
       "mos": 2.201758898220704
     },
     {
-      "id": "s0-levelm45",
+      "id": "s0-levelm70",
       "source": "corpus:cmu-arctic-files-awb(3本)@16000Hz",
       "conditionType": "level",
       "params": {
-        "targetDbfs": -45
+        "targetDbfs": -70
       },
-      "truthValue": -45.0000000039272,
-      "estimate": -45.0000000023826,
+      "truthValue": -69.99999999758221,
+      "estimate": -69.99999997011501,
       "errorLabel": "有効音声レベル[dBFS]",
       "scores": {
         "overall": 83,
@@ -2848,47 +2822,104 @@
         "noise": 25
       },
       "decayEvents": 5,
-      "rt60Estimate": 0.48421168764783606,
+      "rt60Estimate": 0.48421170502798266,
       "rt60Truth": null,
       "bandwidthHz": 8000,
       "flags": [
         "digital-silence"
       ],
-      "unreliable": [
-        "noise",
-        "reverb"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
-      "mos": 2.815086426275719
+      "mos": 2.084148058306995
     },
     {
-      "id": "s0-levelm35",
+      "id": "s0-levelm60",
       "source": "corpus:cmu-arctic-files-awb(3本)@16000Hz",
       "conditionType": "level",
       "params": {
-        "targetDbfs": -35
+        "targetDbfs": -60
       },
-      "truthValue": -35.00000000226285,
-      "estimate": -35.0000000017744,
+      "truthValue": -60.00000000379035,
+      "estimate": -59.999999995104446,
       "errorLabel": "有効音声レベル[dBFS]",
       "scores": {
-        "overall": 92,
-        "volume": 9,
+        "overall": 86,
+        "volume": 3,
         "frequency": 25,
         "reverb": 18,
         "clip": 15,
         "noise": 25
       },
       "decayEvents": 5,
-      "rt60Estimate": 0.4842116860793572,
+      "rt60Estimate": 0.4842116937605931,
+      "rt60Truth": null,
+      "bandwidthHz": 8000,
+      "flags": [
+        "digital-silence"
+      ],
+      "unreliable": [],
+      "verdict": "poor",
+      "verdictUnconfirmed": false,
+      "mos": 2.302869837263316
+    },
+    {
+      "id": "s0-levelm50",
+      "source": "corpus:cmu-arctic-files-awb(3本)@16000Hz",
+      "conditionType": "level",
+      "params": {
+        "targetDbfs": -50
+      },
+      "truthValue": -49.99999999901708,
+      "estimate": -49.999999996270354,
+      "errorLabel": "有効音声レベル[dBFS]",
+      "scores": {
+        "overall": 98,
+        "volume": 15,
+        "frequency": 25,
+        "reverb": 18,
+        "clip": 15,
+        "noise": 25
+      },
+      "decayEvents": 5,
+      "rt60Estimate": 0.48421168971054884,
+      "rt60Truth": null,
+      "bandwidthHz": 8000,
+      "flags": [
+        "digital-silence"
+      ],
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
+      "mos": 2.4715627383651886
+    },
+    {
+      "id": "s0-levelm40",
+      "source": "corpus:cmu-arctic-files-awb(3本)@16000Hz",
+      "conditionType": "level",
+      "params": {
+        "targetDbfs": -40
+      },
+      "truthValue": -40.000000003256645,
+      "estimate": -40.000000002388056,
+      "errorLabel": "有効音声レベル[dBFS]",
+      "scores": {
+        "overall": 98,
+        "volume": 15,
+        "frequency": 25,
+        "reverb": 18,
+        "clip": 15,
+        "noise": 25
+      },
+      "decayEvents": 5,
+      "rt60Estimate": 0.4842116890616021,
       "rt60Truth": null,
       "bandwidthHz": 8000,
       "flags": [],
       "unreliable": [],
-      "verdict": "usable",
+      "verdict": "good",
       "verdictUnconfirmed": false,
-      "mos": 3.3146572289831204
+      "mos": 3.144788270147147
     },
     {
       "id": "s0-levelm30",
@@ -2917,34 +2948,6 @@
       "verdict": "good",
       "verdictUnconfirmed": false,
       "mos": 3.3409858941625123
-    },
-    {
-      "id": "s0-levelm26",
-      "source": "corpus:cmu-arctic-files-awb(3本)@16000Hz",
-      "conditionType": "level",
-      "params": {
-        "targetDbfs": -26
-      },
-      "truthValue": -25.99999998939662,
-      "estimate": -25.999999989223316,
-      "errorLabel": "有効音声レベル[dBFS]",
-      "scores": {
-        "overall": 98,
-        "volume": 15,
-        "frequency": 25,
-        "reverb": 18,
-        "clip": 15,
-        "noise": 25
-      },
-      "decayEvents": 5,
-      "rt60Estimate": 0.4842116864666768,
-      "rt60Truth": null,
-      "bandwidthHz": 8000,
-      "flags": [],
-      "unreliable": [],
-      "verdict": "good",
-      "verdictUnconfirmed": false,
-      "mos": 3.347927776357319
     },
     {
       "id": "s0-levelm20",
@@ -3205,8 +3208,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -3274,8 +3275,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -3341,8 +3340,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -3410,8 +3407,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -3477,8 +3472,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -3546,8 +3539,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -3613,8 +3604,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -3681,10 +3670,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.178564797900729
@@ -3746,8 +3732,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -3815,8 +3799,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -3882,8 +3864,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -3951,8 +3931,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -4015,10 +3993,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 3.101428193165063
@@ -4081,10 +4056,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.94365850028546
@@ -4145,10 +4117,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.8696172201949457
@@ -4213,10 +4182,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.828065057667191
@@ -4279,10 +4245,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.7853298836710114
@@ -4345,10 +4308,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.6051583202321185
@@ -4376,12 +4336,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.310611619785607
     },
     {
@@ -4411,8 +4368,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -4446,8 +4401,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -4481,8 +4434,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -4516,8 +4467,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -4551,8 +4500,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -4586,8 +4533,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -4621,8 +4566,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -4656,8 +4599,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -4691,8 +4632,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -4726,8 +4665,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -4760,12 +4697,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.186342784334344
     },
     {
@@ -4794,10 +4728,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 2.732554310602669
@@ -4828,10 +4759,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 3.257358454936248
@@ -4862,10 +4790,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 2.8970506736658495
@@ -4896,12 +4821,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.2741230921963917
     },
     {
@@ -4930,12 +4852,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.2357794477365442
     },
     {
@@ -4963,12 +4882,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.134014835626031
     },
     {
@@ -4996,12 +4912,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.1167380252892074
     },
     {
@@ -5029,12 +4942,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.033921234461551
     },
     {
@@ -5062,10 +4972,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 3.0601414392386608
@@ -5096,8 +5003,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -5130,8 +5035,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -5163,10 +5066,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 3.302477248261415
@@ -5196,10 +5096,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 3.3163784833629295
@@ -5229,12 +5126,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.316714085839015
     },
     {
@@ -5262,10 +5156,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 3.261850545555056
@@ -5380,12 +5271,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.1467443513665203
     },
     {
@@ -5414,12 +5302,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.1650641237507258
     },
     {
@@ -5449,8 +5334,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -5483,10 +5366,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 2.7912599986255637
@@ -5517,10 +5397,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.6722184084707314
@@ -5552,8 +5429,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -5561,14 +5436,14 @@
       "mos": 1.8088718763772937
     },
     {
-      "id": "s1-levelm45",
+      "id": "s1-levelm70",
       "source": "corpus:cmu-arctic-files-awb(3本)@48000Hz",
       "conditionType": "level",
       "params": {
-        "targetDbfs": -45
+        "targetDbfs": -70
       },
-      "truthValue": -44.999999999591786,
-      "estimate": -44.99999999804719,
+      "truthValue": -70.00000000269412,
+      "estimate": -69.99999997522693,
       "errorLabel": "有効音声レベル[dBFS]",
       "scores": {
         "overall": 83,
@@ -5579,54 +5454,109 @@
         "noise": 25
       },
       "decayEvents": 7,
-      "rt60Estimate": 0.48522891812942054,
+      "rt60Estimate": 0.485228936583719,
       "rt60Truth": null,
       "bandwidthHz": 7200,
       "flags": [
         "band-limited",
         "digital-silence"
       ],
-      "unreliable": [
-        "noise",
-        "reverb",
-        "frequency"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
-      "mos": 2.800932388112819
+      "mos": 2.0906708549213224
     },
     {
-      "id": "s1-levelm35",
+      "id": "s1-levelm60",
       "source": "corpus:cmu-arctic-files-awb(3本)@48000Hz",
       "conditionType": "level",
       "params": {
-        "targetDbfs": -35
+        "targetDbfs": -60
       },
-      "truthValue": -34.999999999877616,
-      "estimate": -34.999999999389175,
+      "truthValue": -60.00000000056371,
+      "estimate": -59.999999991877814,
       "errorLabel": "有効音声レベル[dBFS]",
       "scores": {
-        "overall": 92,
-        "volume": 9,
+        "overall": 86,
+        "volume": 3,
         "frequency": 25,
         "reverb": 18,
         "clip": 15,
         "noise": 25
       },
       "decayEvents": 7,
-      "rt60Estimate": 0.48522891652175626,
+      "rt60Estimate": 0.4852289231647962,
+      "rt60Truth": null,
+      "bandwidthHz": 7200,
+      "flags": [
+        "band-limited",
+        "digital-silence"
+      ],
+      "unreliable": [],
+      "verdict": "poor",
+      "verdictUnconfirmed": false,
+      "mos": 2.326293916972646
+    },
+    {
+      "id": "s1-levelm50",
+      "source": "corpus:cmu-arctic-files-awb(3本)@48000Hz",
+      "conditionType": "level",
+      "params": {
+        "targetDbfs": -50
+      },
+      "truthValue": -49.999999998799474,
+      "estimate": -49.99999999605276,
+      "errorLabel": "有効音声レベル[dBFS]",
+      "scores": {
+        "overall": 98,
+        "volume": 15,
+        "frequency": 25,
+        "reverb": 18,
+        "clip": 15,
+        "noise": 25
+      },
+      "decayEvents": 7,
+      "rt60Estimate": 0.4852289178519517,
+      "rt60Truth": null,
+      "bandwidthHz": 7200,
+      "flags": [
+        "band-limited",
+        "digital-silence"
+      ],
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
+      "mos": 2.466879356918124
+    },
+    {
+      "id": "s1-levelm40",
+      "source": "corpus:cmu-arctic-files-awb(3本)@48000Hz",
+      "conditionType": "level",
+      "params": {
+        "targetDbfs": -40
+      },
+      "truthValue": -39.999999999923695,
+      "estimate": -39.999999999055106,
+      "errorLabel": "有効音声レベル[dBFS]",
+      "scores": {
+        "overall": 98,
+        "volume": 15,
+        "frequency": 25,
+        "reverb": 18,
+        "clip": 15,
+        "noise": 25
+      },
+      "decayEvents": 7,
+      "rt60Estimate": 0.48522891712279803,
       "rt60Truth": null,
       "bandwidthHz": 7200,
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
+      "unreliable": [],
+      "verdict": "good",
       "verdictUnconfirmed": false,
-      "mos": 3.3119762960980523
+      "mos": 3.1447521327869086
     },
     {
       "id": "s1-levelm30",
@@ -5653,46 +5583,10 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.338747052962376
-    },
-    {
-      "id": "s1-levelm26",
-      "source": "corpus:cmu-arctic-files-awb(3本)@48000Hz",
-      "conditionType": "level",
-      "params": {
-        "targetDbfs": -26
-      },
-      "truthValue": -25.99999999945167,
-      "estimate": -25.999999999278366,
-      "errorLabel": "有効音声レベル[dBFS]",
-      "scores": {
-        "overall": 98,
-        "volume": 15,
-        "frequency": 25,
-        "reverb": 18,
-        "clip": 15,
-        "noise": 25
-      },
-      "decayEvents": 7,
-      "rt60Estimate": 0.4852289167403607,
-      "rt60Truth": null,
-      "bandwidthHz": 7200,
-      "flags": [
-        "band-limited"
-      ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
-      "mos": 3.3446314656336
     },
     {
       "id": "s1-levelm20",
@@ -5719,12 +5613,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.296839764962061
     },
     {
@@ -5752,12 +5643,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.310611619785607
     },
     {
@@ -5785,12 +5673,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.310611619785607
     },
     {
@@ -5819,12 +5704,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.274821109880436
     },
     {
@@ -5853,12 +5735,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.194454938977336
     },
     {
@@ -5887,10 +5766,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 3.1446239782995753
@@ -5921,10 +5797,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 3.121881853454225
@@ -5952,12 +5825,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.387414790487124
     },
     {
@@ -6475,12 +6345,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.364551009973555
     },
     {
@@ -6508,12 +6375,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.338620963622683
     },
     {
@@ -6541,12 +6405,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.2621355415607316
     },
     {
@@ -6574,12 +6435,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 2.972630323329148
     },
     {
@@ -6608,8 +6466,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -6642,8 +6498,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -6675,10 +6529,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 3.3979979996270258
@@ -6708,10 +6559,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 3.4017854830427203
@@ -6741,12 +6589,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.3944983405665234
     },
     {
@@ -6887,12 +6732,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.402189284520503
     },
     {
@@ -6921,12 +6763,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.3173740230682687
     },
     {
@@ -6955,12 +6794,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.06360592850266
     },
     {
@@ -6990,8 +6826,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -7025,8 +6859,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -7060,8 +6892,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -7069,14 +6899,14 @@
       "mos": 1.465679779170869
     },
     {
-      "id": "s2-levelm45",
+      "id": "s2-levelm70",
       "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
       "conditionType": "level",
       "params": {
-        "targetDbfs": -45
+        "targetDbfs": -70
       },
-      "truthValue": -45.0000000007723,
-      "estimate": -44.99999999922771,
+      "truthValue": -70.0000000424958,
+      "estimate": -70.0000000150286,
       "errorLabel": "有効音声レベル[dBFS]",
       "scores": {
         "overall": 85,
@@ -7087,52 +6917,109 @@
         "noise": 25
       },
       "decayEvents": 5,
-      "rt60Estimate": 0.16676924392799894,
+      "rt60Estimate": 0.16676925016794392,
       "rt60Truth": null,
       "bandwidthHz": 7500,
       "flags": [
-        "band-limited"
+        "band-limited",
+        "digital-silence"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
-      "mos": 3.15828457506687
+      "mos": 2.4529777462667157
     },
     {
-      "id": "s2-levelm35",
+      "id": "s2-levelm60",
       "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
       "conditionType": "level",
       "params": {
-        "targetDbfs": -35
+        "targetDbfs": -60
       },
-      "truthValue": -35.00000003607509,
-      "estimate": -35.00000003558665,
+      "truthValue": -59.999999997833,
+      "estimate": -59.999999989147106,
       "errorLabel": "有効音声レベル[dBFS]",
       "scores": {
-        "overall": 94,
-        "volume": 9,
+        "overall": 88,
+        "volume": 3,
         "frequency": 25,
         "reverb": 20,
         "clip": 15,
         "noise": 25
       },
       "decayEvents": 5,
-      "rt60Estimate": 0.16676924327368844,
+      "rt60Estimate": 0.16676924567385612,
+      "rt60Truth": null,
+      "bandwidthHz": 7500,
+      "flags": [
+        "band-limited",
+        "digital-silence"
+      ],
+      "unreliable": [],
+      "verdict": "poor",
+      "verdictUnconfirmed": false,
+      "mos": 2.5901496751797173
+    },
+    {
+      "id": "s2-levelm50",
+      "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
+      "conditionType": "level",
+      "params": {
+        "targetDbfs": -50
+      },
+      "truthValue": -50.000000001516284,
+      "estimate": -49.99999999876955,
+      "errorLabel": "有効音声レベル[dBFS]",
+      "scores": {
+        "overall": 100,
+        "volume": 15,
+        "frequency": 25,
+        "reverb": 20,
+        "clip": 15,
+        "noise": 25
+      },
+      "decayEvents": 5,
+      "rt60Estimate": 0.16676924434589105,
+      "rt60Truth": null,
+      "bandwidthHz": 7500,
+      "flags": [
+        "band-limited",
+        "digital-silence"
+      ],
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
+      "mos": 2.8662435882415527
+    },
+    {
+      "id": "s2-levelm40",
+      "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
+      "conditionType": "level",
+      "params": {
+        "targetDbfs": -40
+      },
+      "truthValue": -39.9999999967209,
+      "estimate": -39.99999999585231,
+      "errorLabel": "有効音声レベル[dBFS]",
+      "scores": {
+        "overall": 100,
+        "volume": 15,
+        "frequency": 25,
+        "reverb": 20,
+        "clip": 15,
+        "noise": 25
+      },
+      "decayEvents": 5,
+      "rt60Estimate": 0.16676924376365607,
       "rt60Truth": null,
       "bandwidthHz": 7500,
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
+      "unreliable": [],
+      "verdict": "good",
       "verdictUnconfirmed": false,
-      "mos": 3.381831547772429
+      "mos": 3.3108686326101884
     },
     {
       "id": "s2-levelm30",
@@ -7159,46 +7046,10 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.427750879142859
-    },
-    {
-      "id": "s2-levelm26",
-      "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
-      "conditionType": "level",
-      "params": {
-        "targetDbfs": -26
-      },
-      "truthValue": -25.999999999208754,
-      "estimate": -25.99999999903545,
-      "errorLabel": "有効音声レベル[dBFS]",
-      "scores": {
-        "overall": 100,
-        "volume": 15,
-        "frequency": 25,
-        "reverb": 20,
-        "clip": 15,
-        "noise": 25
-      },
-      "decayEvents": 5,
-      "rt60Estimate": 0.1667692437410204,
-      "rt60Truth": null,
-      "bandwidthHz": 7500,
-      "flags": [
-        "band-limited"
-      ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
-      "mos": 3.4120173114798718
     },
     {
       "id": "s2-levelm20",
@@ -7225,12 +7076,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.3946146314529786
     },
     {
@@ -7258,12 +7106,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.3784774996571643
     },
     {
@@ -7291,12 +7136,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.3784774996571643
     },
     {
@@ -7325,12 +7167,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.377810062597883
     },
     {
@@ -7359,12 +7198,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.3745400939680468
     },
     {
@@ -7393,12 +7229,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.370993659471167
     },
     {
@@ -7427,10 +7260,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 3.3526326659913357
@@ -7494,8 +7324,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -7563,8 +7391,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -7630,8 +7456,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -7699,8 +7523,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -7766,8 +7588,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -7835,8 +7655,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -7902,8 +7720,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -7971,8 +7787,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -8038,8 +7852,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -8107,8 +7919,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -8174,8 +7984,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -8243,8 +8051,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -8307,10 +8113,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 3.312342648375435
@@ -8373,10 +8176,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.9662188569546113
@@ -8437,10 +8237,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.931353794517092
@@ -8503,10 +8300,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.6626576986536197
@@ -8569,10 +8363,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.3104976597872957
@@ -8637,10 +8428,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.234144153601768
@@ -8668,12 +8456,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.4035609172584276
     },
     {
@@ -8703,8 +8488,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -8738,8 +8521,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -8773,8 +8554,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -8808,8 +8587,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -8843,8 +8620,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -8878,8 +8653,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -8913,8 +8686,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -8948,8 +8719,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -8983,8 +8752,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -9018,8 +8785,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -9053,8 +8818,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -9088,8 +8851,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -9122,12 +8883,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.279663288088327
     },
     {
@@ -9157,8 +8915,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -9191,12 +8947,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.3844951588377463
     },
     {
@@ -9225,12 +8978,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.3729291112712723
     },
     {
@@ -9258,12 +9008,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.279475565633493
     },
     {
@@ -9291,12 +9038,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.2061281858443937
     },
     {
@@ -9324,12 +9068,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.1208696376513676
     },
     {
@@ -9357,12 +9098,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.2026042968876176
     },
     {
@@ -9391,8 +9129,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -9425,8 +9161,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -9458,10 +9192,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 3.3864617488238515
@@ -9491,10 +9222,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 3.399482200829977
@@ -9524,12 +9252,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.3948611945730405
     },
     {
@@ -9557,10 +9282,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 3.393401696667066
@@ -9676,8 +9398,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -9710,12 +9430,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.303773876180757
     },
     {
@@ -9744,12 +9461,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.216425356645054
     },
     {
@@ -9778,12 +9492,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 2.2353155028432066
     },
     {
@@ -9813,8 +9524,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -9848,8 +9557,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -9857,14 +9564,14 @@
       "mos": 1.1756726634507
     },
     {
-      "id": "s3-levelm45",
+      "id": "s3-levelm70",
       "source": "corpus:cmu-arctic-files-bdl(4本)@48000Hz",
       "conditionType": "level",
       "params": {
-        "targetDbfs": -45
+        "targetDbfs": -70
       },
-      "truthValue": -44.99999999932232,
-      "estimate": -44.99999999777772,
+      "truthValue": -70.00000000104691,
+      "estimate": -69.99999997357972,
       "errorLabel": "有効音声レベル[dBFS]",
       "scores": {
         "overall": 85,
@@ -9875,54 +9582,109 @@
         "noise": 25
       },
       "decayEvents": 4,
-      "rt60Estimate": 0.18226389477710284,
+      "rt60Estimate": 0.18226390754278615,
       "rt60Truth": null,
       "bandwidthHz": 7200,
       "flags": [
         "band-limited",
         "digital-silence"
       ],
-      "unreliable": [
-        "noise",
-        "reverb",
-        "frequency"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
-      "mos": 3.1186962541143264
+      "mos": 2.4458672986797065
     },
     {
-      "id": "s3-levelm35",
+      "id": "s3-levelm60",
       "source": "corpus:cmu-arctic-files-bdl(4本)@48000Hz",
       "conditionType": "level",
       "params": {
-        "targetDbfs": -35
+        "targetDbfs": -60
       },
-      "truthValue": -34.99999999900346,
-      "estimate": -34.999999998515015,
+      "truthValue": -60.00000000060686,
+      "estimate": -59.99999999192097,
       "errorLabel": "有効音声レベル[dBFS]",
       "scores": {
-        "overall": 94,
-        "volume": 9,
+        "overall": 88,
+        "volume": 3,
         "frequency": 25,
         "reverb": 20,
         "clip": 15,
         "noise": 25
       },
       "decayEvents": 4,
-      "rt60Estimate": 0.18226389437290136,
+      "rt60Estimate": 0.18226389837055723,
+      "rt60Truth": null,
+      "bandwidthHz": 7200,
+      "flags": [
+        "band-limited",
+        "digital-silence"
+      ],
+      "unreliable": [],
+      "verdict": "poor",
+      "verdictUnconfirmed": false,
+      "mos": 2.565000815619954
+    },
+    {
+      "id": "s3-levelm50",
+      "source": "corpus:cmu-arctic-files-bdl(4本)@48000Hz",
+      "conditionType": "level",
+      "params": {
+        "targetDbfs": -50
+      },
+      "truthValue": -49.99999999955999,
+      "estimate": -49.99999999681327,
+      "errorLabel": "有効音声レベル[dBFS]",
+      "scores": {
+        "overall": 100,
+        "volume": 15,
+        "frequency": 25,
+        "reverb": 20,
+        "clip": 15,
+        "noise": 25
+      },
+      "decayEvents": 4,
+      "rt60Estimate": 0.18226389541802887,
+      "rt60Truth": null,
+      "bandwidthHz": 7200,
+      "flags": [
+        "band-limited",
+        "digital-silence"
+      ],
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
+      "mos": 2.8623241864147926
+    },
+    {
+      "id": "s3-levelm40",
+      "source": "corpus:cmu-arctic-files-bdl(4本)@48000Hz",
+      "conditionType": "level",
+      "params": {
+        "targetDbfs": -40
+      },
+      "truthValue": -39.99999999961022,
+      "estimate": -39.99999999874163,
+      "errorLabel": "有効音声レベル[dBFS]",
+      "scores": {
+        "overall": 100,
+        "volume": 15,
+        "frequency": 25,
+        "reverb": 20,
+        "clip": 15,
+        "noise": 25
+      },
+      "decayEvents": 4,
+      "rt60Estimate": 0.18226389433289347,
       "rt60Truth": null,
       "bandwidthHz": 7200,
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
+      "unreliable": [],
+      "verdict": "good",
       "verdictUnconfirmed": false,
-      "mos": 3.37070109478454
+      "mos": 3.312190389332293
     },
     {
       "id": "s3-levelm30",
@@ -9949,46 +9711,10 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.4104913027173342
-    },
-    {
-      "id": "s3-levelm26",
-      "source": "corpus:cmu-arctic-files-bdl(4本)@48000Hz",
-      "conditionType": "level",
-      "params": {
-        "targetDbfs": -26
-      },
-      "truthValue": -26.000000000645485,
-      "estimate": -26.000000000472177,
-      "errorLabel": "有効音声レベル[dBFS]",
-      "scores": {
-        "overall": 100,
-        "volume": 15,
-        "frequency": 25,
-        "reverb": 20,
-        "clip": 15,
-        "noise": 25
-      },
-      "decayEvents": 4,
-      "rt60Estimate": 0.18226389393872802,
-      "rt60Truth": null,
-      "bandwidthHz": 7200,
-      "flags": [
-        "band-limited"
-      ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
-      "mos": 3.4264390745807636
     },
     {
       "id": "s3-levelm20",
@@ -10015,12 +9741,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.3970109022203294
     },
     {
@@ -10048,12 +9771,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.401084686029577
     },
     {
@@ -10081,12 +9801,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.401084686029577
     },
     {
@@ -10115,12 +9832,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.3795339614280606
     },
     {
@@ -10149,12 +9863,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.3763875444073914
     },
     {
@@ -10183,10 +9894,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 3.3691176400541147
@@ -10217,10 +9925,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 3.345165007527266
@@ -10249,8 +9954,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -10778,12 +10481,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.1894239699880904
     },
     {
@@ -10811,12 +10511,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.148797111922981
     },
     {
@@ -10844,12 +10541,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 2.9936507180592975
     },
     {
@@ -10877,10 +10571,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 2.7076471138232994
@@ -10910,10 +10601,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 2.4367420811079294
@@ -10944,8 +10632,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -10978,8 +10664,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -11012,8 +10696,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -11046,8 +10728,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -11201,8 +10881,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -11235,12 +10913,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.082441003451039
     },
     {
@@ -11269,10 +10944,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 2.938839332498014
@@ -11304,8 +10976,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -11339,8 +11009,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -11373,23 +11041,20 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 1.8738347471735537
     },
     {
-      "id": "s4-levelm45",
+      "id": "s4-levelm70",
       "source": "corpus:cmu-arctic-files-ksp(3本)@16000Hz",
       "conditionType": "level",
       "params": {
-        "targetDbfs": -45
+        "targetDbfs": -70
       },
-      "truthValue": -44.9999999974333,
-      "estimate": -44.9999999958887,
+      "truthValue": -69.99999999531519,
+      "estimate": -69.999999967848,
       "errorLabel": "有効音声レベル[dBFS]",
       "scores": {
         "overall": 85,
@@ -11400,7 +11065,7 @@
         "noise": 25
       },
       "decayEvents": 3,
-      "rt60Estimate": 0.28740565616685915,
+      "rt60Estimate": 0.28740566125103506,
       "rt60Truth": null,
       "bandwidthHz": 7400,
       "flags": [
@@ -11408,47 +11073,109 @@
         "digital-silence"
       ],
       "unreliable": [
-        "noise",
-        "reverb",
-        "frequency"
+        "reverb"
       ],
       "verdict": "poor",
       "verdictUnconfirmed": false,
-      "mos": 3.0754900012393205
+      "mos": 2.236151924014078
     },
     {
-      "id": "s4-levelm35",
+      "id": "s4-levelm60",
       "source": "corpus:cmu-arctic-files-ksp(3本)@16000Hz",
       "conditionType": "level",
       "params": {
-        "targetDbfs": -35
+        "targetDbfs": -60
       },
-      "truthValue": -34.99999999932,
-      "estimate": -34.99999999883156,
+      "truthValue": -59.99999999775193,
+      "estimate": -59.99999998906603,
       "errorLabel": "有効音声レベル[dBFS]",
       "scores": {
-        "overall": 94,
-        "volume": 9,
+        "overall": 88,
+        "volume": 3,
         "frequency": 25,
         "reverb": 20,
         "clip": 15,
         "noise": 25
       },
       "decayEvents": 3,
-      "rt60Estimate": 0.2874056561466863,
+      "rt60Estimate": 0.28740565667600626,
+      "rt60Truth": null,
+      "bandwidthHz": 7400,
+      "flags": [
+        "band-limited",
+        "digital-silence"
+      ],
+      "unreliable": [
+        "reverb"
+      ],
+      "verdict": "poor",
+      "verdictUnconfirmed": false,
+      "mos": 2.2301230189453567
+    },
+    {
+      "id": "s4-levelm50",
+      "source": "corpus:cmu-arctic-files-ksp(3本)@16000Hz",
+      "conditionType": "level",
+      "params": {
+        "targetDbfs": -50
+      },
+      "truthValue": -50.00000000136982,
+      "estimate": -49.9999999986231,
+      "errorLabel": "有効音声レベル[dBFS]",
+      "scores": {
+        "overall": 100,
+        "volume": 15,
+        "frequency": 25,
+        "reverb": 20,
+        "clip": 15,
+        "noise": 25
+      },
+      "decayEvents": 3,
+      "rt60Estimate": 0.28740565658038625,
+      "rt60Truth": null,
+      "bandwidthHz": 7400,
+      "flags": [
+        "band-limited",
+        "digital-silence"
+      ],
+      "unreliable": [
+        "reverb"
+      ],
+      "verdict": "usable",
+      "verdictUnconfirmed": true,
+      "mos": 2.5855396605104097
+    },
+    {
+      "id": "s4-levelm40",
+      "source": "corpus:cmu-arctic-files-ksp(3本)@16000Hz",
+      "conditionType": "level",
+      "params": {
+        "targetDbfs": -40
+      },
+      "truthValue": -40.00000000250117,
+      "estimate": -40.00000000163258,
+      "errorLabel": "有効音声レベル[dBFS]",
+      "scores": {
+        "overall": 100,
+        "volume": 15,
+        "frequency": 25,
+        "reverb": 20,
+        "clip": 15,
+        "noise": 25
+      },
+      "decayEvents": 3,
+      "rt60Estimate": 0.28740565546142793,
       "rt60Truth": null,
       "bandwidthHz": 7400,
       "flags": [
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
-      "verdictUnconfirmed": false,
-      "mos": 3.368694631043471
+      "verdictUnconfirmed": true,
+      "mos": 3.285186325994701
     },
     {
       "id": "s4-levelm30",
@@ -11476,47 +11203,11 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
       "verdictUnconfirmed": true,
       "mos": 3.389460626858568
-    },
-    {
-      "id": "s4-levelm26",
-      "source": "corpus:cmu-arctic-files-ksp(3本)@16000Hz",
-      "conditionType": "level",
-      "params": {
-        "targetDbfs": -26
-      },
-      "truthValue": -25.99999999546505,
-      "estimate": -25.999999995291745,
-      "errorLabel": "有効音声レベル[dBFS]",
-      "scores": {
-        "overall": 100,
-        "volume": 15,
-        "frequency": 25,
-        "reverb": 20,
-        "clip": 15,
-        "noise": 25
-      },
-      "decayEvents": 3,
-      "rt60Estimate": 0.28740565550155456,
-      "rt60Truth": null,
-      "bandwidthHz": 7400,
-      "flags": [
-        "band-limited"
-      ],
-      "unreliable": [
-        "frequency",
-        "noise",
-        "reverb"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
-      "mos": 3.3676312677122993
     },
     {
       "id": "s4-levelm20",
@@ -11544,8 +11235,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -11578,8 +11267,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -11612,8 +11299,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -11646,12 +11331,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.2717007091231736
     },
     {
@@ -11680,12 +11362,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.252965839870819
     },
     {
@@ -11715,8 +11394,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -11750,8 +11427,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -11817,8 +11492,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -11886,8 +11559,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -11953,8 +11624,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -12022,8 +11691,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -12089,8 +11756,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -12158,8 +11823,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -12225,8 +11888,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -12294,8 +11955,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -12361,8 +12020,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -12430,8 +12087,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -12497,8 +12152,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -12566,8 +12219,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -12630,10 +12281,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.626437852863425
@@ -12696,10 +12344,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.483895133028726
@@ -12761,8 +12406,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -12829,10 +12472,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.5094990583001127
@@ -12895,10 +12535,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.5265668826928076
@@ -12963,10 +12600,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.31480688789299
@@ -12995,8 +12629,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -13030,8 +12662,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -13065,8 +12695,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -13100,8 +12728,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -13135,8 +12761,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -13170,8 +12794,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -13205,8 +12827,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -13240,8 +12860,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -13275,8 +12893,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -13310,8 +12926,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -13345,8 +12959,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -13380,8 +12992,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -13415,8 +13025,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -13450,8 +13058,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -13485,8 +13091,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -13520,8 +13124,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -13555,8 +13157,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -13588,12 +13188,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.122554488520612
     },
     {
@@ -13621,12 +13218,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.0320281902214377
     },
     {
@@ -13654,12 +13248,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 2.694839748483445
     },
     {
@@ -13687,12 +13278,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 2.729864449963089
     },
     {
@@ -13720,10 +13308,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 2.5903579675264594
@@ -13754,8 +13339,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -13788,8 +13371,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -13822,8 +13403,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -13856,8 +13435,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -13890,8 +13467,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -13924,8 +13499,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -13958,8 +13531,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -14022,12 +13593,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.1734913343766715
     },
     {
@@ -14056,12 +13624,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 2.85117293704689
     },
     {
@@ -14090,12 +13655,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 2.794710175208992
     },
     {
@@ -14125,8 +13687,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -14160,8 +13720,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -14194,23 +13752,20 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 1.766290290999809
     },
     {
-      "id": "s5-levelm45",
+      "id": "s5-levelm70",
       "source": "corpus:cmu-arctic-files-ksp(3本)@48000Hz",
       "conditionType": "level",
       "params": {
-        "targetDbfs": -45
+        "targetDbfs": -70
       },
-      "truthValue": -44.99999999884793,
-      "estimate": -44.99999999730334,
+      "truthValue": -70.00000000016053,
+      "estimate": -69.99999997269333,
       "errorLabel": "有効音声レベル[dBFS]",
       "scores": {
         "overall": 85,
@@ -14221,7 +13776,7 @@
         "noise": 25
       },
       "decayEvents": 3,
-      "rt60Estimate": 0.301162242258647,
+      "rt60Estimate": 0.3011622479482962,
       "rt60Truth": null,
       "bandwidthHz": 7200,
       "flags": [
@@ -14229,47 +13784,109 @@
         "digital-silence"
       ],
       "unreliable": [
-        "noise",
-        "reverb",
-        "frequency"
+        "reverb"
       ],
       "verdict": "poor",
       "verdictUnconfirmed": false,
-      "mos": 3.0550964878117184
+      "mos": 2.2243639882429322
     },
     {
-      "id": "s5-levelm35",
+      "id": "s5-levelm60",
       "source": "corpus:cmu-arctic-files-ksp(3本)@48000Hz",
       "conditionType": "level",
       "params": {
-        "targetDbfs": -35
+        "targetDbfs": -60
       },
-      "truthValue": -35.00000000097137,
-      "estimate": -35.00000000048293,
+      "truthValue": -59.99999999988514,
+      "estimate": -59.99999999119925,
       "errorLabel": "有効音声レベル[dBFS]",
       "scores": {
-        "overall": 94,
-        "volume": 9,
+        "overall": 88,
+        "volume": 3,
         "frequency": 25,
         "reverb": 20,
         "clip": 15,
         "noise": 25
       },
       "decayEvents": 3,
-      "rt60Estimate": 0.3011622422607757,
+      "rt60Estimate": 0.30116224356985016,
+      "rt60Truth": null,
+      "bandwidthHz": 7200,
+      "flags": [
+        "band-limited",
+        "digital-silence"
+      ],
+      "unreliable": [
+        "reverb"
+      ],
+      "verdict": "poor",
+      "verdictUnconfirmed": false,
+      "mos": 2.2139247197475984
+    },
+    {
+      "id": "s5-levelm50",
+      "source": "corpus:cmu-arctic-files-ksp(3本)@48000Hz",
+      "conditionType": "level",
+      "params": {
+        "targetDbfs": -50
+      },
+      "truthValue": -49.99999999957649,
+      "estimate": -49.99999999682977,
+      "errorLabel": "有効音声レベル[dBFS]",
+      "scores": {
+        "overall": 100,
+        "volume": 15,
+        "frequency": 25,
+        "reverb": 20,
+        "clip": 15,
+        "noise": 25
+      },
+      "decayEvents": 3,
+      "rt60Estimate": 0.301162242637537,
+      "rt60Truth": null,
+      "bandwidthHz": 7200,
+      "flags": [
+        "band-limited",
+        "digital-silence"
+      ],
+      "unreliable": [
+        "reverb"
+      ],
+      "verdict": "usable",
+      "verdictUnconfirmed": true,
+      "mos": 2.533092308355548
+    },
+    {
+      "id": "s5-levelm40",
+      "source": "corpus:cmu-arctic-files-ksp(3本)@48000Hz",
+      "conditionType": "level",
+      "params": {
+        "targetDbfs": -40
+      },
+      "truthValue": -40.00000000054832,
+      "estimate": -39.99999999967972,
+      "errorLabel": "有効音声レベル[dBFS]",
+      "scores": {
+        "overall": 100,
+        "volume": 15,
+        "frequency": 25,
+        "reverb": 20,
+        "clip": 15,
+        "noise": 25
+      },
+      "decayEvents": 3,
+      "rt60Estimate": 0.3011622420819864,
       "rt60Truth": null,
       "bandwidthHz": 7200,
       "flags": [
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
-      "verdictUnconfirmed": false,
-      "mos": 3.3757456702749664
+      "verdictUnconfirmed": true,
+      "mos": 3.2969543287997145
     },
     {
       "id": "s5-levelm30",
@@ -14297,47 +13914,11 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
       "verdictUnconfirmed": true,
       "mos": 3.4015993142486978
-    },
-    {
-      "id": "s5-levelm26",
-      "source": "corpus:cmu-arctic-files-ksp(3本)@48000Hz",
-      "conditionType": "level",
-      "params": {
-        "targetDbfs": -26
-      },
-      "truthValue": -25.999999999312898,
-      "estimate": -25.99999999913959,
-      "errorLabel": "有効音声レベル[dBFS]",
-      "scores": {
-        "overall": 100,
-        "volume": 15,
-        "frequency": 25,
-        "reverb": 20,
-        "clip": 15,
-        "noise": 25
-      },
-      "decayEvents": 3,
-      "rt60Estimate": 0.30116224235698075,
-      "rt60Truth": null,
-      "bandwidthHz": 7200,
-      "flags": [
-        "band-limited"
-      ],
-      "unreliable": [
-        "frequency",
-        "noise",
-        "reverb"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
-      "mos": 3.375564262853934
     },
     {
       "id": "s5-levelm20",
@@ -14365,8 +13946,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -14399,8 +13978,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -14433,8 +14010,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -14467,12 +14042,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.256245395144804
     },
     {
@@ -14501,12 +14073,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.2721553504343928
     },
     {
@@ -14536,8 +14105,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -14571,8 +14138,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -14603,8 +14168,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -15132,12 +14695,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.5161874217935702
     },
     {
@@ -15165,12 +14725,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.484049657983634
     },
     {
@@ -15198,12 +14755,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.439420222603867
     },
     {
@@ -15232,8 +14786,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -15266,8 +14818,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -15300,8 +14850,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -15334,8 +14882,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -15368,8 +14914,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -15402,8 +14946,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -15557,8 +15099,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -15592,8 +15132,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -15626,12 +15164,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.303863597428743
     },
     {
@@ -15660,10 +15195,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 2.87210708489377
@@ -15695,8 +15227,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -15730,8 +15260,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -15739,14 +15267,14 @@
       "mos": 1.1408301926589903
     },
     {
-      "id": "s6-levelm45",
+      "id": "s6-levelm70",
       "source": "corpus:cmu-arctic-files-slt(3本)@16000Hz",
       "conditionType": "level",
       "params": {
-        "targetDbfs": -45
+        "targetDbfs": -70
       },
-      "truthValue": -45.00000000075922,
-      "estimate": -44.99999999921463,
+      "truthValue": -70.00000000139829,
+      "estimate": -69.9999999739311,
       "errorLabel": "有効音声レベル[dBFS]",
       "scores": {
         "overall": 85,
@@ -15757,7 +15285,7 @@
         "noise": 25
       },
       "decayEvents": 3,
-      "rt60Estimate": 0.20621133224125096,
+      "rt60Estimate": 0.20621133791073828,
       "rt60Truth": null,
       "bandwidthHz": 7300,
       "flags": [
@@ -15765,47 +15293,110 @@
         "digital-silence"
       ],
       "unreliable": [
-        "noise",
-        "reverb",
-        "frequency"
+        "reverb"
       ],
       "verdict": "poor",
       "verdictUnconfirmed": false,
-      "mos": 3.2574343855234904
+      "mos": 2.396147324966656
     },
     {
-      "id": "s6-levelm35",
+      "id": "s6-levelm60",
       "source": "corpus:cmu-arctic-files-slt(3本)@16000Hz",
       "conditionType": "level",
       "params": {
-        "targetDbfs": -35
+        "targetDbfs": -60
       },
-      "truthValue": -34.99999999897652,
-      "estimate": -34.99999999848807,
+      "truthValue": -60.00000000052472,
+      "estimate": -59.999999991838834,
       "errorLabel": "有効音声レベル[dBFS]",
       "scores": {
-        "overall": 94,
-        "volume": 9,
+        "overall": 88,
+        "volume": 3,
         "frequency": 25,
         "reverb": 20,
         "clip": 15,
         "noise": 25
       },
       "decayEvents": 3,
-      "rt60Estimate": 0.20621133226734545,
+      "rt60Estimate": 0.2062113342841357,
       "rt60Truth": null,
       "bandwidthHz": 7300,
       "flags": [
-        "band-limited"
+        "band-limited",
+        "digital-silence"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
+        "reverb"
+      ],
+      "verdict": "poor",
+      "verdictUnconfirmed": false,
+      "mos": 2.7015116103840175
+    },
+    {
+      "id": "s6-levelm50",
+      "source": "corpus:cmu-arctic-files-slt(3本)@16000Hz",
+      "conditionType": "level",
+      "params": {
+        "targetDbfs": -50
+      },
+      "truthValue": -50.00000001154183,
+      "estimate": -50.000000008795105,
+      "errorLabel": "有効音声レベル[dBFS]",
+      "scores": {
+        "overall": 100,
+        "volume": 15,
+        "frequency": 25,
+        "reverb": 20,
+        "clip": 15,
+        "noise": 25
+      },
+      "decayEvents": 3,
+      "rt60Estimate": 0.20621133264431926,
+      "rt60Truth": null,
+      "bandwidthHz": 7300,
+      "flags": [
+        "band-limited",
+        "digital-silence"
+      ],
+      "unreliable": [
         "reverb"
       ],
       "verdict": "usable",
-      "verdictUnconfirmed": false,
-      "mos": 3.407995943829612
+      "verdictUnconfirmed": true,
+      "mos": 3.170263256629814
+    },
+    {
+      "id": "s6-levelm40",
+      "source": "corpus:cmu-arctic-files-slt(3本)@16000Hz",
+      "conditionType": "level",
+      "params": {
+        "targetDbfs": -40
+      },
+      "truthValue": -40.000000002101395,
+      "estimate": -40.000000001232806,
+      "errorLabel": "有効音声レベル[dBFS]",
+      "scores": {
+        "overall": 100,
+        "volume": 15,
+        "frequency": 25,
+        "reverb": 20,
+        "clip": 15,
+        "noise": 25
+      },
+      "decayEvents": 3,
+      "rt60Estimate": 0.20621133273878192,
+      "rt60Truth": null,
+      "bandwidthHz": 7300,
+      "flags": [
+        "band-limited",
+        "digital-silence"
+      ],
+      "unreliable": [
+        "reverb"
+      ],
+      "verdict": "usable",
+      "verdictUnconfirmed": true,
+      "mos": 3.326797148870386
     },
     {
       "id": "s6-levelm30",
@@ -15833,47 +15424,11 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
       "verdictUnconfirmed": true,
       "mos": 3.4969779381879342
-    },
-    {
-      "id": "s6-levelm26",
-      "source": "corpus:cmu-arctic-files-slt(3本)@16000Hz",
-      "conditionType": "level",
-      "params": {
-        "targetDbfs": -26
-      },
-      "truthValue": -25.99999999918648,
-      "estimate": -25.999999999013173,
-      "errorLabel": "有効音声レベル[dBFS]",
-      "scores": {
-        "overall": 100,
-        "volume": 15,
-        "frequency": 25,
-        "reverb": 20,
-        "clip": 15,
-        "noise": 25
-      },
-      "decayEvents": 3,
-      "rt60Estimate": 0.20621133224391852,
-      "rt60Truth": null,
-      "bandwidthHz": 7300,
-      "flags": [
-        "band-limited"
-      ],
-      "unreliable": [
-        "frequency",
-        "noise",
-        "reverb"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
-      "mos": 3.5137581361486987
     },
     {
       "id": "s6-levelm20",
@@ -15901,8 +15456,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -15935,8 +15488,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -15969,8 +15520,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -16003,12 +15552,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.540940013533212
     },
     {
@@ -16038,8 +15584,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -16073,8 +15617,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -16108,8 +15650,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -16175,8 +15715,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -16244,8 +15782,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -16311,8 +15847,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -16380,8 +15914,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -16447,8 +15979,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -16516,8 +16046,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -16583,8 +16111,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -16652,8 +16178,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -16719,8 +16243,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -16788,8 +16310,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -16855,8 +16375,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -16924,8 +16442,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -16988,10 +16504,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 3.1818677649645326
@@ -17055,8 +16568,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -17120,8 +16631,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -17186,10 +16695,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.5429922446060598
@@ -17252,10 +16758,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
       "mos": 2.7694277953740336
@@ -17321,8 +16824,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -17353,8 +16854,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -17388,8 +16887,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -17423,8 +16920,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -17458,8 +16953,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -17493,8 +16986,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -17528,8 +17019,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -17563,8 +17052,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -17598,8 +17085,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -17633,8 +17118,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -17668,8 +17151,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -17703,8 +17184,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -17738,8 +17217,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -17773,8 +17250,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -17808,8 +17283,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -17843,8 +17316,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -17878,8 +17349,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -17913,8 +17382,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -17946,12 +17413,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.5107713779917593
     },
     {
@@ -17979,12 +17443,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.477039331353614
     },
     {
@@ -18012,12 +17473,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.4419725347563435
     },
     {
@@ -18045,12 +17503,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.210763777357857
     },
     {
@@ -18078,10 +17533,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 2.736719572959824
@@ -18112,8 +17564,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -18146,8 +17596,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -18180,8 +17628,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -18214,8 +17660,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -18248,8 +17692,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -18282,8 +17724,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "poor",
@@ -18376,12 +17816,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.5020943421511097
     },
     {
@@ -18410,12 +17847,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.4219769371553754
     },
     {
@@ -18444,12 +17878,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 3.3780228412274234
     },
     {
@@ -18478,10 +17909,7 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
+      "unreliable": [],
       "verdict": "usable",
       "verdictUnconfirmed": false,
       "mos": 2.7983571215197434
@@ -18512,12 +17940,9 @@
       "flags": [
         "band-limited"
       ],
-      "unreliable": [
-        "frequency",
-        "noise"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
+      "unreliable": [],
+      "verdict": "good",
+      "verdictUnconfirmed": false,
       "mos": 1.3639335432889508
     },
     {
@@ -18547,8 +17972,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -18556,14 +17979,14 @@
       "mos": 1.0827795322349871
     },
     {
-      "id": "s7-levelm45",
+      "id": "s7-levelm70",
       "source": "corpus:cmu-arctic-files-slt(3本)@48000Hz",
       "conditionType": "level",
       "params": {
-        "targetDbfs": -45
+        "targetDbfs": -70
       },
-      "truthValue": -44.99999999904996,
-      "estimate": -44.99999999750537,
+      "truthValue": -69.99999999957497,
+      "estimate": -69.99999997210777,
       "errorLabel": "有効音声レベル[dBFS]",
       "scores": {
         "overall": 85,
@@ -18574,7 +17997,7 @@
         "noise": 25
       },
       "decayEvents": 3,
-      "rt60Estimate": 0.20027434458247437,
+      "rt60Estimate": 0.20027434998289045,
       "rt60Truth": null,
       "bandwidthHz": 7200,
       "flags": [
@@ -18582,47 +18005,110 @@
         "digital-silence"
       ],
       "unreliable": [
-        "noise",
-        "reverb",
-        "frequency"
+        "reverb"
       ],
       "verdict": "poor",
       "verdictUnconfirmed": false,
-      "mos": 3.225990972389653
+      "mos": 2.3926567031603403
     },
     {
-      "id": "s7-levelm35",
+      "id": "s7-levelm60",
       "source": "corpus:cmu-arctic-files-slt(3本)@48000Hz",
       "conditionType": "level",
       "params": {
-        "targetDbfs": -35
+        "targetDbfs": -60
       },
-      "truthValue": -35.00000000019021,
-      "estimate": -34.99999999970177,
+      "truthValue": -60.00000000074701,
+      "estimate": -59.99999999206112,
       "errorLabel": "有効音声レベル[dBFS]",
       "scores": {
-        "overall": 94,
-        "volume": 9,
+        "overall": 88,
+        "volume": 3,
         "frequency": 25,
         "reverb": 20,
         "clip": 15,
         "noise": 25
       },
       "decayEvents": 3,
-      "rt60Estimate": 0.20027434412440565,
+      "rt60Estimate": 0.20027434613109277,
       "rt60Truth": null,
       "bandwidthHz": 7200,
       "flags": [
-        "band-limited"
+        "band-limited",
+        "digital-silence"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
+        "reverb"
+      ],
+      "verdict": "poor",
+      "verdictUnconfirmed": false,
+      "mos": 2.70905759981482
+    },
+    {
+      "id": "s7-levelm50",
+      "source": "corpus:cmu-arctic-files-slt(3本)@48000Hz",
+      "conditionType": "level",
+      "params": {
+        "targetDbfs": -50
+      },
+      "truthValue": -50.000000000346475,
+      "estimate": -49.99999999759976,
+      "errorLabel": "有効音声レベル[dBFS]",
+      "scores": {
+        "overall": 100,
+        "volume": 15,
+        "frequency": 25,
+        "reverb": 20,
+        "clip": 15,
+        "noise": 25
+      },
+      "decayEvents": 3,
+      "rt60Estimate": 0.20027434446502945,
+      "rt60Truth": null,
+      "bandwidthHz": 7200,
+      "flags": [
+        "band-limited",
+        "digital-silence"
+      ],
+      "unreliable": [
         "reverb"
       ],
       "verdict": "usable",
-      "verdictUnconfirmed": false,
-      "mos": 3.3763273712500776
+      "verdictUnconfirmed": true,
+      "mos": 3.0945249535872503
+    },
+    {
+      "id": "s7-levelm40",
+      "source": "corpus:cmu-arctic-files-slt(3本)@48000Hz",
+      "conditionType": "level",
+      "params": {
+        "targetDbfs": -40
+      },
+      "truthValue": -40.000000000799155,
+      "estimate": -39.999999999930566,
+      "errorLabel": "有効音声レベル[dBFS]",
+      "scores": {
+        "overall": 100,
+        "volume": 15,
+        "frequency": 25,
+        "reverb": 20,
+        "clip": 15,
+        "noise": 25
+      },
+      "decayEvents": 3,
+      "rt60Estimate": 0.20027434454600415,
+      "rt60Truth": null,
+      "bandwidthHz": 7200,
+      "flags": [
+        "band-limited",
+        "digital-silence"
+      ],
+      "unreliable": [
+        "reverb"
+      ],
+      "verdict": "usable",
+      "verdictUnconfirmed": true,
+      "mos": 3.2907697062151806
     },
     {
       "id": "s7-levelm30",
@@ -18650,47 +18136,11 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
       "verdictUnconfirmed": true,
       "mos": 3.494282890792619
-    },
-    {
-      "id": "s7-levelm26",
-      "source": "corpus:cmu-arctic-files-slt(3本)@48000Hz",
-      "conditionType": "level",
-      "params": {
-        "targetDbfs": -26
-      },
-      "truthValue": -26.000000000196138,
-      "estimate": -26.00000000002283,
-      "errorLabel": "有効音声レベル[dBFS]",
-      "scores": {
-        "overall": 100,
-        "volume": 15,
-        "frequency": 25,
-        "reverb": 20,
-        "clip": 15,
-        "noise": 25
-      },
-      "decayEvents": 3,
-      "rt60Estimate": 0.20027434418899348,
-      "rt60Truth": null,
-      "bandwidthHz": 7200,
-      "flags": [
-        "band-limited"
-      ],
-      "unreliable": [
-        "frequency",
-        "noise",
-        "reverb"
-      ],
-      "verdict": "usable",
-      "verdictUnconfirmed": true,
-      "mos": 3.519534168738115
     },
     {
       "id": "s7-levelm20",
@@ -18718,8 +18168,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -18752,8 +18200,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -18786,8 +18232,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -18821,8 +18265,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -18856,8 +18298,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -18891,8 +18331,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",
@@ -18926,8 +18364,6 @@
         "band-limited"
       ],
       "unreliable": [
-        "frequency",
-        "noise",
         "reverb"
       ],
       "verdict": "usable",

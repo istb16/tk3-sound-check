@@ -107,24 +107,39 @@ describe('T — 翻訳データの完整性', () => {
   });
 });
 
-describe('加工痕跡の案内は経路ごとに分かれている', () => {
-  // ファイル入力なら「このツールのマイク録音を使って」で解決するが、そのマイク録音でも
-  // 痕跡が出る場合（OSやドライバの音声処理）は同じ案内では手詰まりになる。
-  // 実録音（Windows標準のサウンドレコーダー）でゲート痕跡を確認して気づいた。
+describe('加工痕跡の案内は対処を促さない', () => {
+  // この道具が答えるのは「できあがった音声が会議の録音として使えるか」であって
+  // 「部屋の音響がよいか」ではない。ノイズ抑制が入っていて結果の音声に問題が
+  // なければ音質はよい。加工そのものを欠点として扱わないので、OSの設定を変えろ
+  // といった対処を促す文面にはしない。
+  //
+  // 一度は「オーディオの拡張機能をオフに」と案内していた。実機で確認したところ
+  // このツール自身のマイク録音にもOS側の処理がかかっており（getUserMedia の制約
+  // では切れない）、その案内が必要な状況が既定の経路だと分かったが、方針として
+  // 加工を欠点扱いしないことにしたため撤回した。
   for (const lang of [T.ja, T.en]) {
-    it('2つの案内が別の文面になっている', () => {
-      expect(lang.provenanceIntroMic).not.toBe(lang.provenanceIntro);
-      expect(lang.provenanceIntroMic.length).toBeGreaterThan(20);
+    it('OSの設定変更を促さない', () => {
+      const text = [
+        lang.provenanceIntro,
+        lang.provenanceDigitalSilence,
+        lang.provenanceZeroRun,
+        lang.provenanceBandLimited(8000),
+      ].join(' ').toLowerCase();
+      for (const banned of ['オーディオの拡張機能', 'audio enhancements', 'サウンドの設定', 'sound settings']) {
+        expect(text, banned).not.toContain(banned.toLowerCase());
+      }
+    });
+
+    it('スコアが実際より高いとは言わない', () => {
+      // スコアはこの音声そのものに対する評価なので、「実際より高く出る」は誤り。
+      const text = [
+        lang.provenanceIntro,
+        lang.provenanceDigitalSilence,
+        lang.provenanceZeroRun,
+        lang.provenanceBandLimited(8000),
+      ].join(' ');
+      expect(text).not.toContain('実際より高く');
+      expect(text.toLowerCase()).not.toContain('higher than it really');
     });
   }
-
-  it('マイク経路の案内はマイク録音を勧め直さない', () => {
-    expect(T.ja.provenanceIntroMic).not.toContain('このツールのマイク録音を使って');
-    expect(T.en.provenanceIntroMic.toLowerCase()).not.toContain('use this tool');
-  });
-
-  it('マイク経路の案内はOS側の設定に触れている', () => {
-    expect(T.ja.provenanceIntroMic).toContain('オーディオの拡張機能');
-    expect(T.en.provenanceIntroMic.toLowerCase()).toContain('audio enhancements');
-  });
 });

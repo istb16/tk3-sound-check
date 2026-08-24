@@ -3,9 +3,9 @@
 `npm run validate` の出力。人間のラベル付けは使っていない。
 注入した既知の物理量を推定器が復元できるかを測っている。
 
-- 生成日時: 2026-08-24T06:56:26.601Z
+- 生成日時: 2026-08-24T08:46:55.320Z
 - 素材: corpus:cmu-arctic-files-awb(3本)@16000Hz, corpus:cmu-arctic-files-awb(3本)@48000Hz, corpus:cmu-arctic-files-bdl(4本)@16000Hz, corpus:cmu-arctic-files-bdl(4本)@48000Hz, corpus:cmu-arctic-files-ksp(3本)@16000Hz, corpus:cmu-arctic-files-ksp(3本)@48000Hz, corpus:cmu-arctic-files-slt(3本)@16000Hz, corpus:cmu-arctic-files-slt(3本)@48000Hz
-- 件数: 520
+- 件数: 528
 - MOSオラクル: 有効 (C:\Projects\tk3-sound-check\fixtures\models\sig_bak_ovr.onnx (入力 input_1 / 出力 Identity:0 / 9.01秒 16000Hz))
 
 ## 1. 推定誤差
@@ -14,7 +14,7 @@
 |---|---|---:|---:|---:|---:|---|
 | clip | クリップ率(有音基準) | 32 | 0 | 0 | 0 | s0-clip0_0002 (真値 0.0004 → 推定 0.0004) |
 | cutoff | 帯域上限[Hz] | 24 | -8.333 | 8.333 | 100 | s2-lp4000 (真値 4000 → 推定 3900) |
-| level | 有効音声レベル[dBFS] | 56 | 0 | 0 | 0 | s0-levelm45 (真値 -45 → 推定 -45) |
+| level | 有効音声レベル[dBFS] | 64 | 0 | 0 | 0 | s0-levelm70 (真値 -70 → 推定 -70) |
 | rt60 | RT60[秒] | 43 | -0.067 | 0.141 | 0.515 | s4-rt60-1_5 (真値 1.5 → 推定 0.9846) |
 | snr | SNR[dB] | 128 | 0.078 | 1.62 | 5.375 | s2-snr20-white (真値 19.2794 → 推定 13.9045) |
 | tilt | 1kHz以上の傾斜[dB/oct] | 32 | -0.373 | 0.783 | 2.991 | s1-tiltm12 (真値 -22.4837 → 推定 -19.4922) |
@@ -43,14 +43,14 @@
 | cutoff / corpus:cmu-arctic-files-ksp(3本)@48000Hz | 3 | 0 | 0 | 0 |
 | cutoff / corpus:cmu-arctic-files-slt(3本)@16000Hz | 3 | 0 | 0 | 0 |
 | cutoff / corpus:cmu-arctic-files-slt(3本)@48000Hz | 3 | 0 | 0 | 0 |
-| level / corpus:cmu-arctic-files-awb(3本)@16000Hz | 7 | 0 | 0 | 0 |
-| level / corpus:cmu-arctic-files-awb(3本)@48000Hz | 7 | 0 | 0 | 0 |
-| level / corpus:cmu-arctic-files-bdl(4本)@16000Hz | 7 | 0 | 0 | 0 |
-| level / corpus:cmu-arctic-files-bdl(4本)@48000Hz | 7 | 0 | 0 | 0 |
-| level / corpus:cmu-arctic-files-ksp(3本)@16000Hz | 7 | 0 | 0 | 0 |
-| level / corpus:cmu-arctic-files-ksp(3本)@48000Hz | 7 | 0 | 0 | 0 |
-| level / corpus:cmu-arctic-files-slt(3本)@16000Hz | 7 | 0 | 0 | 0 |
-| level / corpus:cmu-arctic-files-slt(3本)@48000Hz | 7 | 0 | 0 | 0 |
+| level / corpus:cmu-arctic-files-awb(3本)@16000Hz | 8 | 0 | 0 | 0 |
+| level / corpus:cmu-arctic-files-awb(3本)@48000Hz | 8 | 0 | 0 | 0 |
+| level / corpus:cmu-arctic-files-bdl(4本)@16000Hz | 8 | 0 | 0 | 0 |
+| level / corpus:cmu-arctic-files-bdl(4本)@48000Hz | 8 | 0 | 0 | 0 |
+| level / corpus:cmu-arctic-files-ksp(3本)@16000Hz | 8 | 0 | 0 | 0 |
+| level / corpus:cmu-arctic-files-ksp(3本)@48000Hz | 8 | 0 | 0 | 0 |
+| level / corpus:cmu-arctic-files-slt(3本)@16000Hz | 8 | 0 | 0 | 0 |
+| level / corpus:cmu-arctic-files-slt(3本)@48000Hz | 8 | 0 | 0 | 0 |
 | rt60 / corpus:cmu-arctic-files-awb(3本)@16000Hz | 6 | 0.002 | 0.188 | 0.451 |
 | rt60 / corpus:cmu-arctic-files-awb(3本)@48000Hz | 5 | 0.053 | 0.172 | 0.36 |
 | rt60 / corpus:cmu-arctic-files-bdl(4本)@16000Hz | 5 | -0.095 | 0.112 | 0.316 |
@@ -95,7 +95,7 @@
 | rt60 | reverb | - | -0.926 | 14.75 / 20点 | 想定どおり |
 | rt60 | noise | 0 (無相関) | -0.625 | 0.63 / 25点 | 想定どおり |
 | tilt | frequency | + | 0.987 | 8 / 25点 | 想定どおり |
-| level | volume | + | 0.809 | 15 / 15点 | 想定どおり |
+| level | volume | + | 0.768 | 15 / 15点 | 想定どおり |
 | drr | reverb | + | 0.92 | 12 / 20点 | 想定どおり |
 
 ## 3. MOSオラクルとの順位相関
@@ -105,7 +105,7 @@
 
 - 劣化なし素材のMOS: 3.385 / 5
 
-- 全条件まとめ: ρ = 0.774
+- 全条件まとめ: ρ = 0.762
 
 | 条件 | 件数 | 異なるMOS値 | MOSの振れ幅 | ρ | 解釈 |
 |---|---:|---:|---:|---:|---|
@@ -115,7 +115,7 @@
 | cutoff | 24 | 23 | 0.266 | 0.364 | 8000Hz超の違いはモデルに見えない（入力16kHz） |
 | clip | 32 | 32 | 0.552 | 0.432 |  |
 | drr | 48 | 47 | 2.419 | 0.781 |  |
-| level | 56 | 46 | 0.762 | 0.654 |  |
+| level | 64 | 52 | 1.479 | 0.737 |  |
 | tilt | 32 | 31 | 0.419 | 0.503 |  |
 | mixed | 144 | 137 | 1.828 | 0.567 |  |
 
@@ -288,10 +288,10 @@ RT60を固定して直接音対残響比(DRR)だけを振った条件。DRRは�
 | id | 総合 | ノイズ | 残響 | 周波数 | 音量 | 音割れ | 帯域上限[Hz] | 検出フラグ | 参考値扱いの軸 |
 |---|---:|---:|---:|---:|---:|---:|---:|---|---|
 | s0-clean | 98 | 25 | 18 | 25 | 15 | 15 | 8000 | なし | なし |
-| s1-clean | 98 | 25 | 18 | 25 | 15 | 15 | 7200 | band-limited | frequency, noise |
-| s2-clean | 100 | 25 | 20 | 25 | 15 | 15 | 7500 | band-limited | frequency, noise |
-| s3-clean | 100 | 25 | 20 | 25 | 15 | 15 | 7200 | band-limited | frequency, noise |
-| s4-clean | 100 | 25 | 20 | 25 | 15 | 15 | 7400 | band-limited | frequency, noise, reverb |
-| s5-clean | 100 | 25 | 20 | 25 | 15 | 15 | 7200 | band-limited | frequency, noise, reverb |
-| s6-clean | 100 | 25 | 20 | 25 | 15 | 15 | 7300 | band-limited | frequency, noise, reverb |
-| s7-clean | 100 | 25 | 20 | 25 | 15 | 15 | 7200 | band-limited | frequency, noise, reverb |
+| s1-clean | 98 | 25 | 18 | 25 | 15 | 15 | 7200 | band-limited | なし |
+| s2-clean | 100 | 25 | 20 | 25 | 15 | 15 | 7500 | band-limited | なし |
+| s3-clean | 100 | 25 | 20 | 25 | 15 | 15 | 7200 | band-limited | なし |
+| s4-clean | 100 | 25 | 20 | 25 | 15 | 15 | 7400 | band-limited | reverb |
+| s5-clean | 100 | 25 | 20 | 25 | 15 | 15 | 7200 | band-limited | reverb |
+| s6-clean | 100 | 25 | 20 | 25 | 15 | 15 | 7300 | band-limited | reverb |
+| s7-clean | 100 | 25 | 20 | 25 | 15 | 15 | 7200 | band-limited | reverb |

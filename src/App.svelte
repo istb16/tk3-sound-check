@@ -1,5 +1,7 @@
 <script lang="ts">
   import { analyzeAudio, type AudioScores, type AdviceCode } from './lib/AudioAnalyzer.ts';
+  import { encodeWavFloat32, wavFileName } from './lib/wav.ts';
+  import MicGuide from './lib/MicGuide.svelte';
   import { decodeFile, recordMicrophone } from './lib/audio.ts';
 
   import { T, initLang, type Lang } from './lib/i18n.ts';
@@ -31,13 +33,13 @@
   /** 生PCMで録れたか。false なら圧縮経由なのでノイズ系のスコアは参考値 */
   let rawCapture     = $state(true);
   /**
-   * 分析したものの入手経路。加工痕跡が出たときの案内を分けるために持つ。
+   * 解析した音声をそのまま保存するためのURLとファイル名。
    *
-   * ファイルなら「このツールのマイク録音を使って」で解決するが、マイク録音でも
-   * 痕跡が出る場合は OS やドライバの処理なので、同じ案内では手詰まりになる。
-   * 実録音（Windows標準のサウンドレコーダー）でゲート痕跡を確認して気づいた。
+   * マイク録音のときだけ用意する。ファイル入力では復号が44.1kHzに揃えられるので、
+   * 保存しても元ファイルとは別物になり、保存する意味がない。
    */
-  let source         = $state<'mic' | 'file'>('file');
+  let wavUrl         = $state<string | null>(null);
+  let wavName        = $state('');
 
   // 加工の痕跡に関する警告。スコアは変えず、総合点より前に提示する。
   const provWarnings = $derived.by(() => {
@@ -51,8 +53,6 @@
     return msgs;
   });
 
-  // 加工痕跡が出たときの導入文。経路によって案内する先が違う。
-  const provIntro = $derived(source === 'mic' ? t.provenanceIntroMic : t.provenanceIntro);
 
   // 信用できない軸は分析側が判定する。取り込み経路の劣化だけはUI側の情報なので足す。
   const unreliable = $derived.by(() => {
@@ -77,7 +77,6 @@
     }
     state = 'analyzing'; errorType = '';
     rawCapture = true; // ファイル入力は復号のみ。取り込み経路による劣化はない
-    source = 'file';
     const url = URL.createObjectURL(file);
     try {
       scores = await analyzeAudio(await decodeFile(file));
@@ -97,10 +96,13 @@
       const rec = await recordMicrophone(RECORD_DURATION, (p) => { recordProgress = p; });
       const { buffer, blob } = rec;
       rawCapture = rec.rawCapture;
-      source = 'mic';
       state = 'analyzing';
       scores = await analyzeAudio(buffer);
       audioUrl = URL.createObjectURL(blob);
+      // 解析したのは buffer の中身そのもの。再生用の blob（コーデック経由）ではなく
+      // こちらを保存する。
+      wavUrl = URL.createObjectURL(encodeWavFloat32(buffer.getChannelData(0), buffer.sampleRate));
+      wavName = wavFileName(new Date());
       state = 'done';
     } catch (e) {
       errorType = e instanceof Error && e.name === 'NotAllowedError' ? 'mic-denied' : 'recording-failed';
@@ -117,6 +119,7 @@
 
   function reset(): void {
     if (audioUrl) { URL.revokeObjectURL(audioUrl); audioUrl = null; }
+    if (wavUrl) { URL.revokeObjectURL(wavUrl); wavUrl = null; wavName = ''; }
     state = 'idle'; scores = null; errorType = ''; errorDetail = ''; recordProgress = 0;
     rawCapture = true;
   }
@@ -147,6 +150,9 @@
   {:else if state === 'recording'}
     <div class="narrow-wrap">
       <StatusPanel type="recording" progress={recordProgress} durationSec={RECORD_DURATION / 1000} />
+      <!-- 録音中も読み上げ文を出す。消えると話す内容を思い出しながら喋ることになり、
+           間の取り方が不自然になる。無音区間が無いとSNRも残響も測れない。 -->
+      <MicGuide {t} />
     </div>
   {:else if state === 'analyzing'}
     <div class="narrow-wrap">
@@ -159,10 +165,16 @@
           <AudioPlayer src={audioUrl} />
         </div>
       {/if}
+      {#if wavUrl}
+        <p class="save-wav">
+          <a href={wavUrl} download={wavName}>{t.saveWav}</a>
+          <span class="save-wav-hint">{t.saveWavHint}</span>
+        </p>
+      {/if}
       {#if provWarnings.length > 0}
         <div class="panel prov-panel result-full">
           <p class="panel-label prov-label">{t.provenanceLabel}</p>
-          <p class="prov-intro">{provIntro}</p>
+          <p class="prov-intro">{t.provenanceIntro}</p>
           <ul class="prov-list">
             {#each provWarnings as msg}
               <li>{msg}</li>
@@ -225,6 +237,18 @@
   }
 
   .prov-label { color: #B86000; }
+
+  .save-wav {
+    margin: 0.5rem 0 0;
+    font-size: 0.85rem;
+    display: flex;
+    gap: 0.6rem;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+  .save-wav-hint {
+    opacity: 0.7;
+  }
 
   .prov-intro {
     font-size: 0.82rem;

@@ -770,8 +770,8 @@
       }
     },
     {
-      "id": "s0-levelm45",
-      "file": "fixtures/generated/s0-levelm45.wav",
+      "id": "s0-levelm70",
+      "file": "fixtures/generated/s0-levelm70.wav",
       "source": "corpus:cmu-arctic-files-awb(3本)@16000Hz",
       "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
       "sampleRate": 16000,
@@ -779,18 +779,18 @@
       "condition": {
         "type": "level",
         "params": {
-          "targetDbfs": -45
+          "targetDbfs": -70
         }
       },
       "truth": {
-        "activeSpeechDbfs": -45.0000000039272,
-        "requestedDbfs": -45,
+        "activeSpeechDbfs": -69.99999999758221,
+        "requestedDbfs": -70,
         "peakLimited": 0
       }
     },
     {
-      "id": "s0-levelm35",
-      "file": "fixtures/generated/s0-levelm35.wav",
+      "id": "s0-levelm60",
+      "file": "fixtures/generated/s0-levelm60.wav",
       "source": "corpus:cmu-arctic-files-awb(3本)@16000Hz",
       "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
       "sampleRate": 16000,
@@ -798,12 +798,50 @@
       "condition": {
         "type": "level",
         "params": {
-          "targetDbfs": -35
+          "targetDbfs": -60
         }
       },
       "truth": {
-        "activeSpeechDbfs": -35.00000000226285,
-        "requestedDbfs": -35,
+        "activeSpeechDbfs": -60.00000000379035,
+        "requestedDbfs": -60,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s0-levelm50",
+      "file": "fixtures/generated/s0-levelm50.wav",
+      "source": "corpus:cmu-arctic-files-awb(3本)@16000Hz",
+      "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
+      "sampleRate": 16000,
+      "samples": 160000,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -50
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -49.99999999901708,
+        "requestedDbfs": -50,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s0-levelm40",
+      "file": "fixtures/generated/s0-levelm40.wav",
+      "source": "corpus:cmu-arctic-files-awb(3本)@16000Hz",
+      "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
+      "sampleRate": 16000,
+      "samples": 160000,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -40
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -40.000000003256645,
+        "requestedDbfs": -40,
         "peakLimited": 0
       }
     },
@@ -823,25 +861,6 @@
       "truth": {
         "activeSpeechDbfs": -30.00000000138128,
         "requestedDbfs": -30,
-        "peakLimited": 0
-      }
-    },
-    {
-      "id": "s0-levelm26",
-      "file": "fixtures/generated/s0-levelm26.wav",
-      "source": "corpus:cmu-arctic-files-awb(3本)@16000Hz",
-      "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
-      "sampleRate": 16000,
-      "samples": 160000,
-      "condition": {
-        "type": "level",
-        "params": {
-          "targetDbfs": -26
-        }
-      },
-      "truth": {
-        "activeSpeechDbfs": -25.99999998939662,
-        "requestedDbfs": -26,
         "peakLimited": 0
       }
     },
@@ -2519,8 +2538,8 @@
       }
     },
     {
-      "id": "s1-levelm45",
-      "file": "fixtures/generated/s1-levelm45.wav",
+      "id": "s1-levelm70",
+      "file": "fixtures/generated/s1-levelm70.wav",
       "source": "corpus:cmu-arctic-files-awb(3本)@48000Hz",
       "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
       "sampleRate": 48000,
@@ -2528,18 +2547,18 @@
       "condition": {
         "type": "level",
         "params": {
-          "targetDbfs": -45
+          "targetDbfs": -70
         }
       },
       "truth": {
-        "activeSpeechDbfs": -44.999999999591786,
-        "requestedDbfs": -45,
+        "activeSpeechDbfs": -70.00000000269412,
+        "requestedDbfs": -70,
         "peakLimited": 0
       }
     },
     {
-      "id": "s1-levelm35",
-      "file": "fixtures/generated/s1-levelm35.wav",
+      "id": "s1-levelm60",
+      "file": "fixtures/generated/s1-levelm60.wav",
       "source": "corpus:cmu-arctic-files-awb(3本)@48000Hz",
       "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
       "sampleRate": 48000,
@@ -2547,12 +2566,50 @@
       "condition": {
         "type": "level",
         "params": {
-          "targetDbfs": -35
+          "targetDbfs": -60
         }
       },
       "truth": {
-        "activeSpeechDbfs": -34.999999999877616,
-        "requestedDbfs": -35,
+        "activeSpeechDbfs": -60.00000000056371,
+        "requestedDbfs": -60,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s1-levelm50",
+      "file": "fixtures/generated/s1-levelm50.wav",
+      "source": "corpus:cmu-arctic-files-awb(3本)@48000Hz",
+      "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
+      "sampleRate": 48000,
+      "samples": 480000,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -50
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -49.999999998799474,
+        "requestedDbfs": -50,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s1-levelm40",
+      "file": "fixtures/generated/s1-levelm40.wav",
+      "source": "corpus:cmu-arctic-files-awb(3本)@48000Hz",
+      "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
+      "sampleRate": 48000,
+      "samples": 480000,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -40
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -39.999999999923695,
+        "requestedDbfs": -40,
         "peakLimited": 0
       }
     },
@@ -2572,25 +2629,6 @@
       "truth": {
         "activeSpeechDbfs": -29.999999999109285,
         "requestedDbfs": -30,
-        "peakLimited": 0
-      }
-    },
-    {
-      "id": "s1-levelm26",
-      "file": "fixtures/generated/s1-levelm26.wav",
-      "source": "corpus:cmu-arctic-files-awb(3本)@48000Hz",
-      "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
-      "sampleRate": 48000,
-      "samples": 480000,
-      "condition": {
-        "type": "level",
-        "params": {
-          "targetDbfs": -26
-        }
-      },
-      "truth": {
-        "activeSpeechDbfs": -25.99999999945167,
-        "requestedDbfs": -26,
         "peakLimited": 0
       }
     },
@@ -3440,8 +3478,8 @@
       }
     },
     {
-      "id": "s2-levelm45",
-      "file": "fixtures/generated/s2-levelm45.wav",
+      "id": "s2-levelm70",
+      "file": "fixtures/generated/s2-levelm70.wav",
       "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
       "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
       "sampleRate": 16000,
@@ -3449,18 +3487,18 @@
       "condition": {
         "type": "level",
         "params": {
-          "targetDbfs": -45
+          "targetDbfs": -70
         }
       },
       "truth": {
-        "activeSpeechDbfs": -45.0000000007723,
-        "requestedDbfs": -45,
+        "activeSpeechDbfs": -70.0000000424958,
+        "requestedDbfs": -70,
         "peakLimited": 0
       }
     },
     {
-      "id": "s2-levelm35",
-      "file": "fixtures/generated/s2-levelm35.wav",
+      "id": "s2-levelm60",
+      "file": "fixtures/generated/s2-levelm60.wav",
       "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
       "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
       "sampleRate": 16000,
@@ -3468,12 +3506,50 @@
       "condition": {
         "type": "level",
         "params": {
-          "targetDbfs": -35
+          "targetDbfs": -60
         }
       },
       "truth": {
-        "activeSpeechDbfs": -35.00000003607509,
-        "requestedDbfs": -35,
+        "activeSpeechDbfs": -59.999999997833,
+        "requestedDbfs": -60,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s2-levelm50",
+      "file": "fixtures/generated/s2-levelm50.wav",
+      "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
+      "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
+      "sampleRate": 16000,
+      "samples": 160000,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -50
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -50.000000001516284,
+        "requestedDbfs": -50,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s2-levelm40",
+      "file": "fixtures/generated/s2-levelm40.wav",
+      "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
+      "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
+      "sampleRate": 16000,
+      "samples": 160000,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -40
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -39.9999999967209,
+        "requestedDbfs": -40,
         "peakLimited": 0
       }
     },
@@ -3493,25 +3569,6 @@
       "truth": {
         "activeSpeechDbfs": -30.000000001043865,
         "requestedDbfs": -30,
-        "peakLimited": 0
-      }
-    },
-    {
-      "id": "s2-levelm26",
-      "file": "fixtures/generated/s2-levelm26.wav",
-      "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
-      "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
-      "sampleRate": 16000,
-      "samples": 160000,
-      "condition": {
-        "type": "level",
-        "params": {
-          "targetDbfs": -26
-        }
-      },
-      "truth": {
-        "activeSpeechDbfs": -25.999999999208754,
-        "requestedDbfs": -26,
         "peakLimited": 0
       }
     },
@@ -5189,8 +5246,8 @@
       }
     },
     {
-      "id": "s3-levelm45",
-      "file": "fixtures/generated/s3-levelm45.wav",
+      "id": "s3-levelm70",
+      "file": "fixtures/generated/s3-levelm70.wav",
       "source": "corpus:cmu-arctic-files-bdl(4本)@48000Hz",
       "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
       "sampleRate": 48000,
@@ -5198,18 +5255,18 @@
       "condition": {
         "type": "level",
         "params": {
-          "targetDbfs": -45
+          "targetDbfs": -70
         }
       },
       "truth": {
-        "activeSpeechDbfs": -44.99999999932232,
-        "requestedDbfs": -45,
+        "activeSpeechDbfs": -70.00000000104691,
+        "requestedDbfs": -70,
         "peakLimited": 0
       }
     },
     {
-      "id": "s3-levelm35",
-      "file": "fixtures/generated/s3-levelm35.wav",
+      "id": "s3-levelm60",
+      "file": "fixtures/generated/s3-levelm60.wav",
       "source": "corpus:cmu-arctic-files-bdl(4本)@48000Hz",
       "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
       "sampleRate": 48000,
@@ -5217,12 +5274,50 @@
       "condition": {
         "type": "level",
         "params": {
-          "targetDbfs": -35
+          "targetDbfs": -60
         }
       },
       "truth": {
-        "activeSpeechDbfs": -34.99999999900346,
-        "requestedDbfs": -35,
+        "activeSpeechDbfs": -60.00000000060686,
+        "requestedDbfs": -60,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s3-levelm50",
+      "file": "fixtures/generated/s3-levelm50.wav",
+      "source": "corpus:cmu-arctic-files-bdl(4本)@48000Hz",
+      "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
+      "sampleRate": 48000,
+      "samples": 480000,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -50
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -49.99999999955999,
+        "requestedDbfs": -50,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s3-levelm40",
+      "file": "fixtures/generated/s3-levelm40.wav",
+      "source": "corpus:cmu-arctic-files-bdl(4本)@48000Hz",
+      "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
+      "sampleRate": 48000,
+      "samples": 480000,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -40
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -39.99999999961022,
+        "requestedDbfs": -40,
         "peakLimited": 0
       }
     },
@@ -5242,25 +5337,6 @@
       "truth": {
         "activeSpeechDbfs": -29.99999999870699,
         "requestedDbfs": -30,
-        "peakLimited": 0
-      }
-    },
-    {
-      "id": "s3-levelm26",
-      "file": "fixtures/generated/s3-levelm26.wav",
-      "source": "corpus:cmu-arctic-files-bdl(4本)@48000Hz",
-      "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
-      "sampleRate": 48000,
-      "samples": 480000,
-      "condition": {
-        "type": "level",
-        "params": {
-          "targetDbfs": -26
-        }
-      },
-      "truth": {
-        "activeSpeechDbfs": -26.000000000645485,
-        "requestedDbfs": -26,
         "peakLimited": 0
       }
     },
@@ -6110,8 +6186,8 @@
       }
     },
     {
-      "id": "s4-levelm45",
-      "file": "fixtures/generated/s4-levelm45.wav",
+      "id": "s4-levelm70",
+      "file": "fixtures/generated/s4-levelm70.wav",
       "source": "corpus:cmu-arctic-files-ksp(3本)@16000Hz",
       "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
       "sampleRate": 16000,
@@ -6119,18 +6195,18 @@
       "condition": {
         "type": "level",
         "params": {
-          "targetDbfs": -45
+          "targetDbfs": -70
         }
       },
       "truth": {
-        "activeSpeechDbfs": -44.9999999974333,
-        "requestedDbfs": -45,
+        "activeSpeechDbfs": -69.99999999531519,
+        "requestedDbfs": -70,
         "peakLimited": 0
       }
     },
     {
-      "id": "s4-levelm35",
-      "file": "fixtures/generated/s4-levelm35.wav",
+      "id": "s4-levelm60",
+      "file": "fixtures/generated/s4-levelm60.wav",
       "source": "corpus:cmu-arctic-files-ksp(3本)@16000Hz",
       "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
       "sampleRate": 16000,
@@ -6138,12 +6214,50 @@
       "condition": {
         "type": "level",
         "params": {
-          "targetDbfs": -35
+          "targetDbfs": -60
         }
       },
       "truth": {
-        "activeSpeechDbfs": -34.99999999932,
-        "requestedDbfs": -35,
+        "activeSpeechDbfs": -59.99999999775193,
+        "requestedDbfs": -60,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s4-levelm50",
+      "file": "fixtures/generated/s4-levelm50.wav",
+      "source": "corpus:cmu-arctic-files-ksp(3本)@16000Hz",
+      "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
+      "sampleRate": 16000,
+      "samples": 160000,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -50
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -50.00000000136982,
+        "requestedDbfs": -50,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s4-levelm40",
+      "file": "fixtures/generated/s4-levelm40.wav",
+      "source": "corpus:cmu-arctic-files-ksp(3本)@16000Hz",
+      "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
+      "sampleRate": 16000,
+      "samples": 160000,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -40
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -40.00000000250117,
+        "requestedDbfs": -40,
         "peakLimited": 0
       }
     },
@@ -6163,25 +6277,6 @@
       "truth": {
         "activeSpeechDbfs": -30.0000000017768,
         "requestedDbfs": -30,
-        "peakLimited": 0
-      }
-    },
-    {
-      "id": "s4-levelm26",
-      "file": "fixtures/generated/s4-levelm26.wav",
-      "source": "corpus:cmu-arctic-files-ksp(3本)@16000Hz",
-      "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
-      "sampleRate": 16000,
-      "samples": 160000,
-      "condition": {
-        "type": "level",
-        "params": {
-          "targetDbfs": -26
-        }
-      },
-      "truth": {
-        "activeSpeechDbfs": -25.99999999546505,
-        "requestedDbfs": -26,
         "peakLimited": 0
       }
     },
@@ -7859,8 +7954,8 @@
       }
     },
     {
-      "id": "s5-levelm45",
-      "file": "fixtures/generated/s5-levelm45.wav",
+      "id": "s5-levelm70",
+      "file": "fixtures/generated/s5-levelm70.wav",
       "source": "corpus:cmu-arctic-files-ksp(3本)@48000Hz",
       "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
       "sampleRate": 48000,
@@ -7868,18 +7963,18 @@
       "condition": {
         "type": "level",
         "params": {
-          "targetDbfs": -45
+          "targetDbfs": -70
         }
       },
       "truth": {
-        "activeSpeechDbfs": -44.99999999884793,
-        "requestedDbfs": -45,
+        "activeSpeechDbfs": -70.00000000016053,
+        "requestedDbfs": -70,
         "peakLimited": 0
       }
     },
     {
-      "id": "s5-levelm35",
-      "file": "fixtures/generated/s5-levelm35.wav",
+      "id": "s5-levelm60",
+      "file": "fixtures/generated/s5-levelm60.wav",
       "source": "corpus:cmu-arctic-files-ksp(3本)@48000Hz",
       "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
       "sampleRate": 48000,
@@ -7887,12 +7982,50 @@
       "condition": {
         "type": "level",
         "params": {
-          "targetDbfs": -35
+          "targetDbfs": -60
         }
       },
       "truth": {
-        "activeSpeechDbfs": -35.00000000097137,
-        "requestedDbfs": -35,
+        "activeSpeechDbfs": -59.99999999988514,
+        "requestedDbfs": -60,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s5-levelm50",
+      "file": "fixtures/generated/s5-levelm50.wav",
+      "source": "corpus:cmu-arctic-files-ksp(3本)@48000Hz",
+      "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
+      "sampleRate": 48000,
+      "samples": 480000,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -50
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -49.99999999957649,
+        "requestedDbfs": -50,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s5-levelm40",
+      "file": "fixtures/generated/s5-levelm40.wav",
+      "source": "corpus:cmu-arctic-files-ksp(3本)@48000Hz",
+      "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
+      "sampleRate": 48000,
+      "samples": 480000,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -40
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -40.00000000054832,
+        "requestedDbfs": -40,
         "peakLimited": 0
       }
     },
@@ -7912,25 +8045,6 @@
       "truth": {
         "activeSpeechDbfs": -30.0000000004332,
         "requestedDbfs": -30,
-        "peakLimited": 0
-      }
-    },
-    {
-      "id": "s5-levelm26",
-      "file": "fixtures/generated/s5-levelm26.wav",
-      "source": "corpus:cmu-arctic-files-ksp(3本)@48000Hz",
-      "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
-      "sampleRate": 48000,
-      "samples": 480000,
-      "condition": {
-        "type": "level",
-        "params": {
-          "targetDbfs": -26
-        }
-      },
-      "truth": {
-        "activeSpeechDbfs": -25.999999999312898,
-        "requestedDbfs": -26,
         "peakLimited": 0
       }
     },
@@ -8780,8 +8894,8 @@
       }
     },
     {
-      "id": "s6-levelm45",
-      "file": "fixtures/generated/s6-levelm45.wav",
+      "id": "s6-levelm70",
+      "file": "fixtures/generated/s6-levelm70.wav",
       "source": "corpus:cmu-arctic-files-slt(3本)@16000Hz",
       "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
       "sampleRate": 16000,
@@ -8789,18 +8903,18 @@
       "condition": {
         "type": "level",
         "params": {
-          "targetDbfs": -45
+          "targetDbfs": -70
         }
       },
       "truth": {
-        "activeSpeechDbfs": -45.00000000075922,
-        "requestedDbfs": -45,
+        "activeSpeechDbfs": -70.00000000139829,
+        "requestedDbfs": -70,
         "peakLimited": 0
       }
     },
     {
-      "id": "s6-levelm35",
-      "file": "fixtures/generated/s6-levelm35.wav",
+      "id": "s6-levelm60",
+      "file": "fixtures/generated/s6-levelm60.wav",
       "source": "corpus:cmu-arctic-files-slt(3本)@16000Hz",
       "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
       "sampleRate": 16000,
@@ -8808,12 +8922,50 @@
       "condition": {
         "type": "level",
         "params": {
-          "targetDbfs": -35
+          "targetDbfs": -60
         }
       },
       "truth": {
-        "activeSpeechDbfs": -34.99999999897652,
-        "requestedDbfs": -35,
+        "activeSpeechDbfs": -60.00000000052472,
+        "requestedDbfs": -60,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s6-levelm50",
+      "file": "fixtures/generated/s6-levelm50.wav",
+      "source": "corpus:cmu-arctic-files-slt(3本)@16000Hz",
+      "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
+      "sampleRate": 16000,
+      "samples": 160000,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -50
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -50.00000001154183,
+        "requestedDbfs": -50,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s6-levelm40",
+      "file": "fixtures/generated/s6-levelm40.wav",
+      "source": "corpus:cmu-arctic-files-slt(3本)@16000Hz",
+      "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
+      "sampleRate": 16000,
+      "samples": 160000,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -40
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -40.000000002101395,
+        "requestedDbfs": -40,
         "peakLimited": 0
       }
     },
@@ -8833,25 +8985,6 @@
       "truth": {
         "activeSpeechDbfs": -30.00000000416332,
         "requestedDbfs": -30,
-        "peakLimited": 0
-      }
-    },
-    {
-      "id": "s6-levelm26",
-      "file": "fixtures/generated/s6-levelm26.wav",
-      "source": "corpus:cmu-arctic-files-slt(3本)@16000Hz",
-      "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
-      "sampleRate": 16000,
-      "samples": 160000,
-      "condition": {
-        "type": "level",
-        "params": {
-          "targetDbfs": -26
-        }
-      },
-      "truth": {
-        "activeSpeechDbfs": -25.99999999918648,
-        "requestedDbfs": -26,
         "peakLimited": 0
       }
     },
@@ -10529,8 +10662,8 @@
       }
     },
     {
-      "id": "s7-levelm45",
-      "file": "fixtures/generated/s7-levelm45.wav",
+      "id": "s7-levelm70",
+      "file": "fixtures/generated/s7-levelm70.wav",
       "source": "corpus:cmu-arctic-files-slt(3本)@48000Hz",
       "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
       "sampleRate": 48000,
@@ -10538,18 +10671,18 @@
       "condition": {
         "type": "level",
         "params": {
-          "targetDbfs": -45
+          "targetDbfs": -70
         }
       },
       "truth": {
-        "activeSpeechDbfs": -44.99999999904996,
-        "requestedDbfs": -45,
+        "activeSpeechDbfs": -69.99999999957497,
+        "requestedDbfs": -70,
         "peakLimited": 0
       }
     },
     {
-      "id": "s7-levelm35",
-      "file": "fixtures/generated/s7-levelm35.wav",
+      "id": "s7-levelm60",
+      "file": "fixtures/generated/s7-levelm60.wav",
       "source": "corpus:cmu-arctic-files-slt(3本)@48000Hz",
       "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
       "sampleRate": 48000,
@@ -10557,12 +10690,50 @@
       "condition": {
         "type": "level",
         "params": {
-          "targetDbfs": -35
+          "targetDbfs": -60
         }
       },
       "truth": {
-        "activeSpeechDbfs": -35.00000000019021,
-        "requestedDbfs": -35,
+        "activeSpeechDbfs": -60.00000000074701,
+        "requestedDbfs": -60,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s7-levelm50",
+      "file": "fixtures/generated/s7-levelm50.wav",
+      "source": "corpus:cmu-arctic-files-slt(3本)@48000Hz",
+      "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
+      "sampleRate": 48000,
+      "samples": 480000,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -50
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -50.000000000346475,
+        "requestedDbfs": -50,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s7-levelm40",
+      "file": "fixtures/generated/s7-levelm40.wav",
+      "source": "corpus:cmu-arctic-files-slt(3本)@48000Hz",
+      "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
+      "sampleRate": 48000,
+      "samples": 480000,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -40
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -40.000000000799155,
+        "requestedDbfs": -40,
         "peakLimited": 0
       }
     },
@@ -10582,25 +10753,6 @@
       "truth": {
         "activeSpeechDbfs": -30.00000000160952,
         "requestedDbfs": -30,
-        "peakLimited": 0
-      }
-    },
-    {
-      "id": "s7-levelm26",
-      "file": "fixtures/generated/s7-levelm26.wav",
-      "source": "corpus:cmu-arctic-files-slt(3本)@48000Hz",
-      "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
-      "sampleRate": 48000,
-      "samples": 480000,
-      "condition": {
-        "type": "level",
-        "params": {
-          "targetDbfs": -26
-        }
-      },
-      "truth": {
-        "activeSpeechDbfs": -26.000000000196138,
-        "requestedDbfs": -26,
         "peakLimited": 0
       }
     },
