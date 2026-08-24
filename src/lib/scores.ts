@@ -1,7 +1,10 @@
-export type GradeCls = 'good' | 'ok' | 'warn' | 'bad';
-export type ScoreLabel = 'volume' | 'frequency' | 'clip' | 'noise';
+import { type ScoreAxis } from './AudioAnalyzer.ts';
 
-export const LABELS: ScoreLabel[] = ['volume', 'frequency', 'clip', 'noise'];
+export type GradeCls = 'good' | 'ok' | 'warn' | 'bad';
+export type ScoreLabel = ScoreAxis;
+
+/** 表示順。環境要因(ノイズ・残響)を先に、機材設定を後に置く */
+export const LABELS: ScoreLabel[] = ['noise', 'reverb', 'frequency', 'volume', 'clip'];
 export const SEGMENTS = 20;
 
 export function gradeCls(v: number): GradeCls {

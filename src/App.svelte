@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { analyzeAudio, type AudioScores } from './lib/AudioAnalyzer.ts';
+  import { analyzeAudio, type AudioScores, type AdviceCode } from './lib/AudioAnalyzer.ts';
   import { decodeFile, recordMicrophone } from './lib/audio.ts';
+
   import { T, initLang, type Lang } from './lib/i18n.ts';
   import { LABELS } from './lib/scores.ts';
   import RadarChart from './lib/RadarChart.svelte';
@@ -8,6 +9,7 @@
   import AudioInput from './lib/AudioInput.svelte';
   import VuMeter from './lib/VuMeter.svelte';
   import ScoreBreakdown from './lib/ScoreBreakdown.svelte';
+  import VerdictPanel from './lib/VerdictPanel.svelte';
   import StatusPanel from './lib/StatusPanel.svelte';
   import AudioPlayer from './lib/AudioPlayer.svelte';
 
@@ -26,6 +28,39 @@
   let errorDetail    = $state('');
   let recordProgress = $state(0);
   let audioUrl       = $state<string | null>(null);
+  /** 生PCMで録れたか。false なら圧縮経由なのでノイズ系のスコアは参考値 */
+  let rawCapture     = $state(true);
+  /**
+   * 分析したものの入手経路。加工痕跡が出たときの案内を分けるために持つ。
+   *
+   * ファイルなら「このツールのマイク録音を使って」で解決するが、マイク録音でも
+   * 痕跡が出る場合は OS やドライバの処理なので、同じ案内では手詰まりになる。
+   * 実録音（Windows標準のサウンドレコーダー）でゲート痕跡を確認して気づいた。
+   */
+  let source         = $state<'mic' | 'file'>('file');
+
+  // 加工の痕跡に関する警告。スコアは変えず、総合点より前に提示する。
+  const provWarnings = $derived.by(() => {
+    if (!scores) return [];
+    const p = scores.provenance;
+    const msgs: string[] = [];
+    if (p.flags.includes('band-limited'))    msgs.push(t.provenanceBandLimited(p.bandwidthHz));
+    if (p.flags.includes('digital-silence')) msgs.push(t.provenanceDigitalSilence);
+    if (p.flags.includes('zero-run'))        msgs.push(t.provenanceZeroRun);
+    if (!rawCapture)                         msgs.push(t.provenanceRawFallback);
+    return msgs;
+  });
+
+  // 加工痕跡が出たときの導入文。経路によって案内する先が違う。
+  const provIntro = $derived(source === 'mic' ? t.provenanceIntroMic : t.provenanceIntro);
+
+  // 信用できない軸は分析側が判定する。取り込み経路の劣化だけはUI側の情報なので足す。
+  const unreliable = $derived.by(() => {
+    if (!scores) return [];
+    const axes = new Set(scores.unreliable);
+    if (!rawCapture) { axes.add('noise'); axes.add('reverb'); }
+    return [...axes];
+  });
 
   const errorMsg = $derived(
     errorType === 'invalid-file'     ? t.errorInvalidFile :
@@ -41,6 +76,8 @@
       state = 'error'; return;
     }
     state = 'analyzing'; errorType = '';
+    rawCapture = true; // ファイル入力は復号のみ。取り込み経路による劣化はない
+    source = 'file';
     const url = URL.createObjectURL(file);
     try {
       scores = await analyzeAudio(await decodeFile(file));
@@ -57,7 +94,10 @@
   async function startRecording(): Promise<void> {
     state = 'recording'; errorType = ''; errorDetail = ''; recordProgress = 0;
     try {
-      const { buffer, blob } = await recordMicrophone(RECORD_DURATION, (p) => { recordProgress = p; });
+      const rec = await recordMicrophone(RECORD_DURATION, (p) => { recordProgress = p; });
+      const { buffer, blob } = rec;
+      rawCapture = rec.rawCapture;
+      source = 'mic';
       state = 'analyzing';
       scores = await analyzeAudio(buffer);
       audioUrl = URL.createObjectURL(blob);
@@ -69,9 +109,16 @@
     }
   }
 
+  // アドバイスはコードで返ってくる。文面は言語ごとに i18n から引く。
+  function renderAdvice(tip: { code: AdviceCode; value?: number }): string {
+    const render = t.adviceTexts[tip.code];
+    return typeof render === 'function' ? render(tip.value ?? 0) : render;
+  }
+
   function reset(): void {
     if (audioUrl) { URL.revokeObjectURL(audioUrl); audioUrl = null; }
     state = 'idle'; scores = null; errorType = ''; errorDetail = ''; recordProgress = 0;
+    rawCapture = true;
   }
 </script>
 
@@ -112,20 +159,34 @@
           <AudioPlayer src={audioUrl} />
         </div>
       {/if}
+      {#if provWarnings.length > 0}
+        <div class="panel prov-panel result-full">
+          <p class="panel-label prov-label">{t.provenanceLabel}</p>
+          <p class="prov-intro">{provIntro}</p>
+          <ul class="prov-list">
+            {#each provWarnings as msg}
+              <li>{msg}</li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
       <VuMeter score={scores.overall} {t} />
+      <div class="result-full">
+        <VerdictPanel {scores} {t} />
+      </div>
       <div class="panel chart-panel">
         <p class="panel-label">SPECTRUM</p>
         <RadarChart scores={scores} labels={LABELS} displayLabels={t.radarLabels} size={255} />
       </div>
       <div class="result-full">
-        <ScoreBreakdown {scores} {t} />
+        <ScoreBreakdown {scores} {t} {unreliable} />
       </div>
       {#if scores.advice.length > 0}
         <div class="panel result-full">
           <p class="panel-label">{t.adviceLabel}</p>
           <ul class="advice-list">
             {#each scores.advice as tip}
-              <li>{tip}</li>
+              <li>{renderAdvice(tip)}</li>
             {/each}
           </ul>
         </div>
@@ -155,6 +216,48 @@
     display: flex;
     flex-direction: column;
     gap: 1.1rem;
+  }
+
+  /* ---- 加工済み音声の警告 ---- */
+  .prov-panel {
+    background: #FFF7EC;
+    border-color: #E5B77C;
+  }
+
+  .prov-label { color: #B86000; }
+
+  .prov-intro {
+    font-size: 0.82rem;
+    line-height: 1.65;
+    color: #5C4420;
+    font-weight: 700;
+  }
+
+  .prov-list {
+    list-style: none;
+    margin-top: 0.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .prov-list li {
+    position: relative;
+    padding-left: 0.9rem;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    color: #6B5230;
+  }
+
+  .prov-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #B86000;
   }
 
   /* ---- Header ---- */

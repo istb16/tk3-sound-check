@@ -27,3 +27,15 @@ dist-ssr
 .agents/
 skills-lock.json
 /.claude/skills
+
+# 検証用の音声・モデル（git管理外。validation/README.md 参照）
+# git に入るのは取得スクリプト・劣化パラメータのマニフェスト・検証レポートのみ
+/fixtures/corpus/
+/fixtures/generated/
+/fixtures/models/
+/fixtures/_download/
+/fixtures/real/
+
+# テスト失敗時の添付・スクリーンショット（実行ごとに変わる生成物）
+/.vitest-attachments/
+**/__screenshots__/

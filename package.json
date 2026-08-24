@@ -7,11 +7,16 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "fetch-corpus": "node validation/fetch-corpus.ts",
+    "fetch-mos-model": "node validation/fetch-mos-model.ts",
+    "generate": "node validation/generate.ts",
+    "validate": "node validation/validate.ts"
   },
   "devDependencies": {
     "@vitest/browser": "^4.1.11",
     "@vitest/browser-playwright": "^4.1.11",
+    "onnxruntime-node": "^1.27.0",
     "playwright": "^1.62.1",
     "typescript": "^7.0.2",
     "vite": "^8.2.2",

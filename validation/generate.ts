@@ -1,0 +1,479 @@
+/**
+ * 検証セットの生成。
+ *
+ *   node validation/generate.ts [--duration=10] [--max-sources=3] [--seed=1]
+ *                               [--synthetic] [--rates=16000,48000] [--mixed]
+ *
+ * fixtures/corpus/ にクリーン音声のWAVがあればそれを素材にし、無ければ
+ * 合成した音声風信号(speechlike.ts)で代替する。素材ごとに、既知の物理量を
+ * 1つだけ注入した劣化版を作る。1条件ずつしか掛けないのは、誤差の原因を
+ * 一意に切り分けるため。
+ *
+ * 出力:
+ *   fixtures/generated/*.wav   … git管理外
+ *   validation/manifest.json   … git管理下（劣化パラメータと真値の記録）
+ */
+
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, resolve } from 'node:path';
+
+import { decodeWav, encodeWavFloat32 } from './lib/wav.ts';
+import { resample, resampledContentHz } from './lib/dsp.ts';
+import { speechLike } from './lib/speechlike.ts';
+import {
+  activeSpeechRms,
+  addNoise,
+  applyClipping,
+  applyLowpass,
+  applyLevel,
+  applyTilt,
+  applyReverb,
+  normalizeSpeechLevel,
+} from './lib/degrade.ts';
+import { CORPUS_DIR, GENERATED_DIR, MANIFEST, numArg, parseArgs } from './lib/paths.ts';
+
+const args = parseArgs(process.argv.slice(2));
+// 製品のマイク録音と同じ長さに合わせる。短いと残響の自由減衰を観測できる
+// 息継ぎの回数が足りず、長いRT60ほど検出できなくなる。
+const DURATION_SEC = numArg(args, 'duration', 10);
+const MAX_SOURCES  = numArg(args, 'max-sources', 3);
+const SEED         = numArg(args, 'seed', 1);
+const FORCE_SYNTH  = args.synthetic === true;
+/** 複合条件も生成する（配点の検証用） */
+const WANT_MIXED   = args.mixed === true;
+const SYNTH_SR     = 48000;
+/**
+ * 検証するサンプルレートの一覧（空 = 素材のレートそのまま）。
+ * 指定すると素材1つがレートごとに複製され、同じ内容を違うレートで並べて比較できる。
+ *
+ * 製品のマイク録音は48kHzだが、公開コーパスは16kHzが主流。推定器の定数は
+ * すべて秒/Hzで書いてあるが、FFT長(2048)だけは固定なので周波数分解能が
+ * サンプルレートに反比例する（16kHz:7.8Hz/bin → 48kHz:23.4Hz/bin）。
+ * 帯域上限の検出は100Hz幅の帯で見ているので、48kHzでは1帯あたり4binしか
+ * 入らない。ここが壊れていないかを実素材で確かめるための入口。
+ *
+ * **注意: これは「48kHzで実装が正しく動くか」の検証であって、
+ * 「48kHzの実録音で正しいか」の検証ではない。** 16kHz素材を上げ変換しても
+ * 8kHz以上に中身は生まれないので、8/11/16kHzのカットオフ条件は依然として
+ * 試せない。そちらは広帯域の実素材が必要。
+ */
+const RATES = typeof args.rates === 'string'
+  ? String(args.rates).split(',').map(Number).filter((n) => Number.isFinite(n) && n > 0)
+  : [];
+/**
+ * 目標長に対してこの割合を下回るコーパス素材は使わない。
+ * 息継ぎの回数が足りず残響を推定できないため、短い素材を混ぜると
+ * rt60 条件だけ測定不能が増えて誤差が読めなくなる。
+ */
+const MIN_SOURCE_RATIO = 0.8;
+
+// ---- 条件マトリクス（1素材あたり） ----
+const SNR_DB_LIST    = [0, 5, 10, 15, 20, 25, 30, 40];
+const RT60_SEC_LIST  = [0.2, 0.35, 0.5, 0.7, 1.0, 1.5];
+const CUTOFF_HZ_LIST = [3400, 4000, 5500, 8000, 11000, 16000];
+const CLIP_RATE_LIST = [0.0002, 0.001, 0.005, 0.02];
+/**
+ * スペクトルの傾き[dB/oct]（こもり）。帯域は削らずに高域だけ落とす。
+ *
+ * 周波数軸の内訳のうち「明瞭度」10点はこれを捉えるためにあるが、検証条件が
+ * 無かった。実測すると劣化なしの実音声4話者でこの内訳が3.4〜8.8点とばらついて
+ * おり、声質（低い声ほど500〜3000Hzの比率が下がる）を環境の欠点として減点して
+ * いる疑いがある。注入した傾きへの反応と話者間のばらつきを比べて確かめる。
+ */
+const TILT_DB_PER_OCT_LIST = [-3, -6, -9, -12];
+
+/**
+ * 有効音声レベル[dBFS]。音量軸を動かす条件。
+ *
+ * 素材は -17dBFS に正規化してあるので、そのままでは音量軸が常に満点で
+ * 検証にならなかった。民生の録音アプリの実測値（PC -31.4 / スマホ -26.2）を
+ * 挟むように、実用域の外側まで振る。
+ */
+const LEVEL_DBFS_LIST = [-45, -35, -30, -26, -20, -12, -8];
+
+/**
+ * 直接音対残響比を変える条件。残響の振幅（直接音を1としたときの比）で指定する。
+ *
+ * RT60を固定してマイク位置だけを変える。RT60は部屋の性質だが、マイクに届く残響の
+ * 量はマイク位置で決まり、了解度に効くのはそちらのほう。残響軸が「部屋」を測って
+ * いるのか「その位置での聞こえ」を測っているのかを切り分けるための条件。
+ *
+ * 検証基盤はこれまで 0.45 に固定していたので、残響軸の閾値を較正できなかった。
+ */
+const DRR_RT60_SEC = 0.6;
+/**
+ * 直接音対残響比[dB]。実際の録音の範囲を覆う。
+ *   +20 近接マイク / +10 卓上マイク / 0 部屋の向こう / -10 かなり遠い
+ */
+const DRR_DB_LIST = [20, 15, 10, 5, 0, -10];
+
+/**
+ * 複合条件（--mixed）。2つ以上の劣化を同時に掛ける。
+ *
+ * 単独条件では**配点を検証できない**。ノイズ25点・残響20点という重み付けが
+ * 妥当かどうかは、「ノイズが強い録音」と「残響が長い録音」のどちらを低く
+ * 評価すべきかという比較でしか問えない。単独条件はその比較を含まない。
+ *
+ * **要因の組み合わせは均衡させる（完全要因配置にする）。** 最初は
+ * 「ノイズ×残響」「ノイズ×音割れ」…と組を並べる形にしたが、それでは
+ * 音割れの条件に強い残響が入らず、残響の条件に音割れが入らない。結果、
+ * 軸ごとの相関が音量 -0.52 / 音割れ -0.64 と符号が反転して出た。
+ * 軸が壊れていたのではなく、条件の組み方が交絡していただけだった。
+ *
+ * 真値は物理量ごとには定義できない（帯域制限した後のSNRの真値のような
+ * 組み合わせは意味が曖昧）ので、推定誤差の集計からは外れる。用途は
+ * MOSオラクルとの順位相関による配点の検証だけ。
+ */
+interface MixedSpec {
+  snrDb?: number;
+  rt60Sec?: number;
+  cutoffHz?: number;
+  clipRate?: number;
+}
+
+const MIXED_SNR_LEVELS    = [8, 15, 25];
+const MIXED_RT60_LEVELS   = [0.3, 0.6, 1.0];
+const MIXED_CLIP_LEVELS   = [undefined, 0.005];
+const MIXED_CUTOFF_LEVELS = [undefined, 3400];
+
+/** 完全要因配置: 3 × 3 × 2 × 2 = 36通り */
+const MIXED_LIST: MixedSpec[] = MIXED_SNR_LEVELS.flatMap((snrDb) =>
+  MIXED_RT60_LEVELS.flatMap((rt60Sec) =>
+    MIXED_CLIP_LEVELS.flatMap((clipRate) =>
+      MIXED_CUTOFF_LEVELS.map((cutoffHz) => ({ snrDb, rt60Sec, clipRate, cutoffHz })),
+    ),
+  ),
+);
+
+interface Source {
+  name: string;
+  samples: Float32Array;
+  sampleRate: number;
+  /**
+   * 素材に実際に中身が入っている上限周波数。
+   *
+   * ナイキストとは別物。16kHz素材を48kHzに上げても8kHz以上には何も生まれない
+   * ので、それより上のカットオフ条件は掛けても真値が観測できない。
+   * 意味のない条件を混ぜると帯域上限の誤差統計が読めなくなる。
+   */
+  contentHz: number;
+  sha256: string | null;
+}
+
+
+interface ManifestItem {
+  id: string;
+  file: string;
+  source: string;
+  sourceSha256: string | null;
+  sampleRate: number;
+  samples: number;
+  condition: { type: string; params: Record<string, number | string> };
+  truth: Record<string, number>;
+}
+
+function loadSources(): Source[] {
+  if (!FORCE_SYNTH && existsSync(CORPUS_DIR)) {
+    const wavs = readdirSync(CORPUS_DIR).filter((f) => /\.wav$/i.test(f)).sort();
+    if (wavs.length > 0) {
+      const sources = buildCorpusSources(wavs);
+      if (sources.length > 0) {
+        console.log(`コーパス素材を使用: ${sources.length}素材 / ${wavs.length}ファイル (${CORPUS_DIR})`);
+        for (const s of sources) {
+          console.log(`  ${s.name}  ${s.sampleRate}Hz  ${(s.samples.length / s.sampleRate).toFixed(1)}秒`);
+        }
+        return sources;
+      }
+    }
+  }
+
+  console.log(
+    FORCE_SYNTH
+      ? '合成音声風信号を使用（--synthetic 指定）'
+      : `コーパスが空のため合成音声風信号で代替します（${CORPUS_DIR}）\n` +
+        '  実音声を使うには: npm run fetch-corpus  もしくは fixtures/corpus/ に WAV を置く',
+  );
+  const n = Math.max(1, Math.min(MAX_SOURCES, 8));
+  return Array.from({ length: n }, (_, i) => ({
+    name: `synthetic:${i}`,
+    samples: speechLike(DURATION_SEC, SYNTH_SR, SEED * 1000 + i),
+    sampleRate: SYNTH_SR,
+    contentHz: SYNTH_SR / 2,
+    sha256: null,
+  }));
+}
+
+/**
+ * コーパスのファイルを連結して、目標長の素材を作る。
+ *
+ * 公開コーパスの1ファイルは2〜4秒の単発発話が普通で、そのままでは短すぎる。
+ * 残響の推定には発話の切れ目が複数必要なので、製品の録音長(10秒)に達するまで
+ * 連ねる。ファイル間の無音は素材自身の録音余白なので、人工的な無音を挿入する
+ * 必要はない（挿入するとデジタル無音として検出されてしまう）。
+ */
+/**
+ * ファイル名から素材グループのキーを取る（末尾の連番を落とす）。
+ * 話者ごとにファイル名の接頭辞が違うので、これで話者単位に素材がまとまる。
+ * 1つの素材に複数話者を混ぜてしまうと、話者依存の問題を切り分けられない。
+ */
+function groupKeyOf(name: string): string {
+  return name.replace(/-\d+\.wav$/i, '');
+}
+
+function buildCorpusSources(wavs: string[]): Source[] {
+  // グループ（=話者）ごとにファイルを束ねる
+  const groups = new Map<string, string[]>();
+  for (const name of wavs) {
+    const key = groupKeyOf(name);
+    const list = groups.get(key) ?? [];
+    list.push(name);
+    groups.set(key, list);
+  }
+
+  const sources: Source[] = [];
+  for (const [group, files] of groups) {
+    if (sources.length >= MAX_SOURCES * Math.max(1, RATES.length)) break;
+
+    let idx = 0;
+    const parts: Float32Array[] = [];
+    const used: string[] = [];
+    const hash = createHash('sha256');
+    let sampleRate = 0;
+    let total = 0;
+    let needed = Infinity;
+
+    while (idx < files.length && total < needed) {
+      const name = files[idx];
+      idx++;
+      const bytes = readFileSync(resolve(CORPUS_DIR, name));
+      const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+      let wav;
+      try {
+        wav = decodeWav(ab);
+      } catch (e) {
+        console.warn(`  読めないファイルを飛ばします: ${name} (${String(e)})`);
+        continue;
+      }
+      if (sampleRate === 0) {
+        sampleRate = wav.sampleRate;
+        needed = Math.floor(DURATION_SEC * sampleRate);
+      } else if (wav.sampleRate !== sampleRate) {
+        continue; // サンプルレートが混ざる連結はしない
+      }
+      parts.push(wav.samples);
+      total += wav.samples.length;
+      used.push(basename(name));
+      hash.update(bytes);
+    }
+
+    if (total === 0) continue;
+
+    if (total < needed * MIN_SOURCE_RATIO) {
+      console.log(`  ${group}: ${(total / sampleRate).toFixed(1)}秒 しかないため素材にしません`);
+      continue;
+    }
+
+    const joined = new Float32Array(total);
+    let offset = 0;
+    for (const p of parts) { joined.set(p, offset); offset += p.length; }
+
+    const sha = hash.digest('hex');
+    // レート変換は正規化より前に行う。変換の補間で振幅がわずかに変わるため、
+    // 後で正規化しないと目標発話レベルからずれる。
+    for (const outSr of RATES.length > 0 ? RATES : [sampleRate]) {
+      const converted = resample(joined, sampleRate, outSr);
+      sources.push({
+        name: `corpus:${group}(${used.length}本)@${outSr}Hz`,
+        samples: normalizeSpeechLevel(converted, outSr),
+        sampleRate: outSr,
+        contentHz: outSr === sampleRate ? sampleRate / 2 : resampledContentHz(sampleRate, outSr),
+        sha256: sha,
+      });
+    }
+  }
+
+  return sources;
+}
+
+function trim(samples: Float32Array, sampleRate: number): Float32Array {
+  const want = Math.floor(DURATION_SEC * sampleRate);
+  return samples.length <= want ? samples : samples.subarray(0, want).slice();
+}
+
+function main(): void {
+  mkdirSync(GENERATED_DIR, { recursive: true });
+
+  const sources = loadSources();
+  const items: ManifestItem[] = [];
+  let seedCounter = SEED * 100003;
+
+  for (const [si, src] of sources.entries()) {
+    const clean = trim(src.samples, src.sampleRate);
+    const sr = src.sampleRate;
+    const contentHz = src.contentHz;
+    const tag = `s${si}`;
+
+    const emit = (
+      id: string,
+      data: Float32Array,
+      condition: ManifestItem['condition'],
+      truth: Record<string, number>,
+    ): void => {
+      const file = `${id}.wav`;
+      writeFileSync(resolve(GENERATED_DIR, file), encodeWavFloat32(data, sr));
+      items.push({
+        id,
+        file: `fixtures/generated/${file}`,
+        source: src.name,
+        sourceSha256: src.sha256,
+        sampleRate: sr,
+        samples: data.length,
+        condition,
+        truth,
+      });
+    };
+
+    // ---- 劣化なしの基準 ----
+    emit(`${tag}-clean`, clean, { type: 'clean', params: {} }, {
+      activeSpeechRms: activeSpeechRms(clean, sr),
+    });
+
+    // ---- 既知SNRのノイズ ----
+    for (const snr of SNR_DB_LIST) {
+      for (const color of ['pink', 'white'] as const) {
+        const r = addNoise(clean, sr, snr, seedCounter++, color, contentHz);
+        emit(`${tag}-snr${snr}-${color}`, r.out,
+          { type: 'snr', params: { targetSnrDb: snr, color } },
+          {
+            snrDb: r.trueSnrDb,
+            requestedSnrDb: r.requestedSnrDb,
+            activeSpeechRms: r.activeSpeechRms,
+            noiseRms: r.noiseRms,
+            sourceNoiseRms: r.sourceNoiseRms,
+          });
+      }
+    }
+
+    // ---- 既知RT60の残響 ----
+    for (const rt60 of RT60_SEC_LIST) {
+      const r = applyReverb(clean, sr, rt60, seedCounter++);
+      emit(`${tag}-rt60-${String(rt60).replace('.', '_')}`, r.out,
+        { type: 'rt60', params: { rt60Sec: rt60 } },
+        { rt60Sec: r.trueRt60Sec, drrDb: r.trueDrrDb });
+    }
+
+    // ---- 既知カットオフの帯域制限 ----
+    for (const cutoff of CUTOFF_HZ_LIST) {
+      // 素材に中身が無い帯域を切っても何も起きない。真値が観測できないので飛ばす
+      if (cutoff >= contentHz * 0.92) continue;
+      const r = applyLowpass(clean, sr, cutoff);
+      emit(`${tag}-lp${cutoff}`, r.out,
+        { type: 'cutoff', params: { cutoffHz: cutoff } },
+        { cutoffHz: r.trueCutoffHz });
+    }
+
+    // ---- 既知のクリップ率 ----
+    for (const rate of CLIP_RATE_LIST) {
+      const r = applyClipping(clean, rate);
+      emit(`${tag}-clip${String(rate).replace('.', '_')}`, r.out,
+        { type: 'clip', params: { targetRateAll: rate } },
+        { clipRateAll: r.trueClipRateAll, clipRateActive: r.trueClipRateActive, gain: r.gain });
+    }
+
+    // ---- 直接音対残響比（マイク位置） ----
+    for (const drr of DRR_DB_LIST) {
+      const r = applyReverb(clean, sr, DRR_RT60_SEC, seedCounter++, drr);
+      emit(`${tag}-drr${String(drr).replace('-', 'm')}`, r.out,
+        { type: 'drr', params: { targetDrrDb: drr, rt60Sec: DRR_RT60_SEC } },
+        { drrDb: r.trueDrrDb, rt60Sec: r.trueRt60Sec });
+    }
+
+    // ---- 既知の有効音声レベル ----
+    for (const dbfs of LEVEL_DBFS_LIST) {
+      const r = applyLevel(clean, sr, dbfs);
+      emit(`${tag}-level${String(dbfs).replace('-', 'm')}`, r.out,
+        { type: 'level', params: { targetDbfs: dbfs } },
+        {
+          activeSpeechDbfs: r.trueActiveSpeechDbfs,
+          requestedDbfs: r.requestedDbfs,
+          peakLimited: r.peakLimited ? 1 : 0,
+        });
+    }
+
+    // ---- 既知の傾き（こもり） ----
+    for (const slope of TILT_DB_PER_OCT_LIST) {
+      const r = applyTilt(clean, sr, slope);
+      emit(`${tag}-tilt${String(slope).replace("-", "m")}`, r.out,
+        { type: 'tilt', params: { tiltDbPerOct: slope, hingeHz: r.hingeHz } },
+        { tiltDbPerOct: r.trueTiltDbPerOct });
+    }
+
+    // ---- 複合条件（配点の検証用） ----
+    //
+    // MOSオラクルの入力は16kHzなので、レートを上げても同じ情報しか得られない。
+    // 生成コストだけ増えるので、複数レートを指定したときは一番低いレートにだけ出す。
+    const mixedRate = RATES.length > 0 ? Math.min(...RATES) : sr;
+    if (WANT_MIXED && sr === mixedRate) {
+      for (const spec of MIXED_LIST) {
+        // 掛ける順番は信号経路に合わせる: 部屋の残響 → マイクが拾う暗騒音
+        //  → 入力段の音割れ → コーデックの帯域制限
+        if (spec.cutoffHz != null && spec.cutoffHz >= contentHz * 0.92) continue;
+
+        let data = clean;
+        const truth: Record<string, number> = {};
+        const parts: string[] = [];
+
+        if (spec.rt60Sec != null) {
+          const r = applyReverb(data, sr, spec.rt60Sec, seedCounter++);
+          data = r.out;
+          truth.rt60Sec = r.trueRt60Sec;
+          parts.push(`rt${String(spec.rt60Sec).replace('.', '_')}`);
+        }
+        if (spec.snrDb != null) {
+          const r = addNoise(data, sr, spec.snrDb, seedCounter++, 'pink', contentHz);
+          data = r.out;
+          truth.snrDb = r.trueSnrDb;
+          truth.noiseRms = r.noiseRms;
+          truth.sourceNoiseRms = r.sourceNoiseRms;
+          parts.push(`snr${spec.snrDb}`);
+        }
+        if (spec.clipRate != null) {
+          const r = applyClipping(data, spec.clipRate);
+          data = r.out;
+          truth.clipRateActive = r.trueClipRateActive;
+          parts.push(`clip${String(spec.clipRate).replace('.', '_')}`);
+        }
+        if (spec.cutoffHz != null) {
+          const r = applyLowpass(data, sr, spec.cutoffHz);
+          data = r.out;
+          truth.cutoffHz = r.trueCutoffHz;
+          parts.push(`lp${spec.cutoffHz}`);
+        }
+
+        emit(`${tag}-mix-${parts.join('-')}`, data,
+          { type: 'mixed', params: { ...spec } as Record<string, number> },
+          truth);
+      }
+    }
+  }
+
+  const manifest = {
+    version: 1,
+    seed: SEED,
+    generatedWith: {
+      durationSec: DURATION_SEC, maxSources: MAX_SOURCES,
+      syntheticSampleRate: SYNTH_SR, rates: RATES.length > 0 ? RATES : null,
+    },
+    sources: sources.map((s) => ({ name: s.name, sampleRate: s.sampleRate, sha256: s.sha256 })),
+    items,
+  };
+  writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + '\n');
+
+  console.log(`\n生成完了: ${items.length} 件`);
+  console.log(`  音声: ${GENERATED_DIR} (git管理外)`);
+  console.log(`  記録: ${MANIFEST} (git管理下)`);
+  console.log('\n次: npm run validate');
+}
+
+main();

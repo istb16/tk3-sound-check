@@ -1,14 +1,16 @@
 <script lang="ts">
-  import { scoreColor, LABELS } from './scores.ts';
+  import { scoreColor, LABELS, type ScoreLabel } from './scores.ts';
   import type { AudioScores } from './AudioAnalyzer.ts';
   import type { Translations } from './i18n.ts';
 
   interface Props {
     scores: AudioScores;
     t: Translations;
+    /** 加工の痕跡により信用できない軸。バッジを付けて明示する */
+    unreliable?: ScoreLabel[];
   }
 
-  let { scores, t }: Props = $props();
+  let { scores, t, unreliable = [] }: Props = $props();
 </script>
 
 <div class="panel">
@@ -18,7 +20,12 @@
       {@const v = scores[key]}
       <li class="b-row">
         <div class="b-top">
-          <span class="b-name">{t.categoryNames[key]}</span>
+          <span class="b-namewrap">
+            <span class="b-name">{t.categoryNames[key]}</span>
+            {#if unreliable.includes(key)}
+              <span class="b-flag" title={t.provenanceUnreliableTitle}>{t.provenanceUnreliable}</span>
+            {/if}
+          </span>
           <span class="b-desc">{t.categoryDescs[key]}</span>
           <span class="b-val">{v}</span>
         </div>
@@ -68,6 +75,27 @@
     font-weight: 700;
     color: #1A1C2E;
     letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+
+  /* ラベルとバッジの器。.b-name の textContent はラベルのみに保つ */
+  .b-namewrap {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    white-space: nowrap;
+  }
+
+  .b-flag {
+    display: inline-block;
+    padding: 0.05rem 0.35rem;
+    border: 1px solid #B86000;
+    border-radius: 3px;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #B86000;
+    vertical-align: 0.08em;
     white-space: nowrap;
   }
 

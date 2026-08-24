@@ -1,0 +1,1031 @@
+/**
+ * 検証セットを流して、推定誤差とスコアの単調性を実測する。
+ *
+ *   node validation/validate.ts [--mos]
+ *
+ * 測るものは2つ。
+ *
+ * 1. 推定誤差 — 注入した既知の物理量を、推定器が復元できるか。
+ *    ラベル付けは発生しない（算数なので）。
+ * 2. スコアの単調性 — 劣化を強めたときスコアが正しい方向に動くか。
+ *    Spearman の順位相関で見る。符号が想定と逆なら、その軸は壊れている。
+ *
+ * --mos を付けると、学習済みの無参照品質推定モデル(DNSMOS)との順位相関も出す。
+ * モデルは製品には載せない。ここでの用途は「係数を調整する方向」を得るための
+ * 開発時オラクルに限る。
+ *
+ * 出力: validation/report.json / validation/report.md （どちらもgit管理下）
+ */
+
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+import { decodeWav } from './lib/wav.ts';
+import { MANIFEST, REPORT_JSON, REPORT_MD, ROOT, parseArgs } from './lib/paths.ts';
+import {
+  estimateClipping, estimateLevel, estimateReverb, estimateSnr, estimateSpectralSlope,
+} from '../src/lib/estimators.ts';
+import { detectProvenance } from '../src/lib/provenance.ts';
+import { analyzeSamples, AXIS_MAX } from '../src/lib/AudioAnalyzer.ts';
+import { scoreMos } from './mos-oracle.ts';
+
+const args = parseArgs(process.argv.slice(2));
+const WANT_MOS = args.mos === true;
+
+interface ManifestItem {
+  id: string;
+  file: string;
+  source: string;
+  sampleRate: number;
+  condition: { type: string; params: Record<string, number | string> };
+  truth: Record<string, number>;
+}
+
+interface Row {
+  id: string;
+  source: string;
+  conditionType: string;
+  params: Record<string, number | string>;
+  /** 推定対象の真値（単調性の軸としても使う） */
+  truthValue: number | null;
+  estimate: number | null;
+  errorLabel: string;
+  scores: { overall: number; volume: number; frequency: number; reverb: number; clip: number; noise: number };
+  /** 残響推定に使えた減衰イベント数（rt60条件の診断用） */
+  decayEvents: number | null;
+  bandwidthHz: number;
+  flags: string[];
+  /**
+   * 製品が「参考値」として扱う軸。
+   *
+   * 誤差が大きい行が利用者に断りなく出ていないかを確かめるために記録する。
+   * 実測では減衰イベントが3個未満だとRT60のMAEが2.4倍になるので、
+   * そこが reverb として挙がっていることがこの表で確認できる必要がある。
+   */
+  unreliable: string[];
+  /** 総合判定 good/usable/poor */
+  verdict: string;
+  /** 測れていない軸があるため good を出さなかったか */
+  verdictUnconfirmed: boolean;
+  mos: number | null;
+}
+
+// ==========================================================================
+// 統計ヘルパー
+// ==========================================================================
+
+function ranks(values: number[]): number[] {
+  const idx = values.map((v, i) => ({ v, i })).sort((a, b) => a.v - b.v);
+  const out = new Array<number>(values.length);
+  let i = 0;
+  while (i < idx.length) {
+    let j = i;
+    while (j + 1 < idx.length && idx[j + 1].v === idx[i].v) j++;
+    const avg = (i + j) / 2 + 1;
+    for (let k = i; k <= j; k++) out[idx[k].i] = avg;
+    i = j + 1;
+  }
+  return out;
+}
+
+function pearson(a: number[], b: number[]): number | null {
+  const n = a.length;
+  if (n < 3) return null;
+  const ma = a.reduce((s, v) => s + v, 0) / n;
+  const mb = b.reduce((s, v) => s + v, 0) / n;
+  let num = 0, da = 0, db = 0;
+  for (let i = 0; i < n; i++) {
+    const x = a[i] - ma, y = b[i] - mb;
+    num += x * y; da += x * x; db += y * y;
+  }
+  if (da === 0 || db === 0) return null;
+  return num / Math.sqrt(da * db);
+}
+
+function spearman(a: number[], b: number[]): number | null {
+  return pearson(ranks(a), ranks(b));
+}
+
+/**
+ * 劣化なしの素材に対するMOSがこれを下回ったら、素材がモデルの学習分布から
+ * 外れていると判断する。モデルは劣化ではなく素材の不自然さを評価しており、
+ * 条件ごとの相関を読んでも意味がない。
+ */
+const MOS_TRUSTWORTHY_BASELINE = 3.0;
+
+/**
+ * DNSMOS の入力は16kHzモノラル。これを超える帯域の違いは原理的に見えない。
+ * 帯域制限の条件を解釈するときに必要な注意。
+ */
+const MOS_VISIBLE_HZ = 8000;
+
+/** 条件ごとのMOS相関と、その信号にそもそも情報があるか */
+interface MosConditionStat {
+  rho: number | null;
+  n: number;
+  /** 異なるMOS値の個数。1なら劣化がモデルに見えていない */
+  distinct: number;
+  /** MOSの振れ幅 */
+  spread: number;
+}
+
+function round(v: number, digits = 2): number {
+  const f = 10 ** digits;
+  return Math.round(v * f) / f;
+}
+
+// ==========================================================================
+// 1件ぶんの評価
+// ==========================================================================
+
+/**
+ * 素材ごとの「劣化なしの傾斜」。tilt条件の真値の土台になる。
+ *
+ * 注入した傾き[dB/oct]は素材の自然な傾斜に足される量なので、真値は
+ * 「素材の傾斜 + 注入量」。素材の傾斜は劣化なしの行を実測して得る。
+ * 4話者で -2.4〜-8.8dB/oct と幅があり、共通の定数では代用できない。
+ */
+const baseSlopeBySource = new Map<string, number | null>();
+
+function baseSlopeOf(source: string): number | null {
+  return baseSlopeBySource.get(source) ?? null;
+}
+function evaluate(item: ManifestItem, samples: Float32Array, mos: number | null): Row {
+  const sr = item.sampleRate;
+  const scores = analyzeSamples(samples, sr);
+  const prov = detectProvenance(samples, sr);
+  const reverbEst = estimateReverb(samples, sr);
+
+  let truthValue: number | null = null;
+  let estimate: number | null = null;
+  let errorLabel = '';
+
+  // 劣化なしの行で素材の自然な傾斜を記録しておく（tilt条件の真値の土台）。
+  // manifest は素材ごとに clean を先に並べているので、tilt条件の評価時には揃っている。
+  if (item.condition.type === 'clean') {
+    baseSlopeBySource.set(item.source, estimateSpectralSlope(samples, sr, prov.bandwidthHz));
+  }
+
+  switch (item.condition.type) {
+    case 'snr': {
+      truthValue = item.truth.snrDb;
+      estimate = estimateSnr(samples, sr, reverbEst.rt60Sec).snrDb;
+      errorLabel = 'SNR[dB]';
+      break;
+    }
+    case 'cutoff': {
+      truthValue = item.truth.cutoffHz;
+      estimate = prov.bandwidthHz;
+      errorLabel = '帯域上限[Hz]';
+      break;
+    }
+    case 'clip': {
+      truthValue = item.truth.clipRateActive;
+      estimate = estimateClipping(samples).clipRate;
+      errorLabel = 'クリップ率(有音基準)';
+      break;
+    }
+    case 'drr': {
+      // 直接音対残響比を推定する器は無い（無参照では難しい）。ここで見るのは
+      // 「RT60を固定してマイク位置だけ変えたとき、残響軸が動くか」だけなので、
+      // 単調性の軸としてのみ真値を使い、推定値は置かない（誤差表に混ぜない）。
+      truthValue = item.truth.drrDb;
+      estimate = null;
+      errorLabel = '';
+      break;
+    }
+    case 'level': {
+      truthValue = item.truth.activeSpeechDbfs;
+      estimate = estimateLevel(samples, sr).activeSpeechDbfs;
+      errorLabel = '有効音声レベル[dBFS]';
+      break;
+    }
+    case 'tilt': {
+      // 注入した傾きは 1kHz 以上に足した分。素材自身の自然な傾斜が土台にあるので、
+      // 真値は「素材の傾斜 + 注入量」。素材の傾斜は劣化なしの行から取る。
+      const baseSlope = baseSlopeOf(item.source);
+      truthValue = baseSlope === null ? null : baseSlope + item.truth.tiltDbPerOct;
+      estimate = estimateSpectralSlope(samples, sr, prov.bandwidthHz);
+      errorLabel = '1kHz以上の傾斜[dB/oct]';
+      break;
+    }
+    case 'rt60': {
+      truthValue = item.truth.rt60Sec;
+      estimate = reverbEst.rt60Sec;
+      errorLabel = 'RT60[秒]';
+      break;
+    }
+    default:
+      errorLabel = '';
+  }
+
+  return {
+    id: item.id,
+    source: item.source,
+    conditionType: item.condition.type,
+    params: item.condition.params,
+    truthValue,
+    estimate,
+    errorLabel,
+    scores: {
+      overall: scores.overall,
+      volume: scores.volume,
+      frequency: scores.frequency,
+      reverb: scores.reverb,
+      clip: scores.clip,
+      noise: scores.noise,
+    },
+    decayEvents: reverbEst.events,
+    bandwidthHz: prov.bandwidthHz,
+    flags: prov.flags,
+    unreliable: scores.unreliable,
+    verdict: scores.verdict.level,
+    verdictUnconfirmed: scores.verdict.unconfirmed,
+    mos,
+  };
+}
+
+// ==========================================================================
+// 集計
+// ==========================================================================
+
+interface ErrorStat {
+  conditionType: string;
+  label: string;
+  n: number;
+  bias: number;
+  mae: number;
+  maxAbs: number;
+  worst: { id: string; truth: number; estimate: number };
+}
+
+/**
+ * 条件ごとの推定誤差。groupBy を渡すと条件×グループで分ける。
+ * 素材（話者）ごとに分けると、推定器が特定の声質に依存していないかが見える。
+ */
+function errorStats(rows: Row[], groupBy?: (r: Row) => string): ErrorStat[] {
+  const byType = new Map<string, Row[]>();
+  for (const r of rows) {
+    if (r.truthValue === null || r.estimate === null) continue;
+    const key = groupBy ? `${r.conditionType} / ${groupBy(r)}` : r.conditionType;
+    const list = byType.get(key) ?? [];
+    list.push(r);
+    byType.set(key, list);
+  }
+
+  const out: ErrorStat[] = [];
+  for (const [type, list] of byType) {
+    let sum = 0, abs = 0, maxAbs = 0;
+    let worst = list[0];
+    for (const r of list) {
+      const e = (r.estimate as number) - (r.truthValue as number);
+      sum += e;
+      abs += Math.abs(e);
+      if (Math.abs(e) > maxAbs) { maxAbs = Math.abs(e); worst = r; }
+    }
+    out.push({
+      conditionType: type,
+      label: list[0].errorLabel,
+      n: list.length,
+      bias: round(sum / list.length, 3),
+      mae: round(abs / list.length, 3),
+      maxAbs: round(maxAbs, 3),
+      worst: {
+        id: worst.id,
+        truth: round(worst.truthValue as number, 4),
+        estimate: round(worst.estimate as number, 4),
+      },
+    });
+  }
+  return out.sort((a, b) => a.conditionType.localeCompare(b.conditionType));
+}
+
+// ==========================================================================
+// 配点の検証
+// ==========================================================================
+
+/**
+ * 軸の配点（ノイズ25 / 周波数25 / 残響20 / 音量15 / 音割れ15）が妥当かを、
+ * MOSオラクルとの順位相関で確かめる。
+ *
+ * 単独条件では配点を検証できない。「ノイズが強い録音」と「残響が長い録音」の
+ * どちらを低く評価すべきかという比較を含まないため。複合条件(mixed)だけを使う。
+ *
+ * **これは最適化ではなく粗い誤りの検出。** DNSMOS は8kHz超の帯域差が見えないので、
+ * 相関を最大化するように重みを振ると必ず周波数軸の配点が下がる——モデルの盲点に
+ * 合わせているだけで、判定として良くなったわけではない。候補間で相関が大きく
+ * 開かないなら「この方法では配点を決められない」が結論。
+ */
+interface WeightCandidate {
+  name: string;
+  weights: Record<string, number>;
+}
+
+const WEIGHT_CANDIDATES: WeightCandidate[] = [
+  { name: '現行', weights: { noise: 25, frequency: 25, reverb: 20, volume: 15, clip: 15 } },
+  { name: '均等', weights: { noise: 20, frequency: 20, reverb: 20, volume: 20, clip: 20 } },
+  { name: 'ノイズ重視', weights: { noise: 40, frequency: 15, reverb: 20, volume: 10, clip: 15 } },
+  { name: '残響重視', weights: { noise: 25, frequency: 15, reverb: 35, volume: 10, clip: 15 } },
+  { name: '周波数軽視', weights: { noise: 30, frequency: 10, reverb: 30, volume: 15, clip: 15 } },
+  { name: '周波数重視', weights: { noise: 20, frequency: 40, reverb: 15, volume: 10, clip: 15 } },
+];
+
+/**
+ * 周波数軸を25点に固定したまま、残る75点をノイズ/残響/音量/音割れに振り直す候補。
+ *
+ * 周波数の配点だけはこの方法で決められない。帯域制限を含まない条件では周波数軸に
+ * 信号が無いので、その配点を下げれば必ず相関は上がる（無情報な軸が総合点を薄めて
+ * いるぶんが消えるだけ）。帯域制限を含む条件でも DNSMOS は帯域差を見られない。
+ * どちらの群でも「周波数を下げろ」しか出ないので、その問いはここでは扱わない。
+ *
+ * 一方 ノイズ/残響/音割れ の相対的な重みは DNSMOS が実際に反応する要因なので、
+ * 周波数を固定して比べれば答えが出る。
+ */
+const WEIGHT_CANDIDATES_FIXED_FREQ: WeightCandidate[] = [
+  { name: '現行', weights: { noise: 25, frequency: 25, reverb: 20, volume: 15, clip: 15 } },
+  { name: 'ノイズ寄せ', weights: { noise: 35, frequency: 25, reverb: 15, volume: 10, clip: 15 } },
+  { name: '残響寄せ', weights: { noise: 15, frequency: 25, reverb: 30, volume: 15, clip: 15 } },
+  { name: '音割れ寄せ', weights: { noise: 20, frequency: 25, reverb: 15, volume: 15, clip: 25 } },
+  { name: '音量を削る', weights: { noise: 30, frequency: 25, reverb: 25, volume: 5, clip: 15 } },
+  { name: 'ノイズと残響に集中', weights: { noise: 35, frequency: 25, reverb: 30, volume: 5, clip: 5 } },
+];
+
+interface WeightResult {
+  name: string;
+  weights: Record<string, number>;
+  /** 素材ごとに求めて平均した順位相関 */
+  rho: number | null;
+  /** 全素材まとめての順位相関（素材間の水準差が混ざる。参考） */
+  rhoPooled: number | null;
+}
+
+interface WeightingGroup {
+  /** この群の説明 */
+  label: string;
+  n: number;
+  mosSpread: number;
+  candidates: WeightResult[];
+  /** 周波数25点固定で残りを振り直した候補 */
+  fixedFreq: WeightResult[];
+  /**
+   * 軸ごとの達成率とMOSの順位相関。
+   * オラクルがどの要因に反応しているかが分かる。反応していない軸の配点は
+   * この方法では決められない。
+   */
+  axisRho: Record<string, number | null>;
+}
+
+interface WeightingReport {
+  n: number;
+  mosSpread: number;
+  mosDistinct: number;
+  candidates: WeightResult[];
+  /**
+   * 帯域制限を含む条件と含まない条件に分けた結果。
+   *
+   * DNSMOS の入力は16kHzなので帯域制限の影響を正しく評価できない。分けずに見ると、
+   * 周波数軸がスコアを動かしてもMOSが動かないぶんが相関の低下として現れ、
+   * 「配点が悪い」と読み違える。含まない群でモデルが全要因を見ているはず。
+   */
+  groups: WeightingGroup[];
+}
+
+/** 軸スコアを重み付けし直して総合点を組み直す */
+function reweight(scores: Row['scores'], weights: Record<string, number>): number {
+  let sum = 0, total = 0;
+  for (const [axis, w] of Object.entries(weights)) {
+    const max = AXIS_MAX[axis as keyof typeof AXIS_MAX];
+    if (max == null) continue;
+    sum += (scores[axis as keyof Row['scores']] / max) * w;
+    total += w;
+  }
+  return total > 0 ? (sum / total) * 100 : 0;
+}
+
+/** 素材ごとに順位相関を求めて平均する（素材間の水準差を混ぜないため） */
+function weightRhos(list: Row[], cands: WeightCandidate[] = WEIGHT_CANDIDATES): WeightResult[] {
+  const bySource = new Map<string, Row[]>();
+  for (const r of list) bySource.set(r.source, [...(bySource.get(r.source) ?? []), r]);
+  const mos = list.map((r) => r.mos as number);
+
+  return cands.map((c) => {
+    const rhos: number[] = [];
+    for (const group of bySource.values()) {
+      if (group.length < 3) continue;
+      const rho = spearman(
+        group.map((r) => r.mos as number),
+        group.map((r) => reweight(r.scores, c.weights)),
+      );
+      if (rho !== null) rhos.push(rho);
+    }
+    return {
+      name: c.name,
+      weights: c.weights,
+      rho: rhos.length > 0 ? round(rhos.reduce((a, b) => a + b, 0) / rhos.length, 3) : null,
+      rhoPooled: round(spearman(mos, list.map((r) => reweight(r.scores, c.weights))) ?? 0, 3),
+    };
+  });
+}
+
+/**
+ * 判定（良好 / 使える / 不可）が、借り物の基準の上で実際に分離しているか。
+ *
+ * 閾値（達成率75%で良好 / 50%で使える）は目的からの判断で置いた初期値。
+ * 「良好」の群と「不可」の群でMOSの分布が重なっているなら、閾値は意味をなしていない。
+ *
+ * 判定は**最弱の軸**で決まるので、複合条件（複数の軸が同時に下がる条件）でこそ
+ * 意味を持つ。単独条件では常に同じ軸が最弱になる。
+ */
+interface VerdictStat {
+  level: string;
+  n: number;
+  mosMean: number | null;
+  mosMin: number | null;
+  mosMax: number | null;
+  /** 参考値扱いの軸があって good を出せなかった件数 */
+  unconfirmed: number;
+}
+
+function verdictStats(rows: Row[]): VerdictStat[] {
+  const list = rows.filter((r) => r.conditionType === 'mixed');
+  const out: VerdictStat[] = [];
+  for (const level of ['good', 'usable', 'poor']) {
+    const g = list.filter((r) => r.verdict === level);
+    const mos = g.map((r) => r.mos).filter((v): v is number => v !== null);
+    out.push({
+      level,
+      n: g.length,
+      mosMean: mos.length > 0 ? round(mos.reduce((a, b) => a + b, 0) / mos.length, 3) : null,
+      mosMin: mos.length > 0 ? round(Math.min(...mos), 3) : null,
+      mosMax: mos.length > 0 ? round(Math.max(...mos), 3) : null,
+      unconfirmed: g.filter((r) => r.verdictUnconfirmed).length,
+    });
+  }
+  return out;
+}
+
+/** 軸ごとの達成率とMOSの順位相関（素材ごとに求めて平均） */
+function axisRhoVsMos(list: Row[]): Record<string, number | null> {
+  const bySource = new Map<string, Row[]>();
+  for (const r of list) bySource.set(r.source, [...(bySource.get(r.source) ?? []), r]);
+
+  const out: Record<string, number | null> = {};
+  for (const axis of Object.keys(AXIS_MAX)) {
+    const max = AXIS_MAX[axis as keyof typeof AXIS_MAX];
+    const rhos: number[] = [];
+    for (const group of bySource.values()) {
+      if (group.length < 3) continue;
+      const rho = spearman(
+        group.map((r) => r.mos as number),
+        group.map((r) => r.scores[axis as keyof Row['scores']] / max),
+      );
+      if (rho !== null) rhos.push(rho);
+    }
+    out[axis] = rhos.length > 0 ? round(rhos.reduce((a, b) => a + b, 0) / rhos.length, 3) : null;
+  }
+  return out;
+}
+
+function weighting(rows: Row[]): WeightingReport | null {
+  const list = rows.filter((r) => r.conditionType === 'mixed' && r.mos !== null);
+  if (list.length < 6) return null;
+
+  const mos = list.map((r) => r.mos as number);
+  const hasCutoff = (r: Row): boolean => r.params.cutoffHz != null;
+  const hasClip = (r: Row): boolean => r.params.clipRate != null;
+  const groupDefs: { label: string; list: Row[] }[] = [
+    // オラクルが実際に反応する要因だけの群。配点の根拠に使えるのはここだけ。
+    //
+    // DNSMOSの単独条件での振れ幅（実音声4話者・16kHz）:
+    //   SNR 0→40dB           MOS 1.563 → 3.317  (振れ幅 1.76)
+    //   RT60 0.2→1.5秒        MOS 2.726 → 1.126  (振れ幅 1.60)
+    //   クリップ率 0.0002→0.02  MOS 3.316 → 3.161  (振れ幅 0.155)
+    //
+    // 音割れは100倍にしてもMOSがほとんど動かない。モデルはノイズ抑制の出力で
+    // 学習されており音割れの訓練信号をほぼ持たない。音割れ軸の配点をMOS相関で
+    // 検証することは原理的にできない。
+    {
+      label: 'ノイズと残響だけ（オラクルが反応する要因のみ）',
+      list: list.filter((r) => !hasCutoff(r) && !hasClip(r)),
+    },
+    { label: '帯域制限を含まない（音割れは含む）', list: list.filter((r) => !hasCutoff(r)) },
+    { label: '帯域制限を含む（モデルは帯域差を見られない）', list: list.filter(hasCutoff) },
+  ];
+
+  return {
+    n: list.length,
+    mosSpread: round(Math.max(...mos) - Math.min(...mos), 3),
+    mosDistinct: new Set(mos.map((v) => round(v, 3))).size,
+    candidates: weightRhos(list),
+    groups: groupDefs
+      .filter((g) => g.list.length >= 6)
+      .map((g) => ({
+        label: g.label,
+        n: g.list.length,
+        mosSpread: round(
+          Math.max(...g.list.map((r) => r.mos as number)) - Math.min(...g.list.map((r) => r.mos as number)),
+          3,
+        ),
+        candidates: weightRhos(g.list),
+        fixedFreq: weightRhos(g.list, WEIGHT_CANDIDATES_FIXED_FREQ),
+        axisRho: axisRhoVsMos(g.list),
+      })),
+  };
+}
+
+/** 劣化の強さとスコアの向きが合っているか */
+interface Monotonicity {
+  conditionType: string;
+  axis: string;
+  /**
+   * 期待する符号。+1 なら「真値が大きいほどスコアが高い」、-1 はその逆。
+   * 0 は「この条件に反応してはいけない」— 別の要因を誤って減点していないかの監視。
+   */
+  expectedSign: number;
+  rho: number | null;
+  /**
+   * その軸のスコアが実際に動いた幅[点]。
+   *
+   * 順位相関はスケールフリーなので、25点満点で1.2点しか動かない結合と
+   * 12点動く結合を同じ値で報告してしまう。効果量を併記しないと、
+   * 無視できるズレを直そうとして本質的な精度を落とす判断をしかねない
+   * （実際にSNR精度を9dB犠牲にする方向へ動かしかけた）。
+   */
+  axisRange: number;
+  /** その軸の満点。axisRange を相対で読むため */
+  axisMax: number;
+  verdict: 'ok' | 'weak' | 'wrong-direction' | 'blind' | 'coupled' | 'insufficient';
+}
+
+/** 期待符号0の行で「結合している」と判定する効果量の下限（満点に対する割合） */
+const COUPLING_EFFECT_RATIO = 0.1;
+
+const MONOTONICITY_TARGETS: Array<{ type: string; axis: keyof Row['scores']; expectedSign: number }> = [
+  { type: 'snr',    axis: 'noise',     expectedSign: +1 }, // SNRが高いほどノイズ点は高い
+  { type: 'clip',   axis: 'clip',      expectedSign: -1 }, // クリップ率が高いほど音割れ点は低い
+  { type: 'cutoff', axis: 'frequency', expectedSign: +1 }, // 帯域が広いほど周波数点は高いべき
+  { type: 'rt60',   axis: 'reverb',    expectedSign: -1 }, // 残響が長いほど残響点は低い
+  // 残響エネルギーは信号由来。ノイズ軸が反応したら二重減点なので、無相関が正しい。
+  { type: 'rt60',   axis: 'noise',     expectedSign:  0 },
+  // 傾きが緩い（0に近い）ほど周波数点は高いべき。帯域は削っていないので、
+  // 帯域幅の内訳ではなく「明瞭度」の内訳が反応するはず。
+  { type: 'tilt',   axis: 'frequency', expectedSign: +1 },
+  // 音量軸は範囲に収まっているかを見るので、本来は単調ではない（両端で減点する）。
+  // ただし上側はピーク上限に当たって -12dBFS 以上に到達できないため、実際に
+  // 観測できるのは「小さすぎる側」だけになる。その範囲では単調増加が正しい。
+  { type: 'level',  axis: 'volume',    expectedSign: +1 },
+  // 直接音対残響比が大きい（=マイクが近い）ほど残響は乗らないので、残響点は高い。
+  // これは欠陥ではなく実際の聞こえ方だが、「部屋の評価」としては交絡になる。
+  { type: 'drr',    axis: 'reverb',    expectedSign: +1 },
+];
+
+/**
+ * 素材ごとに順位相関を出して平均する。
+ *
+ * 全素材をまとめて1つの相関にすると、素材間でスコアの水準が違うだけで
+ * 相関が下がる（実測で帯域→周波数が 1素材 0.827 → 4素材 0.535 に落ちた。
+ * 素材ごとには単調なのに、水準差が混ざって順位が乱れていた）。
+ */
+function pooledSpearman(list: Row[], axis: keyof Row['scores']): number | null {
+  const bySource = new Map<string, Row[]>();
+  for (const r of list) {
+    bySource.set(r.source, [...(bySource.get(r.source) ?? []), r]);
+  }
+  const rhos: number[] = [];
+  for (const group of bySource.values()) {
+    if (group.length < 3) continue;
+    const rho = spearman(group.map((r) => r.truthValue as number), group.map((r) => r.scores[axis]));
+    if (rho !== null) rhos.push(rho);
+  }
+  if (rhos.length === 0) {
+    // 素材ごとに分けられない場合は全体でまとめて計算する
+    return spearman(list.map((r) => r.truthValue as number), list.map((r) => r.scores[axis]));
+  }
+  return rhos.reduce((a, b) => a + b, 0) / rhos.length;
+}
+
+function monotonicity(rows: Row[]): Monotonicity[] {
+  return MONOTONICITY_TARGETS.map(({ type, axis, expectedSign }) => {
+    const list = rows.filter((r) => r.conditionType === type && r.truthValue !== null);
+    const axisMax = AXIS_MAX[axis as keyof typeof AXIS_MAX] ?? 100;
+    if (list.length < 3) {
+      return {
+        conditionType: type, axis, expectedSign, rho: null,
+        axisRange: 0, axisMax, verdict: 'insufficient' as const,
+      };
+    }
+
+    // 真値ごとに軸スコアを平均してから振れ幅を取る（個体差を平均で吸収する）
+    const byTruth = new Map<number, number[]>();
+    for (const r of list) {
+      const k = r.truthValue as number;
+      byTruth.set(k, [...(byTruth.get(k) ?? []), r.scores[axis]]);
+    }
+    const means = [...byTruth.values()].map((v) => v.reduce((a, b) => a + b, 0) / v.length);
+    const axisRange = round(Math.max(...means) - Math.min(...means), 2);
+
+    const rho = pooledSpearman(list, axis);
+    if (rho === null) {
+      return {
+        conditionType: type, axis, expectedSign, rho: null,
+        axisRange, axisMax, verdict: 'blind' as const,
+      };
+    }
+    return {
+      conditionType: type, axis, expectedSign, rho: round(rho, 3),
+      axisRange, axisMax,
+      verdict: verdictFor(rho, expectedSign, axisRange, axisMax),
+    };
+  });
+}
+
+// ==========================================================================
+// レポート出力
+// ==========================================================================
+
+function verdictFor(
+  rho: number,
+  expectedSign: number,
+  axisRange = 0,
+  axisMax = 100,
+): Monotonicity['verdict'] {
+  // 期待符号0 = この条件に反応してはいけない（別要因の誤計上の監視）。
+  // 相関の有無だけでなく効果量も見る。満点の10%も動いていない結合を
+  // 「欠陥」として扱うと、それを直すために本質的な精度を落としかねない。
+  if (expectedSign === 0) {
+    const meaningful = Math.abs(rho) >= 0.3 && axisRange >= axisMax * COUPLING_EFFECT_RATIO;
+    return meaningful ? 'coupled' : 'ok';
+  }
+  const signed = rho * expectedSign;
+  if (signed >= 0.7) return 'ok';
+  if (signed <= -0.3) return 'wrong-direction';
+  if (Math.abs(rho) < 0.2) return 'blind';
+  return 'weak';
+}
+
+const VERDICT_TEXT: Record<Monotonicity['verdict'], string> = {
+  ok:                '想定どおり',
+  weak:              '方向は合っているが弱い',
+  'wrong-direction': '**逆方向に動いている（欠陥）**',
+  blind:             '**まったく反応していない（測っていない）**',
+  coupled:           '**反応してはいけない条件に反応している（別要因の誤計上）**',
+  insufficient:      'サンプル不足',
+};
+
+function renderMarkdown(report: ReturnType<typeof buildReport>): string {
+  const L: string[] = [];
+  L.push('# 検証レポート — 音質判定の推定誤差');
+  L.push('');
+  L.push('`npm run validate` の出力。人間のラベル付けは使っていない。');
+  L.push('注入した既知の物理量を推定器が復元できるかを測っている。');
+  L.push('');
+  L.push(`- 生成日時: ${report.generatedAt}`);
+  L.push(`- 素材: ${report.sources.join(', ')}`);
+  L.push(`- 件数: ${report.itemCount}`);
+  L.push(`- MOSオラクル: ${report.mos.available ? `有効 (${report.mos.note})` : `無効 (${report.mos.note})`}`);
+  L.push('');
+
+  L.push('## 1. 推定誤差');
+  L.push('');
+  L.push('| 条件 | 推定対象 | 件数 | バイアス(平均誤差) | MAE | 最大誤差 | 最悪ケース |');
+  L.push('|---|---|---:|---:|---:|---:|---|');
+  for (const s of report.errors) {
+    L.push(
+      `| ${s.conditionType} | ${s.label} | ${s.n} | ${s.bias} | ${s.mae} | ${s.maxAbs} | ` +
+      `${s.worst.id} (真値 ${s.worst.truth} → 推定 ${s.worst.estimate}) |`,
+    );
+  }
+  L.push('');
+
+  if (report.sources.length > 1) {
+    L.push('### 素材ごとの内訳');
+    L.push('');
+    L.push('推定器が特定の声質・発話速度に依存していないかを見る。');
+    L.push('素材間でバイアスの符号が揃わない、あるいはMAEが大きく開く場合は、');
+    L.push('その推定器が話者依存の仮定を持っている。');
+    L.push('');
+    L.push('| 条件 / 素材 | 件数 | バイアス | MAE | 最大誤差 |');
+    L.push('|---|---:|---:|---:|---:|');
+    for (const s of report.errorsBySource) {
+      L.push(`| ${s.conditionType} | ${s.n} | ${s.bias} | ${s.mae} | ${s.maxAbs} |`);
+    }
+    L.push('');
+  }
+
+  if (report.notImplemented.length > 0) {
+    L.push('### 未実装の推定器');
+    L.push('');
+    for (const n of report.notImplemented) {
+      L.push(`- **${n.conditionType}** (${n.label}) — ${n.n} 件の検証データを生成済みだが、推定器が無いため誤差を測れない`);
+    }
+    L.push('');
+  }
+
+  L.push('## 2. スコアの単調性（Spearman順位相関）');
+  L.push('');
+  L.push('劣化を強めたときスコアが正しい向きに動くか。符号が想定と逆なら、その軸は壊れている。');
+  L.push('');
+  L.push('期待符号が `0 (無相関)` の行は「この条件に反応してはいけない」ことの監視。');
+  L.push('反応していたら、別の要因をその軸で誤って減点している。');
+  L.push('');
+  L.push('ρ は素材ごとに求めて平均している。全素材をまとめると、素材間の水準差だけで');
+  L.push('相関が下がってしまうため。効果量（軸スコアが実際に動いた幅）も併記する——');
+  L.push('順位相関はスケールフリーなので、無視できるズレと本質的な欠陥を区別できない。');
+  L.push('');
+  L.push('| 条件 | 見る軸 | 期待符号 | ρ (素材平均) | 効果量 | 判定 |');
+  L.push('|---|---|---:|---:|---:|---|');
+  for (const m of report.monotonicity) {
+    const sign = m.expectedSign > 0 ? '+' : m.expectedSign < 0 ? '-' : '0 (無相関)';
+    L.push(
+      `| ${m.conditionType} | ${m.axis} | ${sign} | ${m.rho ?? 'n/a'} | ` +
+      `${m.axisRange} / ${m.axisMax}点 | ${VERDICT_TEXT[m.verdict]} |`,
+    );
+  }
+  L.push('');
+
+  if (report.mos.available) {
+    L.push('## 3. MOSオラクルとの順位相関');
+    L.push('');
+    L.push('学習済みモデル(DNSMOS)の評価順と、自分の総合スコアの順が一致しているか。');
+    L.push('係数を調整する方向を得るための指標。1に近いほど良い。');
+    L.push('');
+
+    // ---- オラクルが信用できるかの自己診断 ----
+    L.push(`- 劣化なし素材のMOS: ${report.mos.cleanBaseline ?? 'n/a'} / 5`);
+    if (!report.mos.trustworthy) {
+      L.push('');
+      L.push(`> **警告: 素材がモデルの学習分布から外れている可能性が高い。**`);
+      L.push(
+        `> 劣化なしの素材でMOSが ${report.mos.cleanBaseline} しか出ていない` +
+        `（${MOS_TRUSTWORTHY_BASELINE} 未満）。モデルは劣化ではなく素材そのものの` +
+        `不自然さを評価している。条件ごとの相関の符号を根拠にスコア設計を変えてはいけない。`,
+      );
+      L.push('> 実音声のコーパスで測り直すこと（`npm run fetch-corpus`）。');
+    }
+    L.push('');
+    L.push(`- 全条件まとめ: ρ = ${report.mos.rhoOverall ?? 'n/a'}`);
+    L.push('');
+    L.push('| 条件 | 件数 | 異なるMOS値 | MOSの振れ幅 | ρ | 解釈 |');
+    L.push('|---|---:|---:|---:|---:|---|');
+    for (const [type, s] of Object.entries(report.mos.rhoByCondition)) {
+      let note: string;
+      if (s.distinct <= 1) {
+        note = '**モデルに劣化が見えていない（相関に意味なし）**';
+      } else if (s.spread < 0.1) {
+        note = 'MOSの差が小さく、相関は読めない';
+      } else if (type === 'cutoff') {
+        note = `${MOS_VISIBLE_HZ}Hz超の違いはモデルに見えない（入力16kHz）`;
+      } else {
+        note = '';
+      }
+      L.push(`| ${type} | ${s.n} | ${s.distinct} | ${s.spread} | ${s.rho ?? 'n/a'} | ${note} |`);
+    }
+    L.push('');
+  }
+
+  if (report.weighting) {
+    const w = report.weighting;
+    L.push('## 4. 軸の配点の検証（複合条件）');
+    L.push('');
+    L.push('単独条件では配点を検証できない——「ノイズが強い録音」と「残響が長い録音」の');
+    L.push('どちらを低く評価すべきかという比較を含まないため。2つ以上の劣化を同時に');
+    L.push('掛けた条件だけを使って、総合点の順位がMOSオラクルの順位と合うかを見る。');
+    L.push('');
+    L.push(`- 複合条件: ${w.n}件 / 異なるMOS値 ${w.mosDistinct}個 / MOSの振れ幅 ${w.mosSpread}`);
+    L.push('');
+    L.push('> **これは最適化ではなく粗い誤りの検出。**');
+    L.push(`> DNSMOS は入力が16kHzなので ${MOS_VISIBLE_HZ}Hz超の帯域差が見えない。`);
+    L.push('> 相関を最大化するように重みを振れば必ず周波数軸の配点が下がるが、それは');
+    L.push('> モデルの盲点に合わせているだけで判定が良くなったわけではない。');
+    L.push('> 候補間で相関が大きく開かないなら「この方法では配点を決められない」が結論。');
+    L.push('');
+    L.push('| 配点 | ノイズ | 周波数 | 残響 | 音量 | 音割れ | ρ (素材平均) | ρ (まとめ) |');
+    L.push('|---|---:|---:|---:|---:|---:|---:|---:|');
+    for (const c of w.candidates) {
+      L.push(
+        `| ${c.name} | ${c.weights.noise} | ${c.weights.frequency} | ${c.weights.reverb} | ` +
+        `${c.weights.volume} | ${c.weights.clip} | ${c.rho ?? 'n/a'} | ${c.rhoPooled ?? 'n/a'} |`,
+      );
+    }
+    L.push('');
+
+    for (const g of w.groups) {
+      L.push(`### ${g.label}`);
+      L.push('');
+      L.push(`- ${g.n}件 / MOSの振れ幅 ${g.mosSpread}`);
+      L.push('');
+      L.push('オラクルが実際に反応している軸（軸の達成率とMOSの順位相関）:');
+      L.push('');
+      L.push('| 軸 | ρ |');
+      L.push('|---|---:|');
+      for (const [axis, rho] of Object.entries(g.axisRho)) {
+        L.push(`| ${axis} | ${rho ?? 'n/a'} |`);
+      }
+      L.push('');
+      L.push('周波数25点を固定して残りを振り直した場合。周波数の配点だけはこの方法では');
+      L.push('決められない（帯域制限を含まない条件では周波数軸に信号が無く、含む条件でも');
+      L.push('DNSMOSは帯域差を見られないので、どちらでも「下げろ」しか出ない）。');
+      L.push('');
+      L.push('| 配点 | ノイズ | 周波数 | 残響 | 音量 | 音割れ | ρ |');
+      L.push('|---|---:|---:|---:|---:|---:|---:|');
+      for (const c of g.fixedFreq) {
+        L.push(
+          `| ${c.name} | ${c.weights.noise} | ${c.weights.frequency} | ${c.weights.reverb} | ` +
+          `${c.weights.volume} | ${c.weights.clip} | ${c.rho ?? 'n/a'} |`,
+        );
+      }
+      L.push('');
+      L.push('参考: 周波数も振った場合');
+      L.push('');
+      L.push('| 配点 | ρ (素材平均) |');
+      L.push('|---|---:|');
+      for (const c of g.candidates) {
+        L.push(`| ${c.name} | ${c.rho ?? 'n/a'} |`);
+      }
+      L.push('');
+    }
+  }
+
+  if (report.verdicts.some((v) => v.n > 0)) {
+    L.push('## 5. 判定の分離（複合条件）');
+    L.push('');
+    L.push('判定は**最弱の軸**で決まるので、複数の軸が同時に下がる複合条件でこそ意味を持つ。');
+    L.push('「良好」の群と「不可」の群でMOSの分布が重なっているなら、閾値は意味をなしていない。');
+    L.push('');
+    L.push('| 判定 | 件数 | MOS平均 | MOS最小 | MOS最大 | うち参考値ありでgood不可 |');
+    L.push('|---|---:|---:|---:|---:|---:|');
+    for (const v of report.verdicts) {
+      L.push(
+        `| ${v.level} | ${v.n} | ${v.mosMean ?? 'n/a'} | ${v.mosMin ?? 'n/a'} | ` +
+        `${v.mosMax ?? 'n/a'} | ${v.unconfirmed} |`,
+      );
+    }
+    L.push('');
+  }
+
+  L.push('## 6. 劣化なし基準の挙動');
+  L.push('');
+  L.push('| id | 総合 | ノイズ | 残響 | 周波数 | 音量 | 音割れ | 帯域上限[Hz] | 検出フラグ | 参考値扱いの軸 |');
+  L.push('|---|---:|---:|---:|---:|---:|---:|---:|---|---|');
+  for (const r of report.cleanRows) {
+    L.push(
+      `| ${r.id} | ${r.scores.overall} | ${r.scores.noise} | ${r.scores.reverb} | ` +
+      `${r.scores.frequency} | ${r.scores.volume} | ${r.scores.clip} | ` +
+      `${r.bandwidthHz} | ${r.flags.join(', ') || 'なし'} | ${r.unreliable.join(', ') || 'なし'} |`,
+    );
+  }
+  L.push('');
+  return L.join('\n');
+}
+
+function buildReport(rows: Row[], sources: string[], mosNote: string, mosAvailable: boolean) {
+  const errors = errorStats(rows);
+  const errorsBySource = errorStats(rows, (r) => r.source);
+  const measuredTypes = new Set(errors.map((e) => e.conditionType));
+  const notImplemented = [...new Set(rows.map((r) => r.conditionType))]
+    // clean は劣化なし、mixed は複合条件（物理量ごとの真値を定義できないので
+    // 誤差の集計対象外。配点の検証にだけ使う）。どちらも未実装ではない。
+    .filter((t) => t !== 'clean' && t !== 'mixed' && !measuredTypes.has(t))
+    .map((t) => {
+      const list = rows.filter((r) => r.conditionType === t);
+      return { conditionType: t, label: list[0].errorLabel, n: list.length };
+    });
+
+  const withMos = rows.filter((r) => r.mos !== null);
+  const rhoByCondition: Record<string, MosConditionStat> = {};
+  for (const type of new Set(withMos.map((r) => r.conditionType))) {
+    const list = withMos.filter((r) => r.conditionType === type);
+    // 同じMOS値しか出ていない条件は、モデルにその劣化が見えていない。
+    // 相関の符号を読む前にこれを確認しないと、正しい軸を誤った信号で壊す。
+    const distinct = new Set(list.map((r) => round(r.mos as number, 3))).size;
+    rhoByCondition[type] = {
+      rho: list.length >= 3
+        ? round(spearman(list.map((r) => r.mos as number), list.map((r) => r.scores.overall)) ?? 0, 3)
+        : null,
+      n: list.length,
+      distinct,
+      spread: list.length > 0
+        ? round(Math.max(...list.map((r) => r.mos as number)) - Math.min(...list.map((r) => r.mos as number)), 3)
+        : 0,
+    };
+  }
+
+  // 劣化なしの素材に対するMOS。低い場合、素材がモデルの学習分布から外れており
+  // モデルは劣化ではなく素材そのものの不自然さを評価している。
+  const cleanMos = rows.filter((r) => r.conditionType === 'clean' && r.mos !== null);
+  const cleanBaseline = cleanMos.length > 0
+    ? round(cleanMos.reduce((s, r) => s + (r.mos as number), 0) / cleanMos.length, 3)
+    : null;
+
+  return {
+    generatedAt: new Date().toISOString(),
+    sources,
+    itemCount: rows.length,
+    errors,
+    errorsBySource,
+    notImplemented,
+    monotonicity: monotonicity(rows),
+    mos: {
+      available: mosAvailable,
+      note: mosNote,
+      rhoOverall: withMos.length >= 3
+        ? round(spearman(withMos.map((r) => r.mos as number), withMos.map((r) => r.scores.overall)) ?? 0, 3)
+        : null,
+      rhoByCondition,
+      cleanBaseline,
+      trustworthy: cleanBaseline !== null && cleanBaseline >= MOS_TRUSTWORTHY_BASELINE,
+    },
+    weighting: weighting(rows),
+    verdicts: verdictStats(rows),
+    cleanRows: rows.filter((r) => r.conditionType === 'clean'),
+    rows,
+  };
+}
+
+// ==========================================================================
+// main
+// ==========================================================================
+
+async function main(): Promise<void> {
+  if (!existsSync(MANIFEST)) {
+    console.error('validation/manifest.json がありません。先に npm run generate を実行してください。');
+    process.exit(1);
+  }
+
+  const manifest = JSON.parse(readFileSync(MANIFEST, 'utf8')) as {
+    items: ManifestItem[];
+    sources: Array<{ name: string }>;
+  };
+
+  const missing = manifest.items.filter((i) => !existsSync(resolve(ROOT, i.file)));
+  if (missing.length > 0) {
+    console.error(`検証用の音声が ${missing.length} 件見つかりません（例: ${missing[0].file}）。`);
+    console.error('fixtures/ はgit管理外です。npm run generate を実行して再生成してください。');
+    process.exit(1);
+  }
+
+  const mosOracle = WANT_MOS ? await scoreMos.prepare() : null;
+  const mosNote = WANT_MOS
+    ? (mosOracle?.note ?? '準備に失敗')
+    : '--mos が指定されていない';
+
+  const rows: Row[] = [];
+  for (const item of manifest.items) {
+    const bytes = readFileSync(resolve(ROOT, item.file));
+    const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+    const wav = decodeWav(ab);
+    const mos = mosOracle ? await mosOracle.score(wav.samples, wav.sampleRate) : null;
+    rows.push(evaluate(item, wav.samples, mos));
+    process.stdout.write(`\r評価中 ${rows.length}/${manifest.items.length}   `);
+  }
+  process.stdout.write('\n');
+
+  const report = buildReport(
+    rows,
+    manifest.sources.map((s) => s.name),
+    mosNote,
+    mosOracle !== null,
+  );
+
+  writeFileSync(REPORT_JSON, JSON.stringify(report, null, 2) + '\n');
+  writeFileSync(REPORT_MD, renderMarkdown(report));
+
+  // ---- コンソール要約 ----
+  console.log('\n推定誤差:');
+  for (const s of report.errors) {
+    console.log(`  ${s.conditionType.padEnd(8)} ${s.label.padEnd(18)} n=${String(s.n).padStart(3)}  bias=${s.bias}  MAE=${s.mae}  max=${s.maxAbs}`);
+  }
+  if (report.notImplemented.length > 0) {
+    console.log('\n推定器が未実装:');
+    for (const n of report.notImplemented) console.log(`  ${n.conditionType} (${n.label}) — ${n.n}件`);
+  }
+  console.log('\nスコアの単調性:');
+  for (const m of report.monotonicity) {
+    console.log(`  ${m.conditionType.padEnd(8)} ${m.axis.padEnd(10)} rho=${String(m.rho ?? 'n/a').padStart(6)}  ${m.verdict}`);
+  }
+  if (report.verdicts.some((v) => v.n > 0)) {
+    console.log(`
+判定の分離（複合条件）:`);
+    for (const v of report.verdicts) {
+      console.log(`  ${v.level.padEnd(8)} n=${String(v.n).padStart(4)}  MOS平均 ${v.mosMean ?? 'n/a'}  範囲 ${v.mosMin ?? '-'}〜${v.mosMax ?? '-'}`);
+    }
+  }
+  if (report.weighting) {
+    console.log(`
+配点の検証（複合条件 ${report.weighting.n}件 / MOSの振れ幅 ${report.weighting.mosSpread}）:`);
+    for (const c of report.weighting.candidates) {
+      console.log(`  ${c.name.padEnd(12)} rho=${String(c.rho ?? 'n/a').padStart(6)}`);
+    }
+    for (const g of report.weighting.groups) {
+      console.log(`  -- ${g.label} (${g.n}件) --`);
+      console.log('     オラクルが反応している軸: ' +
+        Object.entries(g.axisRho).map(([a, v]) => `${a}=${v ?? 'n/a'}`).join('  '));
+      for (const c of g.fixedFreq) {
+        console.log(`     ${c.name.padEnd(20)} rho=${String(c.rho ?? 'n/a').padStart(6)}`);
+      }
+    }
+  }
+  console.log(`\nレポート: ${REPORT_MD}`);
+}
+
+await main();

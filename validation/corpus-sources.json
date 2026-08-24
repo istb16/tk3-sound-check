@@ -1,0 +1,55 @@
+{
+  "note": "公開コーパスの取得元。音声ファイル自体は git 管理外 (fixtures/corpus/)。ライセンスは各配布元の条件に従うこと。mode が files の取得元は必要な本数だけ個別に取得するので、アーカイブ一括より遥かに軽い。",
+  "default": "cmu-arctic-files",
+  "sources": {
+    "cmu-arctic-files": {
+      "mode": "files",
+      "urlTemplate": "http://festvox.org/cmu_arctic/cmu_arctic/cmu_us_{speaker}_arctic/wav/arctic_a{n}.wav",
+      "indexFrom": 1,
+      "indexPad": 4,
+      "audioFormat": "wav",
+      "requiresFfmpeg": false,
+      "approxSizeMb": 0.15,
+      "license": "Free for any use (CMU ARCTIC / Carnegie Mellon University)",
+      "attribution": "J. Kominek, A. W. Black, \"The CMU Arctic speech databases\", 5th ISCA Speech Synthesis Workshop, 2004",
+      "note": "話者ごとに --limit 本ずつ個別取得する（1本あたり約0.15MB）。16kHzモノラルのスタジオ録音。slt=米女性 / bdl=米男性 / ksp=インド英語男性 / awb=スコットランド英語男性。基本周波数・発話速度・訛りが異なるので、推定器が話者に依存していないかを見られる。ffmpeg 不要。",
+      "speakers": [
+        "slt",
+        "bdl",
+        "ksp",
+        "awb"
+      ]
+    },
+    "cmu-arctic-slt": {
+      "url": "http://festvox.org/cmu_arctic/cmu_arctic/packed/cmu_us_slt_arctic-0.95-release.tar.bz2",
+      "archive": "tar.bz2",
+      "audioFormat": "wav",
+      "requiresFfmpeg": false,
+      "approxSizeMb": 115,
+      "license": "Free for any use (CMU ARCTIC / Carnegie Mellon University)",
+      "attribution": "J. Kominek, A. W. Black, \"The CMU Arctic speech databases\", 5th ISCA Speech Synthesis Workshop, 2004",
+      "innerGlob": "**/*.wav",
+      "note": "WAV配布なので ffmpeg 不要。16kHz モノラルのスタジオ録音（ノイズフロアが低く素材に適する）"
+    },
+    "librispeech-dev-clean": {
+      "url": "https://www.openslr.org/resources/12/dev-clean.tar.gz",
+      "archive": "tar.gz",
+      "audioFormat": "flac",
+      "requiresFfmpeg": true,
+      "approxSizeMb": 337,
+      "license": "CC BY 4.0",
+      "attribution": "V. Panayotov, G. Chen, D. Povey, S. Khudanpur, \"Librispeech: An ASR corpus based on public domain audio books\", ICASSP 2015",
+      "innerGlob": "**/*.flac"
+    },
+    "librispeech-test-clean": {
+      "url": "https://www.openslr.org/resources/12/test-clean.tar.gz",
+      "archive": "tar.gz",
+      "audioFormat": "flac",
+      "requiresFfmpeg": true,
+      "approxSizeMb": 346,
+      "license": "CC BY 4.0",
+      "attribution": "V. Panayotov, G. Chen, D. Povey, S. Khudanpur, \"Librispeech: An ASR corpus based on public domain audio books\", ICASSP 2015",
+      "innerGlob": "**/*.flac"
+    }
+  }
+}

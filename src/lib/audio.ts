@@ -1,5 +1,82 @@
+/**
+ * 音声の取り込み。
+ *
+ * 測定経路の原則: 分析にかけるサンプルには、ブラウザやコーデックの加工を
+ * 一切通さない。
+ *
+ * - `getUserMedia` の DSP(echoCancellation / noiseSuppression / autoGainControl)
+ *   は Chrome ではデフォルトで全てONになる。ONのままでは「静かな環境か」を
+ *   測るのにブラウザが先にノイズを消し、「音量が適正か」を測るのに Chrome の
+ *   自動ゲインの出力を測ってしまう。明示的に false を指定する。
+ * - `MediaRecorder` の出力(WebM/Opus)は非可逆で、ノイズシェーピングにより
+ *   無音区間のノイズフロア——まさに測りたいもの——を書き換える。さらに Opus の
+ *   DTX は無音を完全な0にしうるため、provenance.ts の「処理済み音声」検出が
+ *   自分自身の録音を誤検出する。したがって分析用には AudioWorklet で生PCMを
+ *   直接取得し、MediaRecorder の出力は再生用にのみ使う。
+ */
+
+/** 分析を汚さないための録音時制約 */
+const RAW_AUDIO_CONSTRAINTS: MediaTrackConstraints = {
+  echoCancellation: false,
+  noiseSuppression: false,
+  autoGainControl:  false,
+};
+
+/** ワークレットが main thread へ送るチャンクのサンプル数 */
+const CHUNK_SIZE = 4096;
+
+/**
+ * 生PCM取り出し用のワークレット。
+ * Vite のビルド構成に依存したくないので Blob URL から動的に読み込む。
+ */
+const PCM_WORKLET_SRC = `
+class PcmCapture extends AudioWorkletProcessor {
+  constructor() {
+    super();
+    this.buf = new Float32Array(${CHUNK_SIZE});
+    this.filled = 0;
+    this.port.onmessage = (e) => {
+      if (e.data === 'flush') {
+        if (this.filled > 0) this.port.postMessage(this.buf.slice(0, this.filled));
+        this.filled = 0;
+        this.port.postMessage('flushed');
+      }
+    };
+  }
+  process(inputs) {
+    const ch = inputs[0] && inputs[0][0];
+    if (ch) {
+      for (let i = 0; i < ch.length; i++) {
+        this.buf[this.filled++] = ch[i];
+        if (this.filled === this.buf.length) {
+          this.port.postMessage(this.buf.slice(0));
+          this.filled = 0;
+        }
+      }
+    }
+    return true;
+  }
+}
+registerProcessor('pcm-capture', PcmCapture);
+`;
+
+export interface Recording {
+  /** 分析対象のサンプル */
+  buffer: AudioBuffer;
+  /** 再生用（コーデック経由でよい） */
+  blob: Blob;
+  /**
+   * 生PCMを直接取得できたか。false の場合はコーデック経由の復号に
+   * フォールバックしており、ノイズフロアの測定値は信用できない。
+   */
+  rawCapture: boolean;
+}
+
 export async function decodeFile(file: File): Promise<AudioBuffer> {
   const arrayBuffer = await file.arrayBuffer();
+  // 注意: ここで指定したサンプルレートに強制リサンプルされるため、
+  // 復号後の audioBuffer.sampleRate は元ファイルの帯域を一切反映しない。
+  // 帯域上限は provenance.ts でスペクトルから実測する。
   const ctx = new OfflineAudioContext(1, 1, 44100);
   return ctx.decodeAudioData(arrayBuffer);
 }
@@ -7,39 +84,123 @@ export async function decodeFile(file: File): Promise<AudioBuffer> {
 export async function recordMicrophone(
   durationMs: number,
   onTick?: (progress: number) => void,
-): Promise<{ buffer: AudioBuffer; blob: Blob }> {
-  const stream   = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+): Promise<Recording> {
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: RAW_AUDIO_CONSTRAINTS,
+    video: false,
+  });
+
+  const ctx = new AudioContext();
+  const capture = await setupRawCapture(ctx, stream);
+
   const recorder = new MediaRecorder(stream);
   const chunks: Blob[] = [];
 
-  return new Promise<{ buffer: AudioBuffer; blob: Blob }>((resolve, reject) => {
-    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-    recorder.onstop = async () => {
-      stream.getTracks().forEach((t) => t.stop());
-      const blob        = new Blob(chunks, { type: recorder.mimeType });
-      const arrayBuffer = await blob.arrayBuffer();
-      try {
-        const ctx         = new AudioContext();
-        const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-        ctx.close();
-        resolve({ buffer: audioBuffer, blob });
-      } catch (err) {
-        reject(err);
-      }
-    };
-    recorder.onerror = (e) => reject(e);
-    recorder.start();
+  try {
+    return await new Promise<Recording>((resolve, reject) => {
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
 
-    let elapsed = 0;
-    const interval = setInterval(() => {
-      elapsed += 100;
-      onTick?.(elapsed / durationMs);
-      if (elapsed >= durationMs) clearInterval(interval);
-    }, 100);
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunks, { type: recorder.mimeType });
+        try {
+          const raw = capture ? await capture.finish() : null;
+          if (raw && raw.length > 0) {
+            const buffer = ctx.createBuffer(1, raw.length, ctx.sampleRate);
+            buffer.copyToChannel(raw, 0);
+            resolve({ buffer, blob, rawCapture: true });
+          } else {
+            // 生PCMが取れなかった場合のみコーデック経由にフォールバックする
+            const buffer = await ctx.decodeAudioData(await blob.arrayBuffer());
+            resolve({ buffer, blob, rawCapture: false });
+          }
+        } catch (err) {
+          reject(err);
+        }
+      };
 
-    setTimeout(() => {
-      clearInterval(interval);
-      recorder.stop();
-    }, durationMs);
-  });
+      recorder.onerror = (e) => reject(e);
+      recorder.start();
+
+      let elapsed = 0;
+      const interval = setInterval(() => {
+        elapsed += 100;
+        onTick?.(elapsed / durationMs);
+        if (elapsed >= durationMs) clearInterval(interval);
+      }, 100);
+
+      setTimeout(() => {
+        clearInterval(interval);
+        recorder.stop();
+      }, durationMs);
+    });
+  } finally {
+    stream.getTracks().forEach((t) => t.stop());
+    ctx.close().catch(() => {});
+  }
+}
+
+interface RawCapture {
+  // copyToChannel は SharedArrayBuffer 由来の Float32Array を受け付けないため、
+  // ArrayBuffer 裏付けであることを型で明示する
+  finish: () => Promise<Float32Array<ArrayBuffer>>;
+}
+
+/**
+ * AudioWorklet で生PCMを溜める。ワークレットが使えない環境では null を返し、
+ * 呼び出し側はコーデック経由にフォールバックする。
+ */
+async function setupRawCapture(
+  ctx: AudioContext,
+  stream: MediaStream,
+): Promise<RawCapture | null> {
+  if (!ctx.audioWorklet) return null;
+
+  const url = URL.createObjectURL(new Blob([PCM_WORKLET_SRC], { type: 'application/javascript' }));
+  try {
+    await ctx.audioWorklet.addModule(url);
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+
+  const source = ctx.createMediaStreamSource(stream);
+  const node   = new AudioWorkletNode(ctx, 'pcm-capture');
+
+  // AudioWorkletNode は出力が引かれないと process() が呼ばれない。
+  // ゲイン0で destination に繋いでスピーカーには出さずに駆動する。
+  const mute = ctx.createGain();
+  mute.gain.value = 0;
+  source.connect(node);
+  node.connect(mute);
+  mute.connect(ctx.destination);
+
+  const parts: Float32Array[] = [];
+  let onFlushed: (() => void) | null = null;
+
+  node.port.onmessage = (e) => {
+    if (e.data === 'flushed') { onFlushed?.(); return; }
+    parts.push(e.data as Float32Array);
+  };
+
+  return {
+    finish: async () => {
+      // 溜まっている端数を吐き出させてから切断する
+      await new Promise<void>((res) => {
+        onFlushed = res;
+        node.port.postMessage('flush');
+        setTimeout(res, 200); // ワークレットが応答しない場合の保険
+      });
+      source.disconnect();
+      node.disconnect();
+      mute.disconnect();
+
+      const total = parts.reduce((n, p) => n + p.length, 0);
+      const merged = new Float32Array(total);
+      let offset = 0;
+      for (const p of parts) { merged.set(p, offset); offset += p.length; }
+      return merged;
+    },
+  };
 }

@@ -2,6 +2,13 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mount, unmount } from 'svelte';
 import { page } from 'vitest/browser';
 import App from './App.svelte';
+import { LABELS } from './lib/scores.ts';
+import { AXIS_MAX } from './lib/AudioAnalyzer.ts';
+
+/** BREAKDOWN の並び順に依存せず軸を引く */
+function axisValue(values: number[], axis: (typeof LABELS)[number]): number {
+  return values[LABELS.indexOf(axis)];
+}
 
 /**
  * 実データ E2E — モックを一切使わないフルフロー。
@@ -134,43 +141,61 @@ describe('E2E — 実WAVの解析フロー', () => {
     }
   });
 
-  it('BREAKDOWN の4項目の合計が総合スコアと一致する', async () => {
+  it('判定パネルに結論と実測値が出る', async () => {
+    mountApp();
+    await analyzeViaUi(cleanToneWav());
+
+    await expect.element(page.getByText('判定')).toBeVisible();
+    await expect.element(page.getByText('実測値')).toBeVisible();
+    // 実測値は点数ではなく物理量
+    const facts = [...document.querySelectorAll('.v-facts li')].map((el) => el.textContent ?? '');
+    expect(facts.some((f) => f.includes('帯域上限'))).toBe(true);
+    expect(facts.some((f) => f.includes('残響時間'))).toBe(true);
+  });
+
+  it('録音前に読み上げ文のサンプルと案内が出る', async () => {
+    mountApp();
+    await expect.element(page.getByText('読み上げ文の例')).toBeVisible();
+    await expect.element(page.getByText('これはマイクのテストです。')).toBeVisible();
+    const lines = [...document.querySelectorAll('.mic-script li')];
+    expect(lines.length).toBeGreaterThan(0);
+  });
+
+  it('BREAKDOWN の全項目の合計が総合スコアと一致する', async () => {
     mountApp();
     await analyzeViaUi(cleanToneWav());
 
     const values = breakdownValues();
-    expect(values).toHaveLength(4);
+    expect(values).toHaveLength(LABELS.length);
     expect(values.reduce((a, b) => a + b, 0)).toBe(overallScore());
   });
 
-  it('各項目のスコアが満点(30/30/20/20)の範囲に収まる', async () => {
+  it('各項目のスコアが軸ごとの満点の範囲に収まる', async () => {
     mountApp();
     await analyzeViaUi(cleanToneWav());
 
-    const [volume, frequency, clip, noise] = breakdownValues();
-    for (const v of [volume, frequency, clip, noise]) {
-      expect(Number.isInteger(v)).toBe(true);
-      expect(v).toBeGreaterThanOrEqual(0);
+    const values = breakdownValues();
+    for (const axis of LABELS) {
+      const v = axisValue(values, axis);
+      expect(Number.isInteger(v), axis).toBe(true);
+      expect(v, axis).toBeGreaterThanOrEqual(0);
+      expect(v, axis).toBeLessThanOrEqual(AXIS_MAX[axis]);
     }
-    expect(volume).toBeLessThanOrEqual(30);
-    expect(frequency).toBeLessThanOrEqual(30);
-    expect(clip).toBeLessThanOrEqual(20);
-    expect(noise).toBeLessThanOrEqual(20);
   });
 
-  it('レーダーチャートが4軸のラベルを描画する', async () => {
+  it('レーダーチャートが全軸のラベルを描画する', async () => {
     mountApp();
     await analyzeViaUi(cleanToneWav());
 
     const svgLabels = [...document.querySelectorAll('.chart-panel svg text')].map((el) => el.textContent);
-    expect(svgLabels).toEqual(['音量', '周波数バランス', '音割れ', 'ノイズ・無音']);
+    expect(svgLabels).toEqual(['ノイズ', '残響', '周波数バランス', '音量', '音割れ']);
   });
 
-  it('クリーンなトーンは音割れが検出されず、クリッピング項目が満点に近い', async () => {
+  it('クリーンなトーンは音割れが検出されず、クリッピング項目が満点になる', async () => {
     mountApp();
     await analyzeViaUi(cleanToneWav());
 
-    expect(breakdownValues()[2]).toBeGreaterThan(18);
+    expect(axisValue(breakdownValues(), 'clip')).toBe(AXIS_MAX.clip);
     expect(adviceTexts().some((a) => a.includes('音割れ'))).toBe(false);
   });
 });
@@ -181,7 +206,7 @@ describe('E2E — 音質の差が結果に反映される', () => {
     mountApp();
     await analyzeViaUi(clippedWav());
 
-    expect(breakdownValues()[2]).toBeLessThan(5);
+    expect(axisValue(breakdownValues(), 'clip')).toBeLessThan(AXIS_MAX.clip * 0.2);
     await expect.element(page.getByText('アドバイス')).toBeVisible();
     expect(adviceTexts().some((a) => a.includes('音割れ'))).toBe(true);
   });
@@ -249,7 +274,7 @@ describe('E2E — 異常系と復帰', () => {
     await expect.element(page.getByText('WAV / MP3 をドロップ')).toBeVisible();
 
     await analyzeViaUi(cleanToneWav('second.wav', 440));
-    expect(breakdownValues()).toHaveLength(4);
+    expect(breakdownValues()).toHaveLength(LABELS.length);
   });
 });
 
@@ -264,6 +289,23 @@ describe('E2E — 言語切替と実解析の組み合わせ', () => {
     await expect.element(page.getByText('BREAKDOWN'), { timeout: 15000 }).toBeVisible();
 
     const names = [...document.querySelectorAll('.b-name')].map((el) => el.textContent);
-    expect(names).toEqual(['Volume', 'Frequency Balance', 'Clipping', 'Noise/Silence']);
+    expect(names).toEqual(['Noise', 'Reverberation', 'Frequency Balance', 'Volume', 'Clipping']);
+  });
+
+  it('EN に切り替えるとアドバイスも英語で出る', async () => {
+    // 以前は分析側で日本語を組み立てていたため、ENモードでもアドバイスだけ
+    // 日本語で表示されていた。
+    mountApp();
+    await page.getByRole('button', { name: 'EN' }).click();
+    await expect.element(page.getByText('Drop WAV / MP3')).toBeVisible();
+
+    selectFile(clippedWav());
+    await expect.element(page.getByText('Advice'), { timeout: 15000 }).toBeVisible();
+
+    const texts = adviceTexts();
+    expect(texts.length).toBeGreaterThan(0);
+    expect(texts.some((a) => a.includes('Clipping'))).toBe(true);
+    // 日本語が残っていないこと
+    expect(texts.some((a) => /[ぁ-んァ-ヶ一-龠]/.test(a))).toBe(false);
   });
 });

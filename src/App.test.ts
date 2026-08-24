@@ -13,7 +13,7 @@ vi.mock('./lib/AudioAnalyzer.ts', () => ({
 }));
 
 import App from './App.svelte';
-import { decodeFile, recordMicrophone } from './lib/audio.ts';
+import { decodeFile, recordMicrophone, type Recording } from './lib/audio.ts';
 import { analyzeAudio } from './lib/AudioAnalyzer.ts';
 
 // 実データを通したフルフローは e2e.test.ts が担当する。
@@ -27,9 +27,30 @@ function mountApp(): void {
   app = mount(App, { target });
 }
 
+// 加工の痕跡なし（フルバンド・自然なノイズフロア）の provenance
+const cleanProvenance = {
+  bandwidthHz: 8000,
+  cutoffDropDb: 4,
+  silenceFloorDb: -52,
+  maxZeroRunMs: 0,
+  processed: false,
+  flags: [],
+} satisfies AudioScores['provenance'];
+
 const mockScores: AudioScores = {
-  overall: 82, volume: 25, frequency: 24, clip: 18, noise: 15,
-  advice: ['声の明瞭度がやや低めです。マイクを口元に向け、はっきりと発声してください。'],
+  overall: 82, noise: 22, reverb: 17, frequency: 21, volume: 13, clip: 9,
+  advice: [{ code: 'muffled' as const, value: -15 }],
+  provenance: cleanProvenance,
+  rt60Sec: 0.45,
+  unreliable: [],
+  verdict: { level: 'usable', limitingAxis: 'clip', unconfirmed: false },
+  measured: {
+    snrDb: 28.4,
+    rt60Sec: 0.45,
+    bandwidthHz: 8000,
+    activeSpeechDbfs: -17.2,
+    clipRate: 0,
+  },
 };
 
 const wavFile = (name = 'sample.wav'): File =>
@@ -165,10 +186,10 @@ describe('App — 言語切替', () => {
 
     const names = (): (string | null)[] =>
       [...document.querySelectorAll('.b-name')].map((el) => el.textContent);
-    expect(names()).toEqual(['音量', '周波数バランス', '音割れ', 'ノイズ・無音']);
+    expect(names()).toEqual(['ノイズ', '残響', '周波数バランス', '音量', '音割れ']);
 
     await page.getByRole('button', { name: 'EN' }).click();
-    await expect.poll(names).toEqual(['Volume', 'Frequency Balance', 'Clipping', 'Noise/Silence']);
+    await expect.poll(names).toEqual(['Noise', 'Reverberation', 'Frequency Balance', 'Volume', 'Clipping']);
   });
 
   it('エラーメッセージも言語切替に追従する', async () => {
@@ -184,7 +205,7 @@ describe('App — 言語切替', () => {
 // ---- 録音フロー ----
 describe('App — 録音フロー', () => {
   it('録音中は REC 表示と経過秒数の進捗が出る', async () => {
-    const rec = deferred<{ buffer: AudioBuffer; blob: Blob }>();
+    const rec = deferred<Recording>();
     vi.mocked(recordMicrophone).mockImplementation((_ms, onTick) => {
       onTick?.(0.5);
       return rec.promise;
@@ -199,7 +220,7 @@ describe('App — 録音フロー', () => {
   });
 
   it('録音完了後に解析へ進み結果が表示される', async () => {
-    const rec = deferred<{ buffer: AudioBuffer; blob: Blob }>();
+    const rec = deferred<Recording>();
     vi.mocked(recordMicrophone).mockReturnValue(rec.promise);
     vi.mocked(analyzeAudio).mockResolvedValue(mockScores);
 
@@ -208,8 +229,9 @@ describe('App — 録音フロー', () => {
     await expect.element(page.getByText('REC')).toBeVisible();
 
     rec.resolve({
-      buffer: { sampleRate: 48000 } as unknown as AudioBuffer,
-      blob:   new Blob(['audio'], { type: 'audio/webm' }),
+      buffer:     { sampleRate: 48000 } as unknown as AudioBuffer,
+      blob:       new Blob(['audio'], { type: 'audio/webm' }),
+      rawCapture: true,
     });
 
     await expect.element(page.getByText('SIGNAL QUALITY'), { timeout: 3000 }).toBeVisible();
@@ -321,7 +343,7 @@ describe('App — 解析結果表示', () => {
     await expect.element(page.getByText('SIGNAL QUALITY'), { timeout: 3000 }).toBeVisible();
 
     const list = page.getByRole('list');
-    for (const label of ['音量', '周波数バランス', '音割れ', 'ノイズ・無音']) {
+    for (const label of ['ノイズ', '残響', '周波数バランス', '音量', '音割れ']) {
       await expect.element(list.getByText(label, { exact: true })).toBeVisible();
     }
   });
@@ -332,8 +354,9 @@ describe('App — 解析結果表示', () => {
     selectFile(wavFile());
     await expect.element(page.getByText('BREAKDOWN'), { timeout: 3000 }).toBeVisible();
 
+    // 表示順は scores.ts の LABELS 順（noise, reverb, frequency, volume, clip）
     const values = [...document.querySelectorAll('.b-val')].map((el) => Number(el.textContent));
-    expect(values).toEqual([25, 24, 18, 15]);
+    expect(values).toEqual([22, 17, 21, 13, 9]);
     expect(document.querySelector('.vu-meter')?.getAttribute('aria-label')).toBe('総合スコア 82点');
   });
 
