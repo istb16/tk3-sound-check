@@ -169,9 +169,22 @@ export function analyzeSamples(channelData: Float32Array, sampleRate: number): A
   };
 }
 
-/** 判定の閾値。各軸の満点に対する達成率 */
-const VERDICT_GOOD_RATIO   = 0.75;
-const VERDICT_USABLE_RATIO = 0.5;
+/**
+ * 判定の閾値。各軸の満点に対する達成率。
+ *
+ * **満点はスタジオ・放送品質を意味するので、「会議の録音として十分か」の境界は
+ * 満点よりかなり下にある。** 尺度の意味を決め直したのに合わせて 0.75/0.5 から
+ * 下げた。下げないと、実際には使える録音がすべて「不可」になる。
+ *
+ * ノイズ軸で換算すると公表基準と重なる（満点 SNR 45dB）。
+ *   0.55 → SNR 24.8dB … 会議音声の指針が「良好」とする20dBより厳しい
+ *   0.35 → SNR 15.8dB … ISO 9921 が STI 0.75「良好」とする +15dB 相当
+ *
+ * **この2つの値そのものは未検証。** 実録音に対する是非の判断（この録音を会議の
+ * 記録として受け入れるか）を集めれば実測で決められるが、まだ集めていない。
+ */
+const VERDICT_GOOD_RATIO   = 0.55;
+const VERDICT_USABLE_RATIO = 0.35;
 
 /**
  * 「このまま会議していいのか」を判定する。
@@ -308,9 +321,9 @@ function calcFrequencyScore(
   const SLOPE_MAX     = 10;
 
   // ---- 有効帯域幅 ----
-  // ITU-T の広帯域音声(〜7kHz)で満点、電話品質(3.4kHz)で0点。
-  // 7kHz以上を同点にしているのは、会議音声の明瞭度にそれ以上を要しないため
-  // （摩擦音・サ行の識別に必要な帯域は7kHzでほぼ足りる）。
+  // ITU-T の超広帯域音声(16kHz)で満点、電話品質(3.4kHz)で0点。
+  // 明瞭度の観点では7kHzで足りるが、それは採点ではなく助言の側で
+  // 表現する（ADVISE_NARROW_HZ）。採点は品質の尺度なので上を詰めない。
   const effectiveHz = Math.min(bandwidthHz, sampleRate / 2);
   const bwFactor = clamp((effectiveHz - BW_MIN_HZ) / (BW_FULL_HZ - BW_MIN_HZ), 0, 1);
   const bandwidthScore = BANDWIDTH_MAX * bwFactor;
@@ -318,31 +331,28 @@ function calcFrequencyScore(
   // ---- こもり（1kHz以上の傾斜） ----
   const slope = estimateSpectralSlope(data, sampleRate, effectiveHz);
   let slopeScore: number;
-  let slopeFactor = 1;
   if (slope === null) {
     // 近似する区間が取れない = 帯域が2kHzも無い。電話品質未満。
     // その減点は帯域幅の内訳が担っているので、ここでは中間値にして二重減点を避ける。
     slopeScore = SLOPE_MAX / 2;
   } else if (slope < SLOPE_PLATEAU_LO_DB_OCT) {
     // 高域が落ちすぎ（こもり）
-    slopeFactor = clamp(
+    slopeScore = SLOPE_MAX * clamp(
       (slope - SLOPE_MUFFLED_DB_OCT) / (SLOPE_PLATEAU_LO_DB_OCT - SLOPE_MUFFLED_DB_OCT), 0, 1,
     );
-    slopeScore = SLOPE_MAX * slopeFactor;
   } else if (slope > SLOPE_PLATEAU_HI_DB_OCT) {
     // 高域が過剰（ヒスノイズ、帯域外の混入）
-    slopeFactor = clamp(
+    slopeScore = SLOPE_MAX * clamp(
       (SLOPE_HISSY_DB_OCT - slope) / (SLOPE_HISSY_DB_OCT - SLOPE_PLATEAU_HI_DB_OCT), 0, 1,
     );
-    slopeScore = SLOPE_MAX * slopeFactor;
   } else {
     slopeScore = SLOPE_MAX;
   }
 
   const score = clamp(bandwidthScore + slopeScore, 0, AXIS_MAX.frequency);
 
-  if (bwFactor < 0.7)   advice.push({ code: 'bandwidth-narrow', value: effectiveHz });
-  if (slopeFactor < 0.7 && slope !== null) advice.push({ code: 'muffled', value: slope });
+  if (effectiveHz < ADVISE_NARROW_HZ) advice.push({ code: 'bandwidth-narrow', value: effectiveHz });
+  if (slope !== null && slope < ADVISE_MUFFLED_DB_OCT) advice.push({ code: 'muffled', value: slope });
 
   return { score, slopeMeasured: slope !== null };
 }
@@ -370,8 +380,46 @@ const SLOPE_HISSY_DB_OCT      = 6;
 
 /** 有効帯域幅がこれ以下なら明瞭度上の価値が無いとみなす（電話品質） */
 const BW_MIN_HZ = 3400;
-/** これ以上あれば会議音声として十分（ITU-T 広帯域音声） */
-const BW_FULL_HZ = 7000;
+/**
+ * 帯域幅が満点になる有効帯域上限[Hz]。**満点は広帯域音声の上限を意味する。**
+ *
+ * 以前は7000Hzだった（ITU-Tの広帯域音声。会議音声の明瞭度にはそれ以上を要しない）。
+ * 明瞭度の基準としては正しいが、**品質の尺度としては上が詰まっていた**——8.1kHzの
+ * 録音と24kHzの録音が同じ満点になり、区別できなかった。
+ *
+ * 16000Hzの根拠: ITU-T の超広帯域音声が14kHz（G.722.1 Annex C）、フルバンドが20kHz。
+ * 16kHzを満点に置くと、8kHz帯域（16kHzサンプリング由来）が0.37、電話品質が0で、
+ * 実際に区別が付く。明瞭度上7kHzで足りることは変わらないが、それは判定の閾値の側で
+ * 表現する。
+ */
+const BW_FULL_HZ = 16000;
+/**
+ * 帯域不足を助言する有効帯域上限[Hz]。**採点の尺度とは別に持つ。**
+ *
+ * 満点を16kHzに上げたとき、助言の条件が達成率0.7のままだったので
+ * 12.2kHz以下すべてに「高音域が不足」と出るようになっていた。8.1kHz帯域
+ * （16kHzサンプリング由来。OS標準の録音アプリや会議端末の大半がこれ）は
+ * 会議音声として何の問題も無いのに助言が出る。しかも文面が主張する
+ * 「子音が聞き取りにくい」は8kHzでは起きない。
+ *
+ * 音量軸と同じ扱いにする。**採点は品質の尺度（16kHz満点）、助言は明瞭度の
+ * 基準（絶対値）。** 7000Hz は ITU-T の広帯域音声で、摩擦音・サ行の識別に
+ * 必要な帯域はここでほぼ足りる。これを下回るのは電話帯域(3.4kHz)や
+ * Bluetooth HFP(4kHz)で、どちらも利用者が録り方を変えれば直せる。
+ */
+const ADVISE_NARROW_HZ = 7000;
+/**
+ * こもりを助言する傾斜[dB/oct]。**採点の尺度とは別に持つ。**
+ *
+ * 以前は達成率0.7で判定していた（結果として -13.6dB/oct）。値としては同じだが、
+ * 採点の境界を動かすと助言の条件も黙って動いてしまう。帯域幅の助言が実際に
+ * それで壊れたので、こちらも絶対値で持つ。
+ *
+ * -14dB/oct の根拠: 実音声の自然な傾斜は -2.4〜-8.8dB/oct（4話者）。マイクを
+ * 服やロの中に入れたり布で覆ったりすると -12dB/oct 以上の傾きが乗る。自然な
+ * 範囲の最も急な値から5dB/oct 以上離れているので、声の暗い話者では出ない。
+ */
+const ADVISE_MUFFLED_DB_OCT = -14;
 
 // ==========================================================================
 // 3. 残響 [20点満点]
@@ -379,15 +427,28 @@ const BW_FULL_HZ = 7000;
 // 会議室の音の悪さの主要因のひとつ。「静かな部屋なのに聞き取りにくい」の主犯で、
 // かつユーザーが対処できる（カーテン、カーペット、マイクを口元に近づける）。
 //
-// 閾値は ISO 3382 系の会議用途の目安に置く。0.4秒以下は処理された部屋、
-// 1.2秒以上は会議に適さない反響。
+// 閾値は ANSI S12.60 / ISO 9921 の目安に置く。0.2秒以下は処理された部屋か
+// 近接マイク、0.9秒以上は硬い面ばかりの部屋で発話が明らかに濁る水準。
 //
 // 測定不能な場合（喋り続けていて自由減衰が無い、デッドすぎて発話自体の減衰と
 // 分離できない）は中間値を返し、その軸を unreliable に入れる。満点は与えない。
 function calcReverbScore(rt60Sec: number | null, advice: AdviceItem[]): number {
   const MAX = AXIS_MAX.reverb;
-  const GOOD_SEC = 0.4;
-  const BAD_SEC  = 1.2;
+  /**
+   * 満点・0点とするRT60[秒]。**満点は音響処理をした部屋か近接マイクを意味する。**
+   *
+   * 以前は 0.4／1.2秒だった。品質の尺度としては上が詰まっており、0.13秒の録音と
+   * 0.25秒の録音が同じ満点になっていた。
+   *
+   * 根拠: ANSI S12.60 は小さな教室に RT60 0.6秒以下を求め、ISO 9921 は 0.5秒を
+   * 超えると明瞭度が落ちるとする。0.2秒は処理された部屋か近接マイク、0.9秒は
+   * 硬い面ばかりの部屋で発話が明らかに濁る水準。
+   *
+   * 注意: RT60の推定誤差は MAE 0.141秒あり、0.2〜0.9秒という幅の20%に相当する。
+   * 4点ぶんの揺れが出るので、この軸の点数を細かく読んではいけない。
+   */
+  const GOOD_SEC = 0.2;
+  const BAD_SEC  = 0.9;
 
   if (rt60Sec === null) {
     advice.push({ code: 'reverb-unmeasurable' });
@@ -398,7 +459,30 @@ function calcReverbScore(rt60Sec: number | null, advice: AdviceItem[]): number {
 
   const score = clamp((1 - (rt60Sec - GOOD_SEC) / (BAD_SEC - GOOD_SEC)) * MAX, 0, MAX);
 
-  if (rt60Sec > 0.7) advice.push({ code: 'reverb-strong', value: rt60Sec });
+  /**
+   * 残響を助言するRT60[秒]。**採点の境界（0.2／0.9秒）とは別に持つ。**
+   *
+   * 以前は0.7秒。助言の的中を測って初めて分かったが、**それでは再現率0.44しか
+   * 無かった**——実際に残響の強い部屋（RT60 1.0秒）の半分以上で助言が出ない。
+   * 原因は推定側の偏り。RT60は系統的に短く出る（bias -0.11秒）ので、真値1.0秒の
+   * 部屋は中央値0.68秒と推定される。0.7秒の閾値はその真下にある。
+   *
+   * 掃引した結果（真値の基準は ANSI S12.60 の教室上限 0.6秒）:
+   *   閾値0.70 … 適合率1.00 / 再現率0.44
+   *   閾値0.60 … 適合率1.00 / 再現率0.64  ← これ
+   *   閾値0.50 … 適合率0.87 / 再現率0.80
+   *   閾値0.40 … 適合率0.67 / 再現率0.96
+   *
+   * 0.60秒は0.70秒を完全に上回る（空振りは同じ0件で、見落としが5件減る）。
+   * これ以上下げると空振りが出る。**空振りは見落としより重い**——直さなくてよい
+   * ものを直せと言うほうが道具への信頼を損なうので、ここで止める。
+   *
+   * 0.60秒という値そのものは ANSI S12.60 が小さな教室に求める上限で、掃引に
+   * 合わせて選んだ数字ではない。偏りを打ち消す補正を入れる必要が無かったのは、
+   * 推定が短く出る方向に偏っているためたまたま都合が良かっただけである。
+   */
+  const ADVISE_REVERB_SEC = 0.6;
+  if (rt60Sec > ADVISE_REVERB_SEC) advice.push({ code: 'reverb-strong', value: rt60Sec });
 
   return score;
 }
@@ -440,25 +524,22 @@ function calcClipScore(data: Float32Array, advice: AdviceItem[]): number {
 // 残響の尾をノイズとして数えないよう、推定したRT60を渡している。
 // 残響エネルギーは信号由来であり背景雑音ではない。
 /**
- * ノイズ軸が満点になるSNR[dB]。
+ * ノイズ軸が満点になるSNR[dB]。**満点はスタジオ・放送品質を意味する。**
  *
- * 以前は40dBだった。**その設定では実質的に誰も「良好」判定に到達できない。**
- * 判定は最弱の軸の達成率で決まり「良好」は75%以上なので、40dB満点だと
- * ノイズ軸だけで SNR 30dB を要求することになる。実測では、劣化を一切
- * 加えていないスタジオ録音（CMU ARCTIC・素材自身のSNR 26.5〜32.6dB）でも
- * 4話者すべてが「使える」止まりで、288条件を通して「良好」が1件も出なかった。
+ * 経緯: 最初は40dBだったが、判定が最弱の軸で決まるため誰も「良好」に到達できず、
+ * 25dBに下げた。ところが今度は実録音がすべて満点で並び、互いに区別できなくなった
+ * （実録音4本が96〜100点）。
  *
- * 公表されている了解度の基準はどれも、これよりはるかに低いSNRを「良好」とする。
- *   ISO 9921    … 残響が無ければ SNR +15dB 程度で STI 0.75「良好」
- *   ANSI S12.60 … 教室の暗騒音 35dBA 以下（発話 50〜55dBA なので SNR 15〜20dB）
- *   会議音声の一般的な指針 … SNR 20dB で良好、15dB で許容
+ * 尺度の意味を決め直した。**満点は「これ以上良くならない」水準に置き、
+ * 「会議の録音として十分か」は判定の閾値が担う。** こうすると尺度に上の余地が
+ * 残り、良い録音同士も区別できる。
  *
- * 25dBを満点に置くと SNR 20dB → 達成率0.80（良好）、15dB → 0.60（使える）、
- * 12dB → 0.48（使えない）となり、上の基準と一致する。
- * 25dB以上を同点にするのは、この道具の目的（環境が会議に適するか）にとって
- * 25dBと40dBの差が答えを変えないため。
+ * 45dBの根拠: 放送の音声は概ね50〜60dB、音響処理をした自宅スタジオで45dB程度。
+ * 45dBを満点に置くと、判定の閾値が公表基準とうまく重なる。
+ *   良好の閾値 0.55 → SNR 24.8dB（会議音声の指針が「良好」とする20dBより厳しい）
+ *   使えるの閾値 0.35 → SNR 15.8dB（ISO 9921 が STI 0.75「良好」とする+15dB相当）
  */
-const FULL_MARKS_SNR_DB = 25;
+const FULL_MARKS_SNR_DB = 45;
 function calcNoiseScore(
   data: Float32Array,
   sampleRate: number,

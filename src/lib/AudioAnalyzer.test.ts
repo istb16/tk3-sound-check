@@ -111,6 +111,34 @@ function tiltedSpeechBuffer(dbPerOct: number, duration = 2, sr = 16000): AudioBu
   }, duration, sr);
 }
 
+/**
+ * 帯域上限を指定した音声。200Hz刻みの成分を topHz まで並べる。
+ * topHz より上は空になるので、帯域上限が topHz として検出される。
+ */
+function bandLimitedSpeechBuffer(topHz: number, sr = 32000, duration = 2): AudioBuffer {
+  return makeBuffer((data, sampleRate) => {
+    const silence = Math.floor(sampleRate * 0.3);
+    const comps: Array<{ f: number; a: number }> = [];
+    for (let f = 200; f <= topHz; f += 200) {
+      const db = f <= 1000 ? 0 : -6 * Math.log2(f / 1000);
+      comps.push({ f, a: Math.pow(10, db / 20) });
+    }
+    let peak = 0;
+    const tmp = new Float32Array(data.length);
+    for (let i = silence; i < data.length; i++) {
+      let v = 0;
+      for (const c of comps) v += c.a * Math.sin((2 * Math.PI * c.f * i) / sampleRate + c.f);
+      tmp[i] = v;
+      peak = Math.max(peak, Math.abs(v));
+    }
+    for (let i = 0; i < data.length; i++) {
+      data[i] = i < silence
+        ? 0.0005 * (Math.random() * 2 - 1)
+        : (tmp[i] / (peak || 1)) * 0.2;
+    }
+  }, duration, sr);
+}
+
 // ---- テストスイート ----
 
 describe('analyzeAudio — 戻り値の型と範囲', () => {
@@ -197,6 +225,23 @@ describe('analyzeAudio — 周波数バランス評価', () => {
     const result = await analyzeAudio(mudBuffer());
     expect(result.unreliable).toContain('frequency');
     expect(result.verdict.level).not.toBe('good');
+  });
+
+  it('帯域が広いほど加点するが、8kHzあれば帯域不足の助言は出さない', async () => {
+    // 採点と助言を分けている。採点は品質の尺度（16kHz満点）なので8kHzでも満点には
+    // ならないが、助言は明瞭度の基準（7kHz）で出す。8.1kHz帯域は16kHzサンプリング
+    // 由来で、OS標準の録音アプリや会議端末の大半がこれ。会議音声として問題無い。
+    const wide   = await analyzeAudio(bandLimitedSpeechBuffer(15000));
+    const eightK = await analyzeAudio(bandLimitedSpeechBuffer(8000));
+    expect(eightK.frequency).toBeLessThan(wide.frequency);
+    expect(eightK.advice.some((a) => a.code === 'bandwidth-narrow')).toBe(false);
+  });
+
+  it('電話帯域まで削られていれば帯域不足の助言を出す', async () => {
+    // 3.4kHz(電話) や 4kHz(Bluetooth HFP) は摩擦音・サ行の識別に足りず、
+    // どちらも利用者が録り方を変えれば直せる。
+    const narrow = await analyzeAudio(bandLimitedSpeechBuffer(4000, 16000));
+    expect(narrow.advice.some((a) => a.code === 'bandwidth-narrow')).toBe(true);
   });
 
   it('高域を緩やかに落とした音声は frequency スコアが下がり、こもりのアドバイスが出る', async () => {

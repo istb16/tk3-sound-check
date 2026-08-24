@@ -76,6 +76,15 @@ interface Row {
   verdict: string;
   /** 測れていない軸があるため good を出さなかったか */
   verdictUnconfirmed: boolean;
+  /**
+   * 出した助言のコード。
+   *
+   * 助言は注入した物理量から真値を作れる（帯域上限が7kHz未満なら帯域不足の
+   * 助言が出るべき、など）。**採点だけ検証して助言を検証しないと、採点の境界を
+   * 動かしたときに助言が黙って壊れる。** 実際に満点を7kHz→16kHzに変えたとき、
+   * 達成率で判定していた帯域不足の助言が12.2kHz以下すべてに出るようになっていた。
+   */
+  advice: string[];
   mos: number | null;
 }
 
@@ -252,6 +261,7 @@ function evaluate(item: ManifestItem, samples: Float32Array, mos: number | null)
     unreliable: scores.unreliable,
     verdict: scores.verdict.level,
     verdictUnconfirmed: scores.verdict.unconfirmed,
+    advice: scores.advice.map((a) => a.code),
     mos,
   };
 }
@@ -470,6 +480,137 @@ function verdictStats(rows: Row[]): VerdictStat[] {
       mosMin: mos.length > 0 ? round(Math.min(...mos), 3) : null,
       mosMax: mos.length > 0 ? round(Math.max(...mos), 3) : null,
       unconfirmed: g.filter((r) => r.verdictUnconfirmed).length,
+    });
+  }
+  return out;
+}
+
+/**
+ * 助言の的中と外れ。
+ *
+ * 助言には注入した物理量から真値が作れる。「帯域上限が7kHz未満なら帯域不足の
+ * 助言が出るべき」のように、条件ごとに出るべき/出るべきでないが決まる。
+ *
+ * **なぜ測るのか。** 採点だけ検証して助言を検証しないと、採点の境界を動かした
+ * ときに助言が黙って壊れる。ノイズ軸の満点を25dB→45dBに、帯域幅の満点を
+ * 7kHz→16kHzに上げたとき、達成率0.7で判定していた帯域不足の助言が12.2kHz以下
+ * すべてに出るようになっていた（8.1kHz帯域は会議音声として問題無いのに
+ * 「子音が聞き取りにくい」と言う）。手で気づいたが、次は気づかない。
+ *
+ * 空振り(FP)は的中(TP)より重い。出すべき助言を1つ落とすより、直さなくてよい
+ * ものを直せと言うほうが道具への信頼を損なう。
+ */
+interface AdviceStat {
+  code: string;
+  criterion: string;
+  /** 真値が「出すべき」だった件数 */
+  positives: number;
+  /** 真値が「出すべきでない」だった件数 */
+  negatives: number;
+  truePositives: number;
+  falsePositives: number;
+  falseNegatives: number;
+  /** 出した助言のうち正しかった割合 */
+  precision: number | null;
+  /** 出すべき助言のうち出せた割合 */
+  recall: number | null;
+  /** 外れた行の例（最大3件） */
+  worst: Array<{ id: string; truth: number; kind: string }>;
+}
+
+/**
+ * 助言ごとの真値の定義。
+ *
+ * `conditionTypes` はその助言の真値が作れる条件。`clean` は「劣化なし」なので
+ * どの助言も出るべきでない側の対照として全部に入れる——ただし素材そのものの
+ * 性質で出てしまう助言（16kHz素材の帯域不足、話者固有のこもり）は対照に
+ * ならないので、その条件では clean を外す。
+ */
+const ADVICE_TRUTH: Array<{
+  code: string;
+  criterion: string;
+  conditionTypes: string[];
+  /** 真値を返す。null なら判定できないので集計から外す */
+  shouldAdvise: (r: Row) => boolean | null;
+  truthOf: (r: Row) => number;
+}> = [
+  {
+    code: 'bandwidth-narrow',
+    criterion: '帯域上限 < 7000Hz',
+    conditionTypes: ['cutoff'],
+    shouldAdvise: (r) => (r.truthValue === null ? null : r.truthValue < 7000),
+    truthOf: (r) => r.truthValue ?? 0,
+  },
+  {
+    code: 'noise-high',
+    criterion: 'SNR < 15dB',
+    conditionTypes: ['snr', 'clean'],
+    shouldAdvise: (r) => (r.conditionType === 'clean' ? false
+      : r.truthValue === null ? null : r.truthValue < 15),
+    truthOf: (r) => r.truthValue ?? 99,
+  },
+  {
+    code: 'reverb-strong',
+    criterion: 'RT60 > 0.6秒',
+    conditionTypes: ['rt60', 'clean'],
+    // 基準は ANSI S12.60 が小さな教室に求める上限。製品の閾値と同じ値だが、
+    // 偶然ではなく両方この規格から取っている。
+    shouldAdvise: (r) => (r.conditionType === 'clean' ? false
+      : r.rt60Truth === null ? null : r.rt60Truth > 0.6),
+    truthOf: (r) => r.rt60Truth ?? 0,
+  },
+  {
+    code: 'clipping',
+    criterion: 'クリップした標本が1つ以上',
+    conditionTypes: ['clip', 'clean'],
+    shouldAdvise: (r) => (r.conditionType === 'clean' ? false : true),
+    truthOf: (r) => r.truthValue ?? 0,
+  },
+  {
+    code: 'muffled',
+    criterion: '1kHz以上の傾斜 < -14dB/oct',
+    conditionTypes: ['tilt', 'clean'],
+    // clean を対照に入れられるのは、実音声の自然な傾斜が -2.4〜-8.8dB/oct で
+    // 境界から十分離れているため（声の暗い話者でも出ない）。
+    shouldAdvise: (r) => (r.conditionType === 'clean' ? false
+      : r.truthValue === null ? null : r.truthValue < -14),
+    truthOf: (r) => r.truthValue ?? 0,
+  },
+  {
+    code: 'level-low',
+    criterion: '有効音声レベル < -30dBFS',
+    conditionTypes: ['level'],
+    shouldAdvise: (r) => (r.truthValue === null ? null : r.truthValue < -30),
+    truthOf: (r) => r.truthValue ?? 0,
+  },
+];
+
+function adviceStats(rows: Row[]): AdviceStat[] {
+  const out: AdviceStat[] = [];
+  for (const def of ADVICE_TRUTH) {
+    const list = rows.filter((r) => def.conditionTypes.includes(r.conditionType));
+    let tp = 0, fp = 0, fn = 0, pos = 0, neg = 0;
+    const worst: Array<{ id: string; truth: number; kind: string }> = [];
+    for (const r of list) {
+      const should = def.shouldAdvise(r);
+      if (should === null) continue;
+      const did = r.advice.includes(def.code);
+      if (should) pos++; else neg++;
+      if (should && did) tp++;
+      else if (!should && did) { fp++; worst.push({ id: r.id, truth: round(def.truthOf(r), 3), kind: '空振り' }); }
+      else if (should && !did) { fn++; worst.push({ id: r.id, truth: round(def.truthOf(r), 3), kind: '見落とし' }); }
+    }
+    out.push({
+      code: def.code,
+      criterion: def.criterion,
+      positives: pos,
+      negatives: neg,
+      truePositives: tp,
+      falsePositives: fp,
+      falseNegatives: fn,
+      precision: tp + fp > 0 ? round(tp / (tp + fp), 3) : null,
+      recall: pos > 0 ? round(tp / pos, 3) : null,
+      worst: worst.slice(0, 3),
     });
   }
   return out;
@@ -944,7 +1085,35 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
     L.push('');
   }
 
-  L.push('## 7. 劣化なし基準の挙動');
+  if (report.advice.some((a) => a.positives + a.negatives > 0)) {
+    L.push('## 7. 助言の的中と空振り');
+    L.push('');
+    L.push('注入した物理量から「この助言が出るべきか」の真値が作れる。**空振りは見落としより重い**——');
+    L.push('出すべき助言を落とすより、直さなくてよいものを直せと言うほうが道具への信頼を損なう。');
+    L.push('');
+    L.push('| 助言 | 出すべき基準 | 出すべき | 出すべきでない | 的中 | 空振り | 見落とし | 適合率 | 再現率 |');
+    L.push('|---|---|---:|---:|---:|---:|---:|---:|---:|');
+    for (const a of report.advice) {
+      L.push(
+        `| ${a.code} | ${a.criterion} | ${a.positives} | ${a.negatives} | ${a.truePositives} | ${a.falsePositives} | ${a.falseNegatives} | ` +
+        `${a.precision ?? 'n/a'} | ${a.recall ?? 'n/a'} |`,
+      );
+    }
+    L.push('');
+    const bad = report.advice.filter((a) => a.worst.length > 0);
+    if (bad.length > 0) {
+      L.push('外れた行:');
+      L.push('');
+      for (const a of bad) {
+        for (const w of a.worst) {
+          L.push(`- ${a.code} ${w.kind}: ${w.id} 真値 ${w.truth}`);
+        }
+      }
+      L.push('');
+    }
+  }
+
+  L.push('## 8. 劣化なし基準の挙動');
   L.push('');
   L.push('| id | 総合 | ノイズ | 残響 | 周波数 | 音量 | 音割れ | 帯域上限[Hz] | 検出フラグ | 参考値扱いの軸 |');
   L.push('|---|---:|---:|---:|---:|---:|---:|---:|---|---|');
@@ -1022,6 +1191,7 @@ function buildReport(rows: Row[], sources: string[], mosNote: string, mosAvailab
     weighting: weighting(rows),
     drrCapability: drrCapability(rows),
     verdicts: verdictStats(rows),
+    advice: adviceStats(rows),
     cleanRows: rows.filter((r) => r.conditionType === 'clean'),
     rows,
   };

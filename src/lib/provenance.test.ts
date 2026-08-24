@@ -157,13 +157,17 @@ describe('analyzeSamples', () => {
     }
   });
 
-  it('7kHz以上は会議音声として十分なので同点になる', () => {
-    // 摩擦音・サ行の識別に必要な帯域は7kHzでほぼ足りるため、
-    // それ以上の帯域幅を加点しない。単調性の ρ が 1.0 にならないのはこの設計による。
+  it('16kHzまでは帯域が広いほど加点する', () => {
+    // 以前は7kHz以上を同点にしていた（明瞭度上それで足りるため）。品質の尺度としては
+    // 上が詰まっており、8.1kHzの実録音と24kHzの実録音が同じ満点になっていた。
+    // 満点を16kHz（ITU-Tの超広帯域が14kHz、フルバンドが20kHz）に置き直した。
+    // 「明瞭度上7kHzで足りる」ことは判定の閾値の側で表現する。
     const opts = { slopeDbPerOct: -12 };
+    const at5k  = analyzeSamples(bandLimitedNoise(5000, opts), SR).frequency;
     const at7k  = analyzeSamples(bandLimitedNoise(7000, opts), SR).frequency;
     const at12k = analyzeSamples(bandLimitedNoise(12000, opts), SR).frequency;
-    expect(at12k).toBe(at7k);
+    expect(at7k).toBeGreaterThan(at5k);
+    expect(at12k).toBeGreaterThan(at7k);
   });
 });
 

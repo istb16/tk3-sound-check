@@ -26,6 +26,7 @@ const CANDIDATES = [
   'fixtures/real/01_pc.m4a',
   'fixtures/real/01_smartphone.m4a',
   'fixtures/real/02_pc.wav',
+  'fixtures/real/03_pc.wav',
 ];
 
 async function loadIfPresent(path: string): Promise<AudioBuffer | null> {

@@ -3,7 +3,7 @@
   "seed": 1,
   "generatedWith": {
     "durationSec": 10,
-    "maxSources": 4,
+    "maxSources": 5,
     "syntheticSampleRate": 48000,
     "rates": [
       16000,
@@ -50,6 +50,16 @@
       "name": "corpus:cmu-arctic-files-slt(3本)@48000Hz",
       "sampleRate": 48000,
       "sha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428"
+    },
+    {
+      "name": "corpus:wideband(1本)@16000Hz",
+      "sampleRate": 16000,
+      "sha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0"
+    },
+    {
+      "name": "corpus:wideband(1本)@48000Hz",
+      "sampleRate": 48000,
+      "sha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0"
     }
   ],
   "items": [
@@ -10874,6 +10884,2765 @@
       "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
       "sampleRate": 48000,
       "samples": 480000,
+      "condition": {
+        "type": "tilt",
+        "params": {
+          "tiltDbPerOct": -12,
+          "hingeHz": 1000
+        }
+      },
+      "truth": {
+        "tiltDbPerOct": -12
+      }
+    },
+    {
+      "id": "s8-clean",
+      "file": "fixtures/generated/s8-clean.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "clean",
+        "params": {}
+      },
+      "truth": {
+        "activeSpeechRms": 0.09928178786946903
+      }
+    },
+    {
+      "id": "s8-snr0-pink",
+      "file": "fixtures/generated/s8-snr0-pink.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 0,
+          "color": "pink"
+        }
+      },
+      "truth": {
+        "snrDb": -0.01940653001355855,
+        "requestedSnrDb": 0,
+        "activeSpeechRms": 0.09928178786946903,
+        "noiseRms": 0.09928178786946903,
+        "sourceNoiseRms": 0.004692842931122531
+      }
+    },
+    {
+      "id": "s8-snr0-white",
+      "file": "fixtures/generated/s8-snr0-white.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 0,
+          "color": "white"
+        }
+      },
+      "truth": {
+        "snrDb": -0.01940653001355855,
+        "requestedSnrDb": 0,
+        "activeSpeechRms": 0.09928178786946903,
+        "noiseRms": 0.09928178786946903,
+        "sourceNoiseRms": 0.004692842931122531
+      }
+    },
+    {
+      "id": "s8-snr5-pink",
+      "file": "fixtures/generated/s8-snr5-pink.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 5,
+          "color": "pink"
+        }
+      },
+      "truth": {
+        "snrDb": 4.959709417897589,
+        "requestedSnrDb": 5,
+        "activeSpeechRms": 0.09928178786946903,
+        "noiseRms": 0.055830252157784345,
+        "sourceNoiseRms": 0.004692842931122531
+      }
+    },
+    {
+      "id": "s8-snr5-white",
+      "file": "fixtures/generated/s8-snr5-white.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 5,
+          "color": "white"
+        }
+      },
+      "truth": {
+        "snrDb": 4.959709417897589,
+        "requestedSnrDb": 5,
+        "activeSpeechRms": 0.09928178786946903,
+        "noiseRms": 0.055830252157784345,
+        "sourceNoiseRms": 0.004692842931122531
+      }
+    },
+    {
+      "id": "s8-snr10-pink",
+      "file": "fixtures/generated/s8-snr10-pink.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 10,
+          "color": "pink"
+        }
+      },
+      "truth": {
+        "snrDb": 9.89432150343334,
+        "requestedSnrDb": 10,
+        "activeSpeechRms": 0.09928178786946903,
+        "noiseRms": 0.03139565798411979,
+        "sourceNoiseRms": 0.004692842931122531
+      }
+    },
+    {
+      "id": "s8-snr10-white",
+      "file": "fixtures/generated/s8-snr10-white.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 10,
+          "color": "white"
+        }
+      },
+      "truth": {
+        "snrDb": 9.89432150343334,
+        "requestedSnrDb": 10,
+        "activeSpeechRms": 0.09928178786946903,
+        "noiseRms": 0.03139565798411979,
+        "sourceNoiseRms": 0.004692842931122531
+      }
+    },
+    {
+      "id": "s8-snr15-pink",
+      "file": "fixtures/generated/s8-snr15-pink.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 15,
+          "color": "pink"
+        }
+      },
+      "truth": {
+        "snrDb": 14.693797027011904,
+        "requestedSnrDb": 15,
+        "activeSpeechRms": 0.09928178786946903,
+        "noiseRms": 0.017655075916012886,
+        "sourceNoiseRms": 0.004692842931122531
+      }
+    },
+    {
+      "id": "s8-snr15-white",
+      "file": "fixtures/generated/s8-snr15-white.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 15,
+          "color": "white"
+        }
+      },
+      "truth": {
+        "snrDb": 14.693797027011904,
+        "requestedSnrDb": 15,
+        "activeSpeechRms": 0.09928178786946903,
+        "noiseRms": 0.017655075916012886,
+        "sourceNoiseRms": 0.004692842931122531
+      }
+    },
+    {
+      "id": "s8-snr20-pink",
+      "file": "fixtures/generated/s8-snr20-pink.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 20,
+          "color": "pink"
+        }
+      },
+      "truth": {
+        "snrDb": 19.114510392730867,
+        "requestedSnrDb": 20,
+        "activeSpeechRms": 0.09928178786946903,
+        "noiseRms": 0.009928178786946903,
+        "sourceNoiseRms": 0.004692842931122531
+      }
+    },
+    {
+      "id": "s8-snr20-white",
+      "file": "fixtures/generated/s8-snr20-white.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 20,
+          "color": "white"
+        }
+      },
+      "truth": {
+        "snrDb": 19.114510392730867,
+        "requestedSnrDb": 20,
+        "activeSpeechRms": 0.09928178786946903,
+        "noiseRms": 0.009928178786946903,
+        "sourceNoiseRms": 0.004692842931122531
+      }
+    },
+    {
+      "id": "s8-snr25-pink",
+      "file": "fixtures/generated/s8-snr25-pink.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 25,
+          "color": "pink"
+        }
+      },
+      "truth": {
+        "snrDb": 22.669137299970437,
+        "requestedSnrDb": 25,
+        "activeSpeechRms": 0.09928178786946903,
+        "noiseRms": 0.005583025215778434,
+        "sourceNoiseRms": 0.004692842931122531
+      }
+    },
+    {
+      "id": "s8-snr25-white",
+      "file": "fixtures/generated/s8-snr25-white.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 25,
+          "color": "white"
+        }
+      },
+      "truth": {
+        "snrDb": 22.669137299970437,
+        "requestedSnrDb": 25,
+        "activeSpeechRms": 0.09928178786946903,
+        "noiseRms": 0.005583025215778434,
+        "sourceNoiseRms": 0.004692842931122531
+      }
+    },
+    {
+      "id": "s8-snr30-pink",
+      "file": "fixtures/generated/s8-snr30-pink.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 30,
+          "color": "pink"
+        }
+      },
+      "truth": {
+        "snrDb": 24.89254248307232,
+        "requestedSnrDb": 30,
+        "activeSpeechRms": 0.09928178786946903,
+        "noiseRms": 0.0031395657984119793,
+        "sourceNoiseRms": 0.004692842931122531
+      }
+    },
+    {
+      "id": "s8-snr30-white",
+      "file": "fixtures/generated/s8-snr30-white.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 30,
+          "color": "white"
+        }
+      },
+      "truth": {
+        "snrDb": 24.89254248307232,
+        "requestedSnrDb": 30,
+        "activeSpeechRms": 0.09928178786946903,
+        "noiseRms": 0.0031395657984119793,
+        "sourceNoiseRms": 0.004692842931122531
+      }
+    },
+    {
+      "id": "s8-snr40-pink",
+      "file": "fixtures/generated/s8-snr40-pink.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 40,
+          "color": "pink"
+        }
+      },
+      "truth": {
+        "snrDb": 26.308801767842308,
+        "requestedSnrDb": 40,
+        "activeSpeechRms": 0.09928178786946903,
+        "noiseRms": 0.0009928178786946904,
+        "sourceNoiseRms": 0.004692842931122531
+      }
+    },
+    {
+      "id": "s8-snr40-white",
+      "file": "fixtures/generated/s8-snr40-white.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 40,
+          "color": "white"
+        }
+      },
+      "truth": {
+        "snrDb": 26.308801767842308,
+        "requestedSnrDb": 40,
+        "activeSpeechRms": 0.09928178786946903,
+        "noiseRms": 0.0009928178786946904,
+        "sourceNoiseRms": 0.004692842931122531
+      }
+    },
+    {
+      "id": "s8-rt60-0_2",
+      "file": "fixtures/generated/s8-rt60-0_2.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "rt60",
+        "params": {
+          "rt60Sec": 0.2
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.2,
+        "drrDb": 9.999999994362927
+      }
+    },
+    {
+      "id": "s8-rt60-0_35",
+      "file": "fixtures/generated/s8-rt60-0_35.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "rt60",
+        "params": {
+          "rt60Sec": 0.35
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.35,
+        "drrDb": 10.000000019597909
+      }
+    },
+    {
+      "id": "s8-rt60-0_5",
+      "file": "fixtures/generated/s8-rt60-0_5.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "rt60",
+        "params": {
+          "rt60Sec": 0.5
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.5,
+        "drrDb": 9.999999999172227
+      }
+    },
+    {
+      "id": "s8-rt60-0_7",
+      "file": "fixtures/generated/s8-rt60-0_7.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "rt60",
+        "params": {
+          "rt60Sec": 0.7
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.7,
+        "drrDb": 9.999999995123861
+      }
+    },
+    {
+      "id": "s8-rt60-1",
+      "file": "fixtures/generated/s8-rt60-1.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "rt60",
+        "params": {
+          "rt60Sec": 1
+        }
+      },
+      "truth": {
+        "rt60Sec": 1,
+        "drrDb": 10.000000012013095
+      }
+    },
+    {
+      "id": "s8-rt60-1_5",
+      "file": "fixtures/generated/s8-rt60-1_5.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "rt60",
+        "params": {
+          "rt60Sec": 1.5
+        }
+      },
+      "truth": {
+        "rt60Sec": 1.5,
+        "drrDb": 10.000000004058887
+      }
+    },
+    {
+      "id": "s8-lp3400",
+      "file": "fixtures/generated/s8-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "cutoff",
+        "params": {
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-lp4000",
+      "file": "fixtures/generated/s8-lp4000.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "cutoff",
+        "params": {
+          "cutoffHz": 4000
+        }
+      },
+      "truth": {
+        "cutoffHz": 4000
+      }
+    },
+    {
+      "id": "s8-lp5500",
+      "file": "fixtures/generated/s8-lp5500.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "cutoff",
+        "params": {
+          "cutoffHz": 5500
+        }
+      },
+      "truth": {
+        "cutoffHz": 5500
+      }
+    },
+    {
+      "id": "s8-clip0_0002",
+      "file": "fixtures/generated/s8-clip0_0002.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "clip",
+        "params": {
+          "targetRateAll": 0.0002
+        }
+      },
+      "truth": {
+        "clipRateAll": 0.00023769015212169736,
+        "clipRateActive": 0.00035238369019909677,
+        "gain": 1.496899974964253
+      }
+    },
+    {
+      "id": "s8-clip0_001",
+      "file": "fixtures/generated/s8-clip0_001.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "clip",
+        "params": {
+          "targetRateAll": 0.001
+        }
+      },
+      "truth": {
+        "clipRateAll": 0.0012322357886309046,
+        "clipRateActive": 0.0017814512045142155,
+        "gain": 1.6908478207170081
+      }
+    },
+    {
+      "id": "s8-clip0_005",
+      "file": "fixtures/generated/s8-clip0_005.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "clip",
+        "params": {
+          "targetRateAll": 0.005
+        }
+      },
+      "truth": {
+        "clipRateAll": 0.0055794635708566855,
+        "clipRateActive": 0.007747023215014634,
+        "gain": 2.0993248011692103
+      }
+    },
+    {
+      "id": "s8-clip0_02",
+      "file": "fixtures/generated/s8-clip0_02.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "clip",
+        "params": {
+          "targetRateAll": 0.02
+        }
+      },
+      "truth": {
+        "clipRateAll": 0.02087920336269015,
+        "clipRateActive": 0.026870814013395156,
+        "gain": 3.3854357913059165
+      }
+    },
+    {
+      "id": "s8-drr20",
+      "file": "fixtures/generated/s8-drr20.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "drr",
+        "params": {
+          "targetDrrDb": 20,
+          "rt60Sec": 0.6
+        }
+      },
+      "truth": {
+        "drrDb": 19.999999995611027,
+        "rt60Sec": 0.6
+      }
+    },
+    {
+      "id": "s8-drr15",
+      "file": "fixtures/generated/s8-drr15.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "drr",
+        "params": {
+          "targetDrrDb": 15,
+          "rt60Sec": 0.6
+        }
+      },
+      "truth": {
+        "drrDb": 14.999999993942804,
+        "rt60Sec": 0.6
+      }
+    },
+    {
+      "id": "s8-drr10",
+      "file": "fixtures/generated/s8-drr10.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "drr",
+        "params": {
+          "targetDrrDb": 10,
+          "rt60Sec": 0.6
+        }
+      },
+      "truth": {
+        "drrDb": 9.999999996575498,
+        "rt60Sec": 0.6
+      }
+    },
+    {
+      "id": "s8-drr5",
+      "file": "fixtures/generated/s8-drr5.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "drr",
+        "params": {
+          "targetDrrDb": 5,
+          "rt60Sec": 0.6
+        }
+      },
+      "truth": {
+        "drrDb": 4.999999982030483,
+        "rt60Sec": 0.6
+      }
+    },
+    {
+      "id": "s8-drr0",
+      "file": "fixtures/generated/s8-drr0.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "drr",
+        "params": {
+          "targetDrrDb": 0,
+          "rt60Sec": 0.6
+        }
+      },
+      "truth": {
+        "drrDb": 8.39537030575809e-9,
+        "rt60Sec": 0.6
+      }
+    },
+    {
+      "id": "s8-drrm10",
+      "file": "fixtures/generated/s8-drrm10.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "drr",
+        "params": {
+          "targetDrrDb": -10,
+          "rt60Sec": 0.6
+        }
+      },
+      "truth": {
+        "drrDb": -9.999999972552574,
+        "rt60Sec": 0.6
+      }
+    },
+    {
+      "id": "s8-levelm70",
+      "file": "fixtures/generated/s8-levelm70.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -70
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -70.00000000049084,
+        "requestedDbfs": -70,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s8-levelm60",
+      "file": "fixtures/generated/s8-levelm60.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -60
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -60.00000000437852,
+        "requestedDbfs": -60,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s8-levelm50",
+      "file": "fixtures/generated/s8-levelm50.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -50
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -50.00000000081417,
+        "requestedDbfs": -50,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s8-levelm40",
+      "file": "fixtures/generated/s8-levelm40.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -40
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -39.99999999802839,
+        "requestedDbfs": -40,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s8-levelm30",
+      "file": "fixtures/generated/s8-levelm30.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -30
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -29.999999997261128,
+        "requestedDbfs": -30,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s8-levelm20",
+      "file": "fixtures/generated/s8-levelm20.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -20
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -20.062608213012187,
+        "requestedDbfs": -20,
+        "peakLimited": 1
+      }
+    },
+    {
+      "id": "s8-levelm12",
+      "file": "fixtures/generated/s8-levelm12.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -12
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -20.062608213012187,
+        "requestedDbfs": -12,
+        "peakLimited": 1
+      }
+    },
+    {
+      "id": "s8-levelm8",
+      "file": "fixtures/generated/s8-levelm8.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -8
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -20.062608213012187,
+        "requestedDbfs": -8,
+        "peakLimited": 1
+      }
+    },
+    {
+      "id": "s8-tiltm3",
+      "file": "fixtures/generated/s8-tiltm3.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "tilt",
+        "params": {
+          "tiltDbPerOct": -3,
+          "hingeHz": 1000
+        }
+      },
+      "truth": {
+        "tiltDbPerOct": -3
+      }
+    },
+    {
+      "id": "s8-tiltm6",
+      "file": "fixtures/generated/s8-tiltm6.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "tilt",
+        "params": {
+          "tiltDbPerOct": -6,
+          "hingeHz": 1000
+        }
+      },
+      "truth": {
+        "tiltDbPerOct": -6
+      }
+    },
+    {
+      "id": "s8-tiltm9",
+      "file": "fixtures/generated/s8-tiltm9.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "tilt",
+        "params": {
+          "tiltDbPerOct": -9,
+          "hingeHz": 1000
+        }
+      },
+      "truth": {
+        "tiltDbPerOct": -9
+      }
+    },
+    {
+      "id": "s8-tiltm12",
+      "file": "fixtures/generated/s8-tiltm12.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "tilt",
+        "params": {
+          "tiltDbPerOct": -12,
+          "hingeHz": 1000
+        }
+      },
+      "truth": {
+        "tiltDbPerOct": -12
+      }
+    },
+    {
+      "id": "s8-mix-rt0_3-snr8",
+      "file": "fixtures/generated/s8-mix-rt0_3-snr8.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 8,
+          "rt60Sec": 0.3
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.3,
+        "snrDb": 7.898880314688932,
+        "noiseRms": 0.03990110240688232,
+        "sourceNoiseRms": 0.005680659916981559
+      }
+    },
+    {
+      "id": "s8-mix-rt0_3-snr8-lp3400",
+      "file": "fixtures/generated/s8-mix-rt0_3-snr8-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 8,
+          "rt60Sec": 0.3,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.3,
+        "snrDb": 7.8657573759024295,
+        "noiseRms": 0.039466378258081136,
+        "sourceNoiseRms": 0.006482886524437706,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-mix-rt0_3-snr8-clip0_005",
+      "file": "fixtures/generated/s8-mix-rt0_3-snr8-clip0_005.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 8,
+          "rt60Sec": 0.3,
+          "clipRate": 0.005
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.3,
+        "snrDb": 7.909631886932422,
+        "noiseRms": 0.04243866027595115,
+        "sourceNoiseRms": 0.005709137352988079,
+        "clipRateActive": 0.00588057799979884
+      }
+    },
+    {
+      "id": "s8-mix-rt0_3-snr8-clip0_005-lp3400",
+      "file": "fixtures/generated/s8-mix-rt0_3-snr8-clip0_005-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 8,
+          "rt60Sec": 0.3,
+          "clipRate": 0.005,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.3,
+        "snrDb": 7.910876773598696,
+        "noiseRms": 0.039869921924874145,
+        "sourceNoiseRms": 0.00532622481416691,
+        "clipRateActive": 0.00588983334448832,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-mix-rt0_6-snr8",
+      "file": "fixtures/generated/s8-mix-rt0_6-snr8.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 8,
+          "rt60Sec": 0.6
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.6,
+        "snrDb": 7.8317679380104135,
+        "noiseRms": 0.03526274308290397,
+        "sourceNoiseRms": 0.006493539648129618
+      }
+    },
+    {
+      "id": "s8-mix-rt0_6-snr8-lp3400",
+      "file": "fixtures/generated/s8-mix-rt0_6-snr8-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 8,
+          "rt60Sec": 0.6,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.6,
+        "snrDb": 7.829165061937479,
+        "noiseRms": 0.039257951611855864,
+        "sourceNoiseRms": 0.007285746971519626,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-mix-rt0_6-snr8-clip0_005",
+      "file": "fixtures/generated/s8-mix-rt0_6-snr8-clip0_005.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 8,
+          "rt60Sec": 0.6,
+          "clipRate": 0.005
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.6,
+        "snrDb": 7.843761265644065,
+        "noiseRms": 0.0458937359100252,
+        "sourceNoiseRms": 0.008140326192921037,
+        "clipRateActive": 0.0058312555296388645
+      }
+    },
+    {
+      "id": "s8-mix-rt0_6-snr8-clip0_005-lp3400",
+      "file": "fixtures/generated/s8-mix-rt0_6-snr8-clip0_005-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 8,
+          "rt60Sec": 0.6,
+          "clipRate": 0.005,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.6,
+        "snrDb": 7.824627942075705,
+        "noiseRms": 0.03545947379213734,
+        "sourceNoiseRms": 0.006668876120503101,
+        "clipRateActive": 0.005851598632616127,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-mix-rt1-snr8",
+      "file": "fixtures/generated/s8-mix-rt1-snr8.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 8,
+          "rt60Sec": 1
+        }
+      },
+      "truth": {
+        "rt60Sec": 1,
+        "snrDb": 7.840432522772583,
+        "noiseRms": 0.037959945541875824,
+        "sourceNoiseRms": 0.006805374646341116
+      }
+    },
+    {
+      "id": "s8-mix-rt1-snr8-lp3400",
+      "file": "fixtures/generated/s8-mix-rt1-snr8-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 8,
+          "rt60Sec": 1,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 1,
+        "snrDb": 7.81723542723398,
+        "noiseRms": 0.03867022966440797,
+        "sourceNoiseRms": 0.0074267125051849766,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-mix-rt1-snr8-clip0_005",
+      "file": "fixtures/generated/s8-mix-rt1-snr8-clip0_005.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 8,
+          "rt60Sec": 1,
+          "clipRate": 0.005
+        }
+      },
+      "truth": {
+        "rt60Sec": 1,
+        "snrDb": 7.8047579692403595,
+        "noiseRms": 0.03707380405548564,
+        "sourceNoiseRms": 0.007362973765784917,
+        "clipRateActive": 0.005827117741076185
+      }
+    },
+    {
+      "id": "s8-mix-rt1-snr8-clip0_005-lp3400",
+      "file": "fixtures/generated/s8-mix-rt1-snr8-clip0_005-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 8,
+          "rt60Sec": 1,
+          "clipRate": 0.005,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 1,
+        "snrDb": 7.8015255189366535,
+        "noiseRms": 0.0379370382871601,
+        "sourceNoiseRms": 0.0075975512153953016,
+        "clipRateActive": 0.005990721441538358,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-mix-rt0_3-snr15",
+      "file": "fixtures/generated/s8-mix-rt0_3-snr15.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 15,
+          "rt60Sec": 0.3
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.3,
+        "snrDb": 14.480408335039868,
+        "noiseRms": 0.020399732002995354,
+        "sourceNoiseRms": 0.0071462450036183225
+      }
+    },
+    {
+      "id": "s8-mix-rt0_3-snr15-lp3400",
+      "file": "fixtures/generated/s8-mix-rt0_3-snr15-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 15,
+          "rt60Sec": 0.3,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.3,
+        "snrDb": 14.451503640905301,
+        "noiseRms": 0.0180430263161849,
+        "sourceNoiseRms": 0.006504383420382023,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-mix-rt0_3-snr15-clip0_005",
+      "file": "fixtures/generated/s8-mix-rt0_3-snr15-clip0_005.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 15,
+          "rt60Sec": 0.3,
+          "clipRate": 0.005
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.3,
+        "snrDb": 14.559752134914598,
+        "noiseRms": 0.02030927992444461,
+        "sourceNoiseRms": 0.006520497307968754,
+        "clipRateActive": 0.006061830672863205
+      }
+    },
+    {
+      "id": "s8-mix-rt0_3-snr15-clip0_005-lp3400",
+      "file": "fixtures/generated/s8-mix-rt0_3-snr15-clip0_005-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 15,
+          "rt60Sec": 0.3,
+          "clipRate": 0.005,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.3,
+        "snrDb": 14.40619510751333,
+        "noiseRms": 0.01810305141319271,
+        "sourceNoiseRms": 0.006807101359510418,
+        "clipRateActive": 0.006244529958462415,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-mix-rt0_6-snr15",
+      "file": "fixtures/generated/s8-mix-rt0_6-snr15.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 15,
+          "rt60Sec": 0.6
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.6,
+        "snrDb": 14.402582258763,
+        "noiseRms": 0.01650865199697731,
+        "sourceNoiseRms": 0.006227665526458688
+      }
+    },
+    {
+      "id": "s8-mix-rt0_6-snr15-lp3400",
+      "file": "fixtures/generated/s8-mix-rt0_6-snr15-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 15,
+          "rt60Sec": 0.6,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.6,
+        "snrDb": 14.407787700791811,
+        "noiseRms": 0.018522349423231933,
+        "sourceNoiseRms": 0.006954812018790784,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-mix-rt0_6-snr15-clip0_005",
+      "file": "fixtures/generated/s8-mix-rt0_6-snr15-clip0_005.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 15,
+          "rt60Sec": 0.6,
+          "clipRate": 0.005
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.6,
+        "snrDb": 14.337653658681493,
+        "noiseRms": 0.016736485740278466,
+        "sourceNoiseRms": 0.006671590640662623,
+        "clipRateActive": 0.006130728983073106
+      }
+    },
+    {
+      "id": "s8-mix-rt0_6-snr15-clip0_005-lp3400",
+      "file": "fixtures/generated/s8-mix-rt0_6-snr15-clip0_005-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 15,
+          "rt60Sec": 0.6,
+          "clipRate": 0.005,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.6,
+        "snrDb": 14.314076102955035,
+        "noiseRms": 0.017806638096890905,
+        "sourceNoiseRms": 0.007232778086838442,
+        "clipRateActive": 0.0059965283257061705,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-mix-rt1-snr15",
+      "file": "fixtures/generated/s8-mix-rt1-snr15.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 15,
+          "rt60Sec": 1
+        }
+      },
+      "truth": {
+        "rt60Sec": 1,
+        "snrDb": 14.227952044877206,
+        "noiseRms": 0.017481047419475426,
+        "sourceNoiseRms": 0.007568901988411159
+      }
+    },
+    {
+      "id": "s8-mix-rt1-snr15-lp3400",
+      "file": "fixtures/generated/s8-mix-rt1-snr15-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 15,
+          "rt60Sec": 1,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 1,
+        "snrDb": 14.251303449295172,
+        "noiseRms": 0.016708884763005926,
+        "sourceNoiseRms": 0.007115169496501544,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-mix-rt1-snr15-clip0_005",
+      "file": "fixtures/generated/s8-mix-rt1-snr15-clip0_005.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 15,
+          "rt60Sec": 1,
+          "clipRate": 0.005
+        }
+      },
+      "truth": {
+        "rt60Sec": 1,
+        "snrDb": 14.23387734169002,
+        "noiseRms": 0.015599769012971052,
+        "sourceNoiseRms": 0.006726186237135418,
+        "clipRateActive": 0.006037253770707986
+      }
+    },
+    {
+      "id": "s8-mix-rt1-snr15-clip0_005-lp3400",
+      "file": "fixtures/generated/s8-mix-rt1-snr15-clip0_005-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 15,
+          "rt60Sec": 1,
+          "clipRate": 0.005,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 1,
+        "snrDb": 14.205939301765863,
+        "noiseRms": 0.016917426901323175,
+        "sourceNoiseRms": 0.0074375712176431245,
+        "clipRateActive": 0.0061985064684640465,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-mix-rt0_3-snr25",
+      "file": "fixtures/generated/s8-mix-rt0_3-snr25.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 25,
+          "rt60Sec": 0.3
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.3,
+        "snrDb": 21.977789860291036,
+        "noiseRms": 0.005321891953256688,
+        "sourceNoiseRms": 0.005319645108060312
+      }
+    },
+    {
+      "id": "s8-mix-rt0_3-snr25-lp3400",
+      "file": "fixtures/generated/s8-mix-rt0_3-snr25-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 25,
+          "rt60Sec": 0.3,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.3,
+        "snrDb": 21.613846481973408,
+        "noiseRms": 0.005722154969281463,
+        "sourceNoiseRms": 0.006196621483588154,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-mix-rt0_3-snr25-clip0_005",
+      "file": "fixtures/generated/s8-mix-rt0_3-snr25-clip0_005.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 25,
+          "rt60Sec": 0.3,
+          "clipRate": 0.005
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.3,
+        "snrDb": 21.721360294051856,
+        "noiseRms": 0.005747993981727899,
+        "sourceNoiseRms": 0.006082936712321698,
+        "clipRateActive": 0.006830958798613785
+      }
+    },
+    {
+      "id": "s8-mix-rt0_3-snr25-clip0_005-lp3400",
+      "file": "fixtures/generated/s8-mix-rt0_3-snr25-clip0_005-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 25,
+          "rt60Sec": 0.3,
+          "clipRate": 0.005,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.3,
+        "snrDb": 21.79125139018218,
+        "noiseRms": 0.005679964284216775,
+        "sourceNoiseRms": 0.005920030992128359,
+        "clipRateActive": 0.0066178477212771765,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-mix-rt0_6-snr25",
+      "file": "fixtures/generated/s8-mix-rt0_6-snr25.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 25,
+          "rt60Sec": 0.6
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.6,
+        "snrDb": 21.257225114900965,
+        "noiseRms": 0.0054356606607222635,
+        "sourceNoiseRms": 0.006332651253892228
+      }
+    },
+    {
+      "id": "s8-mix-rt0_6-snr25-lp3400",
+      "file": "fixtures/generated/s8-mix-rt0_6-snr25-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 25,
+          "rt60Sec": 0.6,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.6,
+        "snrDb": 21.05570693191426,
+        "noiseRms": 0.005739057629646158,
+        "sourceNoiseRms": 0.006954348673996751,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-mix-rt0_6-snr25-clip0_005",
+      "file": "fixtures/generated/s8-mix-rt0_6-snr25-clip0_005.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 25,
+          "rt60Sec": 0.6,
+          "clipRate": 0.005
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.6,
+        "snrDb": 20.74755077822325,
+        "noiseRms": 0.005333569463122044,
+        "sourceNoiseRms": 0.00684766566089515,
+        "clipRateActive": 0.006535800916359716
+      }
+    },
+    {
+      "id": "s8-mix-rt0_6-snr25-clip0_005-lp3400",
+      "file": "fixtures/generated/s8-mix-rt0_6-snr25-clip0_005-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 25,
+          "rt60Sec": 0.6,
+          "clipRate": 0.005,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.6,
+        "snrDb": 21.373088886549247,
+        "noiseRms": 0.005991355185134157,
+        "sourceNoiseRms": 0.006819790222274894,
+        "clipRateActive": 0.006605351170568562,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-mix-rt1-snr25",
+      "file": "fixtures/generated/s8-mix-rt1-snr25.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 25,
+          "rt60Sec": 1
+        }
+      },
+      "truth": {
+        "rt60Sec": 1,
+        "snrDb": 20.428600068116722,
+        "noiseRms": 0.006218090158980363,
+        "sourceNoiseRms": 0.008453755591619264
+      }
+    },
+    {
+      "id": "s8-mix-rt1-snr25-lp3400",
+      "file": "fixtures/generated/s8-mix-rt1-snr25-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 25,
+          "rt60Sec": 1,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 1,
+        "snrDb": 19.595978511018455,
+        "noiseRms": 0.00554033945464764,
+        "sourceNoiseRms": 0.008660953416596758,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s8-mix-rt1-snr25-clip0_005",
+      "file": "fixtures/generated/s8-mix-rt1-snr25-clip0_005.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 25,
+          "rt60Sec": 1,
+          "clipRate": 0.005
+        }
+      },
+      "truth": {
+        "rt60Sec": 1,
+        "snrDb": 19.419120179240114,
+        "noiseRms": 0.005311117868357907,
+        "sourceNoiseRms": 0.008539640529920104,
+        "clipRateActive": 0.006371363616617675
+      }
+    },
+    {
+      "id": "s8-mix-rt1-snr25-clip0_005-lp3400",
+      "file": "fixtures/generated/s8-mix-rt1-snr25-clip0_005-lp3400.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 159872,
+      "condition": {
+        "type": "mixed",
+        "params": {
+          "snrDb": 25,
+          "rt60Sec": 1,
+          "clipRate": 0.005,
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "rt60Sec": 1,
+        "snrDb": 20.240579469074213,
+        "noiseRms": 0.0052780212440630275,
+        "sourceNoiseRms": 0.0074140640436473546,
+        "clipRateActive": 0.006219117396490032,
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s9-clean",
+      "file": "fixtures/generated/s9-clean.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "clean",
+        "params": {}
+      },
+      "truth": {
+        "activeSpeechRms": 0.09878719916963807
+      }
+    },
+    {
+      "id": "s9-snr0-pink",
+      "file": "fixtures/generated/s9-snr0-pink.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 0,
+          "color": "pink"
+        }
+      },
+      "truth": {
+        "snrDb": -0.01885622426283486,
+        "requestedSnrDb": 0,
+        "activeSpeechRms": 0.09878719916963807,
+        "noiseRms": 0.09878719916963807,
+        "sourceNoiseRms": 0.004602783474707535
+      }
+    },
+    {
+      "id": "s9-snr0-white",
+      "file": "fixtures/generated/s9-snr0-white.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 0,
+          "color": "white"
+        }
+      },
+      "truth": {
+        "snrDb": -0.01885622426283486,
+        "requestedSnrDb": 0,
+        "activeSpeechRms": 0.09878719916963807,
+        "noiseRms": 0.09878719916963807,
+        "sourceNoiseRms": 0.004602783474707535
+      }
+    },
+    {
+      "id": "s9-snr5-pink",
+      "file": "fixtures/generated/s9-snr5-pink.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 5,
+          "color": "pink"
+        }
+      },
+      "truth": {
+        "snrDb": 4.960849263884366,
+        "requestedSnrDb": 5,
+        "activeSpeechRms": 0.09878719916963807,
+        "noiseRms": 0.05555212449289723,
+        "sourceNoiseRms": 0.004602783474707535
+      }
+    },
+    {
+      "id": "s9-snr5-white",
+      "file": "fixtures/generated/s9-snr5-white.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 5,
+          "color": "white"
+        }
+      },
+      "truth": {
+        "snrDb": 4.960849263884366,
+        "requestedSnrDb": 5,
+        "activeSpeechRms": 0.09878719916963807,
+        "noiseRms": 0.05555212449289723,
+        "sourceNoiseRms": 0.004602783474707535
+      }
+    },
+    {
+      "id": "s9-snr10-pink",
+      "file": "fixtures/generated/s9-snr10-pink.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 10,
+          "color": "pink"
+        }
+      },
+      "truth": {
+        "snrDb": 9.89728947967021,
+        "requestedSnrDb": 10,
+        "activeSpeechRms": 0.09878719916963807,
+        "noiseRms": 0.031239255304475074,
+        "sourceNoiseRms": 0.004602783474707535
+      }
+    },
+    {
+      "id": "s9-snr10-white",
+      "file": "fixtures/generated/s9-snr10-white.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 10,
+          "color": "white"
+        }
+      },
+      "truth": {
+        "snrDb": 9.89728947967021,
+        "requestedSnrDb": 10,
+        "activeSpeechRms": 0.09878719916963807,
+        "noiseRms": 0.031239255304475074,
+        "sourceNoiseRms": 0.004602783474707535
+      }
+    },
+    {
+      "id": "s9-snr15-pink",
+      "file": "fixtures/generated/s9-snr15-pink.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 15,
+          "color": "pink"
+        }
+      },
+      "truth": {
+        "snrDb": 14.702207264554854,
+        "requestedSnrDb": 15,
+        "activeSpeechRms": 0.09878719916963807,
+        "noiseRms": 0.017567124225878153,
+        "sourceNoiseRms": 0.004602783474707535
+      }
+    },
+    {
+      "id": "s9-snr15-white",
+      "file": "fixtures/generated/s9-snr15-white.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 15,
+          "color": "white"
+        }
+      },
+      "truth": {
+        "snrDb": 14.702207264554854,
+        "requestedSnrDb": 15,
+        "activeSpeechRms": 0.09878719916963807,
+        "noiseRms": 0.017567124225878153,
+        "sourceNoiseRms": 0.004602783474707535
+      }
+    },
+    {
+      "id": "s9-snr20-pink",
+      "file": "fixtures/generated/s9-snr20-pink.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 20,
+          "color": "pink"
+        }
+      },
+      "truth": {
+        "snrDb": 19.137334843161312,
+        "requestedSnrDb": 20,
+        "activeSpeechRms": 0.09878719916963807,
+        "noiseRms": 0.009878719916963808,
+        "sourceNoiseRms": 0.004602783474707535
+      }
+    },
+    {
+      "id": "s9-snr20-white",
+      "file": "fixtures/generated/s9-snr20-white.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 20,
+          "color": "white"
+        }
+      },
+      "truth": {
+        "snrDb": 19.137334843161312,
+        "requestedSnrDb": 20,
+        "activeSpeechRms": 0.09878719916963807,
+        "noiseRms": 0.009878719916963808,
+        "sourceNoiseRms": 0.004602783474707535
+      }
+    },
+    {
+      "id": "s9-snr25-pink",
+      "file": "fixtures/generated/s9-snr25-pink.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 25,
+          "color": "pink"
+        }
+      },
+      "truth": {
+        "snrDb": 22.720701439205957,
+        "requestedSnrDb": 25,
+        "activeSpeechRms": 0.09878719916963807,
+        "noiseRms": 0.005555212449289722,
+        "sourceNoiseRms": 0.004602783474707535
+      }
+    },
+    {
+      "id": "s9-snr25-white",
+      "file": "fixtures/generated/s9-snr25-white.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 25,
+          "color": "white"
+        }
+      },
+      "truth": {
+        "snrDb": 22.720701439205957,
+        "requestedSnrDb": 25,
+        "activeSpeechRms": 0.09878719916963807,
+        "noiseRms": 0.005555212449289722,
+        "sourceNoiseRms": 0.004602783474707535
+      }
+    },
+    {
+      "id": "s9-snr30-pink",
+      "file": "fixtures/generated/s9-snr30-pink.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 30,
+          "color": "pink"
+        }
+      },
+      "truth": {
+        "snrDb": 24.97873669476519,
+        "requestedSnrDb": 30,
+        "activeSpeechRms": 0.09878719916963807,
+        "noiseRms": 0.0031239255304475076,
+        "sourceNoiseRms": 0.004602783474707535
+      }
+    },
+    {
+      "id": "s9-snr30-white",
+      "file": "fixtures/generated/s9-snr30-white.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 30,
+          "color": "white"
+        }
+      },
+      "truth": {
+        "snrDb": 24.97873669476519,
+        "requestedSnrDb": 30,
+        "activeSpeechRms": 0.09878719916963807,
+        "noiseRms": 0.0031239255304475076,
+        "sourceNoiseRms": 0.004602783474707535
+      }
+    },
+    {
+      "id": "s9-snr40-pink",
+      "file": "fixtures/generated/s9-snr40-pink.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 40,
+          "color": "pink"
+        }
+      },
+      "truth": {
+        "snrDb": 26.42858224996781,
+        "requestedSnrDb": 40,
+        "activeSpeechRms": 0.09878719916963807,
+        "noiseRms": 0.0009878719916963808,
+        "sourceNoiseRms": 0.004602783474707535
+      }
+    },
+    {
+      "id": "s9-snr40-white",
+      "file": "fixtures/generated/s9-snr40-white.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "snr",
+        "params": {
+          "targetSnrDb": 40,
+          "color": "white"
+        }
+      },
+      "truth": {
+        "snrDb": 26.42858224996781,
+        "requestedSnrDb": 40,
+        "activeSpeechRms": 0.09878719916963807,
+        "noiseRms": 0.0009878719916963808,
+        "sourceNoiseRms": 0.004602783474707535
+      }
+    },
+    {
+      "id": "s9-rt60-0_2",
+      "file": "fixtures/generated/s9-rt60-0_2.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "rt60",
+        "params": {
+          "rt60Sec": 0.2
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.2,
+        "drrDb": 10.000000007456077
+      }
+    },
+    {
+      "id": "s9-rt60-0_35",
+      "file": "fixtures/generated/s9-rt60-0_35.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "rt60",
+        "params": {
+          "rt60Sec": 0.35
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.35,
+        "drrDb": 9.999999989064527
+      }
+    },
+    {
+      "id": "s9-rt60-0_5",
+      "file": "fixtures/generated/s9-rt60-0_5.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "rt60",
+        "params": {
+          "rt60Sec": 0.5
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.5,
+        "drrDb": 10.000000000835136
+      }
+    },
+    {
+      "id": "s9-rt60-0_7",
+      "file": "fixtures/generated/s9-rt60-0_7.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "rt60",
+        "params": {
+          "rt60Sec": 0.7
+        }
+      },
+      "truth": {
+        "rt60Sec": 0.7,
+        "drrDb": 10.000000003075959
+      }
+    },
+    {
+      "id": "s9-rt60-1",
+      "file": "fixtures/generated/s9-rt60-1.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "rt60",
+        "params": {
+          "rt60Sec": 1
+        }
+      },
+      "truth": {
+        "rt60Sec": 1,
+        "drrDb": 9.999999996961003
+      }
+    },
+    {
+      "id": "s9-rt60-1_5",
+      "file": "fixtures/generated/s9-rt60-1_5.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "rt60",
+        "params": {
+          "rt60Sec": 1.5
+        }
+      },
+      "truth": {
+        "rt60Sec": 1.5,
+        "drrDb": 9.999999996583298
+      }
+    },
+    {
+      "id": "s9-lp3400",
+      "file": "fixtures/generated/s9-lp3400.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "cutoff",
+        "params": {
+          "cutoffHz": 3400
+        }
+      },
+      "truth": {
+        "cutoffHz": 3400
+      }
+    },
+    {
+      "id": "s9-lp4000",
+      "file": "fixtures/generated/s9-lp4000.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "cutoff",
+        "params": {
+          "cutoffHz": 4000
+        }
+      },
+      "truth": {
+        "cutoffHz": 4000
+      }
+    },
+    {
+      "id": "s9-lp5500",
+      "file": "fixtures/generated/s9-lp5500.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "cutoff",
+        "params": {
+          "cutoffHz": 5500
+        }
+      },
+      "truth": {
+        "cutoffHz": 5500
+      }
+    },
+    {
+      "id": "s9-lp8000",
+      "file": "fixtures/generated/s9-lp8000.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "cutoff",
+        "params": {
+          "cutoffHz": 8000
+        }
+      },
+      "truth": {
+        "cutoffHz": 8000
+      }
+    },
+    {
+      "id": "s9-lp11000",
+      "file": "fixtures/generated/s9-lp11000.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "cutoff",
+        "params": {
+          "cutoffHz": 11000
+        }
+      },
+      "truth": {
+        "cutoffHz": 11000
+      }
+    },
+    {
+      "id": "s9-lp16000",
+      "file": "fixtures/generated/s9-lp16000.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "cutoff",
+        "params": {
+          "cutoffHz": 16000
+        }
+      },
+      "truth": {
+        "cutoffHz": 16000
+      }
+    },
+    {
+      "id": "s9-clip0_0002",
+      "file": "fixtures/generated/s9-clip0_0002.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "clip",
+        "params": {
+          "targetRateAll": 0.0002
+        }
+      },
+      "truth": {
+        "clipRateAll": 0.0002314351481184948,
+        "clipRateActive": 0.0003428243164361096,
+        "gain": 1.493921588514093
+      }
+    },
+    {
+      "id": "s9-clip0_001",
+      "file": "fixtures/generated/s9-clip0_001.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "clip",
+        "params": {
+          "targetRateAll": 0.001
+        }
+      },
+      "truth": {
+        "clipRateAll": 0.0012510008006405124,
+        "clipRateActive": 0.001804098912729722,
+        "gain": 1.699024306560517
+      }
+    },
+    {
+      "id": "s9-clip0_005",
+      "file": "fixtures/generated/s9-clip0_005.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "clip",
+        "params": {
+          "targetRateAll": 0.005
+        }
+      },
+      "truth": {
+        "clipRateAll": 0.005619078596210301,
+        "clipRateActive": 0.0077855970787399755,
+        "gain": 2.1078051105041267
+      }
+    },
+    {
+      "id": "s9-clip0_02",
+      "file": "fixtures/generated/s9-clip0_02.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "clip",
+        "params": {
+          "targetRateAll": 0.02
+        }
+      },
+      "truth": {
+        "clipRateAll": 0.02092298839071257,
+        "clipRateActive": 0.026890292430255397,
+        "gain": 3.3932127113689767
+      }
+    },
+    {
+      "id": "s9-drr20",
+      "file": "fixtures/generated/s9-drr20.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "drr",
+        "params": {
+          "targetDrrDb": 20,
+          "rt60Sec": 0.6
+        }
+      },
+      "truth": {
+        "drrDb": 20.00000000822213,
+        "rt60Sec": 0.6
+      }
+    },
+    {
+      "id": "s9-drr15",
+      "file": "fixtures/generated/s9-drr15.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "drr",
+        "params": {
+          "targetDrrDb": 15,
+          "rt60Sec": 0.6
+        }
+      },
+      "truth": {
+        "drrDb": 14.999999996095031,
+        "rt60Sec": 0.6
+      }
+    },
+    {
+      "id": "s9-drr10",
+      "file": "fixtures/generated/s9-drr10.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "drr",
+        "params": {
+          "targetDrrDb": 10,
+          "rt60Sec": 0.6
+        }
+      },
+      "truth": {
+        "drrDb": 10.000000009284678,
+        "rt60Sec": 0.6
+      }
+    },
+    {
+      "id": "s9-drr5",
+      "file": "fixtures/generated/s9-drr5.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "drr",
+        "params": {
+          "targetDrrDb": 5,
+          "rt60Sec": 0.6
+        }
+      },
+      "truth": {
+        "drrDb": 4.999999997043223,
+        "rt60Sec": 0.6
+      }
+    },
+    {
+      "id": "s9-drr0",
+      "file": "fixtures/generated/s9-drr0.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "drr",
+        "params": {
+          "targetDrrDb": 0,
+          "rt60Sec": 0.6
+        }
+      },
+      "truth": {
+        "drrDb": 2.424382895851069e-9,
+        "rt60Sec": 0.6
+      }
+    },
+    {
+      "id": "s9-drrm10",
+      "file": "fixtures/generated/s9-drrm10.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "drr",
+        "params": {
+          "targetDrrDb": -10,
+          "rt60Sec": 0.6
+        }
+      },
+      "truth": {
+        "drrDb": -9.99999999446396,
+        "rt60Sec": 0.6
+      }
+    },
+    {
+      "id": "s9-levelm70",
+      "file": "fixtures/generated/s9-levelm70.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -70
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -69.99999999980747,
+        "requestedDbfs": -70,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s9-levelm60",
+      "file": "fixtures/generated/s9-levelm60.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -60
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -59.99999999838466,
+        "requestedDbfs": -60,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s9-levelm50",
+      "file": "fixtures/generated/s9-levelm50.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -50
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -49.99999999872904,
+        "requestedDbfs": -50,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s9-levelm40",
+      "file": "fixtures/generated/s9-levelm40.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -40
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -40.000000002482786,
+        "requestedDbfs": -40,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s9-levelm30",
+      "file": "fixtures/generated/s9-levelm30.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -30
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -29.99999999844579,
+        "requestedDbfs": -30,
+        "peakLimited": 0
+      }
+    },
+    {
+      "id": "s9-levelm20",
+      "file": "fixtures/generated/s9-levelm20.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -20
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -20.105986551600267,
+        "requestedDbfs": -20,
+        "peakLimited": 1
+      }
+    },
+    {
+      "id": "s9-levelm12",
+      "file": "fixtures/generated/s9-levelm12.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -12
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -20.105986551600267,
+        "requestedDbfs": -12,
+        "peakLimited": 1
+      }
+    },
+    {
+      "id": "s9-levelm8",
+      "file": "fixtures/generated/s9-levelm8.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "level",
+        "params": {
+          "targetDbfs": -8
+        }
+      },
+      "truth": {
+        "activeSpeechDbfs": -20.105986551600267,
+        "requestedDbfs": -8,
+        "peakLimited": 1
+      }
+    },
+    {
+      "id": "s9-tiltm3",
+      "file": "fixtures/generated/s9-tiltm3.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "tilt",
+        "params": {
+          "tiltDbPerOct": -3,
+          "hingeHz": 1000
+        }
+      },
+      "truth": {
+        "tiltDbPerOct": -3
+      }
+    },
+    {
+      "id": "s9-tiltm6",
+      "file": "fixtures/generated/s9-tiltm6.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "tilt",
+        "params": {
+          "tiltDbPerOct": -6,
+          "hingeHz": 1000
+        }
+      },
+      "truth": {
+        "tiltDbPerOct": -6
+      }
+    },
+    {
+      "id": "s9-tiltm9",
+      "file": "fixtures/generated/s9-tiltm9.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
+      "condition": {
+        "type": "tilt",
+        "params": {
+          "tiltDbPerOct": -9,
+          "hingeHz": 1000
+        }
+      },
+      "truth": {
+        "tiltDbPerOct": -9
+      }
+    },
+    {
+      "id": "s9-tiltm12",
+      "file": "fixtures/generated/s9-tiltm12.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 479616,
       "condition": {
         "type": "tilt",
         "params": {
