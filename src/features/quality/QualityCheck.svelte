@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import { analyzeAudio, type AudioScores, type AdviceCode } from './AudioAnalyzer.ts';
   import { LABELS } from './scores.ts';
   import { T } from './i18n.ts';
@@ -124,6 +125,16 @@
     state = 'idle'; scores = null; errorType = ''; errorDetail = ''; recordProgress = 0;
     rawCapture = true;
   }
+
+  /**
+   * 結果を表示したままメニューへ戻られると、reset() を通らずに破棄される。
+   * 保存用のWAVは32bit floatなので10秒でも約1.9MB あり、放置すると
+   * タブが生きている限り積み上がる。
+   */
+  onDestroy(() => {
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    if (wavUrl)   URL.revokeObjectURL(wavUrl);
+  });
 </script>
 
 {#if state === 'idle' || state === 'error'}

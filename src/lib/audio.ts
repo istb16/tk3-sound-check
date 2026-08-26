@@ -146,14 +146,21 @@ interface RawCapture {
   finish: () => Promise<Float32Array<ArrayBuffer>>;
 }
 
+interface PcmWorklet {
+  /** 溜まっている端数を吐き出させる */
+  flush: () => Promise<void>;
+  detach: () => void;
+}
+
 /**
- * AudioWorklet で生PCMを溜める。ワークレットが使えない環境では null を返し、
- * 呼び出し側はコーデック経由にフォールバックする。
+ * ワークレットをつないで、PCMチャンクが届くたびに onChunk を呼ぶ。
+ * ワークレットが使えない環境では null を返す。
  */
-async function setupRawCapture(
+async function attachPcmWorklet(
   ctx: AudioContext,
   stream: MediaStream,
-): Promise<RawCapture | null> {
+  onChunk: (samples: Float32Array) => void,
+): Promise<PcmWorklet | null> {
   if (!ctx.audioWorklet) return null;
 
   const url = URL.createObjectURL(new Blob([PCM_WORKLET_SRC], { type: 'application/javascript' }));
@@ -176,31 +183,113 @@ async function setupRawCapture(
   node.connect(mute);
   mute.connect(ctx.destination);
 
-  const parts: Float32Array[] = [];
   let onFlushed: (() => void) | null = null;
 
   node.port.onmessage = (e) => {
     if (e.data === 'flushed') { onFlushed?.(); return; }
-    parts.push(e.data as Float32Array);
+    onChunk(e.data as Float32Array);
   };
+
+  return {
+    flush: () => new Promise<void>((res) => {
+      onFlushed = res;
+      node.port.postMessage('flush');
+      setTimeout(res, 200); // ワークレットが応答しない場合の保険
+    }),
+    detach: () => {
+      source.disconnect();
+      node.disconnect();
+      mute.disconnect();
+    },
+  };
+}
+
+/**
+ * AudioWorklet で生PCMを溜める。ワークレットが使えない環境では null を返し、
+ * 呼び出し側はコーデック経由にフォールバックする。
+ */
+async function setupRawCapture(
+  ctx: AudioContext,
+  stream: MediaStream,
+): Promise<RawCapture | null> {
+  const parts: Float32Array[] = [];
+  const worklet = await attachPcmWorklet(ctx, stream, (chunk) => { parts.push(chunk); });
+  if (!worklet) return null;
 
   return {
     finish: async () => {
       // 溜まっている端数を吐き出させてから切断する
-      await new Promise<void>((res) => {
-        onFlushed = res;
-        node.port.postMessage('flush');
-        setTimeout(res, 200); // ワークレットが応答しない場合の保険
-      });
-      source.disconnect();
-      node.disconnect();
-      mute.disconnect();
+      await worklet.flush();
+      worklet.detach();
 
       const total = parts.reduce((n, p) => n + p.length, 0);
       const merged = new Float32Array(total);
       let offset = 0;
       for (const p of parts) { merged.set(p, offset); offset += p.length; }
       return merged;
+    },
+  };
+}
+
+// ==========================================================================
+// 連続監視（リアルタイム機能用）
+// ==========================================================================
+
+export interface Monitor {
+  /** マイクを閉じ、AudioContext を破棄する。二度呼んでも安全 */
+  stop: () => void;
+  /** 解析側が周波数を扱うために必要 */
+  sampleRate: number;
+  /**
+   * 実際に開いたマイクの名前。
+   * 測定対象を取り違えたまま自信のある数字を出すのが診断ツールの最悪の壊れ方なので、
+   * 何を測っているかは呼び出し側が表示できるようにしておく。
+   */
+  deviceLabel: string;
+}
+
+/**
+ * マイクを開き、チャンクが届くたびに onChunk を呼び続ける。止めるまで終わらない。
+ *
+ * `recordMicrophone` との違いは、溜めずに流すことと、再生用の MediaRecorder を
+ * 持たないこと。リアルタイムに見るだけの機能は録音を残さない。
+ */
+export async function startMonitor(
+  onChunk: (samples: Float32Array) => void,
+): Promise<Monitor> {
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: RAW_AUDIO_CONSTRAINTS,
+    video: false,
+  });
+
+  const ctx = new AudioContext();
+  let worklet: PcmWorklet | null = null;
+  try {
+    // 自動再生ポリシーで suspended から始まることがある。動かないと process() が来ない
+    if (ctx.state === 'suspended') await ctx.resume();
+    worklet = await attachPcmWorklet(ctx, stream, onChunk);
+  } catch {
+    worklet = null;
+  }
+
+  if (!worklet) {
+    stream.getTracks().forEach((t) => t.stop());
+    ctx.close().catch(() => {});
+    throw new Error('AudioWorklet is not available in this browser');
+  }
+
+  const attached = worklet;
+  let stopped = false;
+
+  return {
+    sampleRate:  ctx.sampleRate,
+    deviceLabel: stream.getAudioTracks()[0]?.label ?? '',
+    stop: () => {
+      if (stopped) return;
+      stopped = true;
+      attached.detach();
+      stream.getTracks().forEach((t) => t.stop());
+      ctx.close().catch(() => {});
     },
   };
 }

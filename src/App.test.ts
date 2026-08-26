@@ -6,6 +6,7 @@ import { page } from 'vitest/browser';
 vi.mock('./lib/audio.ts', () => ({
   decodeFile:       vi.fn(),
   recordMicrophone: vi.fn(),
+  startMonitor:     vi.fn(),
 }));
 vi.mock('./features/quality/AudioAnalyzer.ts', () => ({
   analyzeAudio: vi.fn(),
@@ -13,7 +14,7 @@ vi.mock('./features/quality/AudioAnalyzer.ts', () => ({
 
 import App from './App.svelte';
 import { router, normalizePath } from './shell/router.svelte.ts';
-import { decodeFile } from './lib/audio.ts';
+import { decodeFile, startMonitor } from './lib/audio.ts';
 import { analyzeAudio, type AudioScores } from './features/quality/AudioAnalyzer.ts';
 
 /**
@@ -87,7 +88,7 @@ describe('シェル — メニュー', () => {
     mountApp();
     const names = (): (string | null)[] =>
       [...document.querySelectorAll('.tile-name')].map((el) => el.textContent);
-    await expect.poll(names).toEqual(['音質チェック', 'ハウリングチェック', 'ボリュームチェック']);
+    await expect.poll(names).toEqual(['音質チェック', 'ボリュームチェック', 'ハウリングチェック']);
   });
 
   it('未実装の機能だけに準備中バッジが付く', async () => {
@@ -95,7 +96,7 @@ describe('シェル — メニュー', () => {
     const badged = [...document.querySelectorAll('.tile')]
       .filter((tile) => tile.querySelector('.tile-badge'))
       .map((tile) => tile.querySelector('.tile-name')?.textContent);
-    expect(badged).toEqual(['ハウリングチェック', 'ボリュームチェック']);
+    expect(badged).toEqual(['ハウリングチェック']);
   });
 
   it('知らないパスはメニューに落とす', async () => {
@@ -150,10 +151,20 @@ describe('シェル — 準備中の機能', () => {
   });
 
   it('準備中の画面からメニューへ戻れる', async () => {
-    router.path = '/volume';
+    router.path = '/howling';
     mountApp();
     await page.getByRole('button', { name: 'メニューに戻る' }).click();
     await expect.element(page.getByRole('heading', { name: 'サウンドチェック' })).toBeVisible();
+  });
+});
+
+describe('シェル — 実装済みの機能', () => {
+  it('/volume は準備中ではなくボリュームチェック本体を出す', async () => {
+    router.path = '/volume';
+    mountApp();
+
+    await expect.element(page.getByRole('button', { name: '測定を開始' })).toBeVisible();
+    expect(document.body.textContent).not.toContain('準備中');
   });
 });
 
@@ -190,6 +201,21 @@ describe('シェル — 言語切替', () => {
 
     await page.getByRole('button', { name: 'EN' }).click();
     await expect.poll(names).toEqual(['Noise', 'Reverberation', 'Frequency Balance', 'Volume', 'Clipping']);
+  });
+
+  it('言語は機能の中身にも伝わる（ボリュームチェックのエラー）', async () => {
+    // 文面を確定させて持つと、言語を切り替えたときにエラー行だけ元の言語で残る
+    const denied = new Error('denied');
+    denied.name = 'NotAllowedError';
+    vi.mocked(startMonitor).mockRejectedValue(denied);
+
+    router.path = '/volume';
+    mountApp();
+    await page.getByRole('button', { name: '測定を開始' }).click();
+    await expect.element(page.getByText(/マイクへのアクセスが拒否されました/)).toBeVisible();
+
+    await page.getByRole('button', { name: 'EN' }).click();
+    await expect.element(page.getByText(/Microphone access denied/)).toBeVisible();
   });
 
   it('言語は機能の中身にも伝わる（エラーメッセージ）', async () => {

@@ -35,6 +35,7 @@ export interface Feature {
   component: Component<{ lang: Lang }>;
 }
 
+/** 並び順がそのままメニューの並び順になる。動くものを先に置く */
 export const FEATURES: Feature[] = [
   {
     id: 'quality',
@@ -44,18 +45,18 @@ export const FEATURES: Feature[] = [
     component: QualityCheck,
   },
   {
+    id: 'volume',
+    path: '/volume',
+    status: 'ready',
+    text: volumeText,
+    component: VolumeCheck,
+  },
+  {
     id: 'howling',
     path: '/howling',
     status: 'coming-soon',
     text: howlingText,
     component: HowlingCheck,
-  },
-  {
-    id: 'volume',
-    path: '/volume',
-    status: 'coming-soon',
-    text: volumeText,
-    component: VolumeCheck,
   },
 ];
 
