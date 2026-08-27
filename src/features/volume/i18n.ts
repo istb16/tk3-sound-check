@@ -17,14 +17,18 @@ export type VolumeText = {
   referenceDropped: string;
   setReferenceBtn: string;
   clearReferenceBtn: string;
+  /** 窓が埋まって、まだ基準が無いときの見出し */
+  setReferenceTitle: string;
   /** 基準を取る前の案内 */
   noReference: string;
-  referenceLabel: string;
-  currentLabel: string;
   peakLabel: string;
   leqNote: string;
-  /** Leq の窓が埋まるまでの案内。埋まるまで基準は取れない */
-  warmingUp: (sec: number) => string;
+  /**
+   * Leq の窓が埋まるまでの見出しと残り秒数。埋まるまで基準は取れず、dB も出さない。
+   * 見出しと秒数を分けているのは、秒数だけを大きく出すため
+   */
+  warmingUpTitle: string;
+  warmingUpRemaining: (sec: number) => string;
   clipLabel: string;
   /**
    * 音割れの量。「回数」ではなく時間で持つ——クリップした波形は半周期ごとに
@@ -49,8 +53,7 @@ export const T: Record<Lang, VolumeText> = {
     note:
       '会場でPAから流れている音をマイクで拾い続け、「基準にする」を押した時点からの' +
       '変化量を dB で表示します。フェーダーをどれだけ動かしたかが数値で見えます。\n' +
-      'ブラウザはマイクの感度を知らないため、実際の音圧（dBA）は原理的に出せません。' +
-      'このツールが答えられるのは「さっきと比べてどう変わったか」だけです。',
+      'マイクの感度が判別できないため、実際の音圧（dBA）は原理的に出せません。',
     startBtn:          '測定を開始',
     stopBtn:           '停止',
     resumeBtn:         '測定を再開',
@@ -64,12 +67,12 @@ export const T: Record<Lang, VolumeText> = {
       '再開したときに別のマイクが開いたため、基準を破棄しました。取り直してください。',
     setReferenceBtn:   '基準にする',
     clearReferenceBtn: '基準を消す',
+    setReferenceTitle: '基準を取ってください',
     noReference:       '「基準にする」を押すと、そこからの変化量を表示します。',
-    referenceLabel:    '基準',
-    currentLabel:      '現在',
     peakLabel:         'ピーク',
     leqNote:           '直近10秒の平均（A特性）',
-    warmingUp:         (sec) => `測定を安定させています（あと ${sec} 秒）`,
+    warmingUpTitle:      '測定を安定させています',
+    warmingUpRemaining:  (sec) => `あと ${sec} 秒`,
     clipLabel:         '音割れ',
     clipDuration:      (sec) => `直近10秒のうち ${sec.toFixed(1)} 秒`,
     clipNone:          'なし',
@@ -88,8 +91,8 @@ export const T: Record<Lang, VolumeText> = {
     note:
       'It listens to what the PA is playing and shows how far the level has moved, in dB, ' +
       'from the moment you press "Set reference". You can see exactly how much a fader move changed.\n' +
-      'The browser does not know the microphone sensitivity, so absolute sound pressure (dBA) ' +
-      'is impossible in principle. All this tool can answer is "how does it compare to before".',
+      'The microphone sensitivity cannot be determined, so absolute sound pressure (dBA) ' +
+      'is impossible in principle.',
     startBtn:          'Start measuring',
     stopBtn:           'Stop',
     resumeBtn:         'Resume measuring',
@@ -103,12 +106,12 @@ export const T: Record<Lang, VolumeText> = {
       'A different microphone opened on resume, so the reference was dropped. Set it again.',
     setReferenceBtn:   'Set reference',
     clearReferenceBtn: 'Clear reference',
+    setReferenceTitle: 'Set a reference',
     noReference:       'Press "Set reference" to start showing the change from that point.',
-    referenceLabel:    'Reference',
-    currentLabel:      'Now',
     peakLabel:         'Peak',
     leqNote:           '10-second average (A-weighted)',
-    warmingUp:         (sec) => `Settling the measurement (${sec} s to go)`,
+    warmingUpTitle:      'Settling the measurement',
+    warmingUpRemaining:  (sec) => `${sec} s to go`,
     clipLabel:         'Clipping',
     clipDuration:      (sec) => `${sec.toFixed(1)} s of the last 10 s`,
     clipNone:          'none',

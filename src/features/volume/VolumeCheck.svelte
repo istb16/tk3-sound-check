@@ -71,7 +71,18 @@
   const state = $derived(session.state);
   const deviceLabel = $derived(session.deviceLabel);
 
-  const diffDb = $derived(reference === null ? null : leqDb - reference);
+  /**
+   * 画面に dB を出してよいか。**規則はこれ一本にする。**
+   *
+   * 校正されていない絶対 dBFS は単独では何も指していない。意味を持つのは差だけで、
+   * 差が正しいのは 10秒窓が埋まっているときだけである。中断からの再開では基準を
+   * 持ち越すが解析器は作り直すので、**基準があっても窓は空**——そのまま差を出すと
+   * フェーダーを触っていないのに `+7.3 dB` が出て、10秒かけて真値に寄っていく。
+   * 基準前の `-32.8`（意味が無いだけ）より質が悪い、意味のある形をした嘘になる。
+   */
+  const showDb = $derived(leqReady && reference !== null);
+
+  const diffDb = $derived(showDb && reference !== null ? leqDb - reference : null);
 
   // 文面ではなく種別で持つ。言語を切り替えたときにエラー行だけ元の言語で残らないように
   const errorMsg = $derived(
@@ -141,22 +152,24 @@
         <p class="error" role="alert">{t.referenceDropped}</p>
       {/if}
 
-      {#if diffDb === null}
-        <p class="big big-current">{fmt(leqDb)}<span class="unit">dB</span></p>
+      <!-- 主役の位置は常に埋める。①待ち→②基準待ち→③差 と移るとき、途中で
+           空くと「終わってしまった」と読まれる -->
+      {#if !leqReady}
+        <p class="state-title">{t.warmingUpTitle}</p>
+        <p class="big big-count">{t.warmingUpRemaining(Math.ceil(warmupSec))}</p>
+        {#if reference !== null}
+          <!-- 再開直後。差は出せないが、基準が生きていることは伝える -->
+          <p class="hint">{t.stalledKeepsReference}</p>
+        {/if}
+      {:else if diffDb === null}
+        <p class="state-title">{t.setReferenceTitle}</p>
         <p class="hint">{t.noReference}</p>
       {:else}
         <p class="big" class:up={diffDb > 0.05} class:down={diffDb < -0.05}>
           {formatSigned(diffDb)}<span class="unit">dB</span>
         </p>
-        <dl class="values">
-          <div><dt>{t.referenceLabel}</dt><dd>{fmt(reference ?? FLOOR_DB)} dB</dd></div>
-          <div><dt>{t.currentLabel}</dt><dd>{fmt(leqDb)} dB</dd></div>
-        </dl>
+        <p class="leq-note">{t.leqNote}</p>
       {/if}
-
-      <p class="leq-note" class:pending={!leqReady}>
-        {leqReady ? t.leqNote : t.warmingUp(Math.ceil(warmupSec))}
-      </p>
 
       <div class="meter" aria-hidden="true">
         <div class="meter-fill" style="width: {barRatio(instantDb) * 100}%"></div>
@@ -166,7 +179,9 @@
       </div>
       <p class="peak-row">
         <span>{t.peakLabel}</span>
-        <span class="mono">{fmt(peakHoldDb)} dB</span>
+        <!-- 差を出していない間は画面に dB を残さない。主役を隠して脇に dB が
+             1つだけあると、それが「いまのレベル」として読まれる -->
+        <span class="mono">{showDb ? `${fmt(peakHoldDb)} dB` : '--'}</span>
       </p>
 
       <p class="clip-row" class:clipping={clipSeconds > 0}>
@@ -249,7 +264,16 @@
 
   .big.up   { color: #B00020; }
   .big.down { color: #006E80; }
-  .big-current { font-size: 2.6rem; }
+  /* 残り秒数。基準を取る前の主役はこれになる */
+  .big-count { font-size: 2.6rem; }
+
+  .state-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .state-title + .big-count { margin-top: 0.35rem; }
 
   .unit {
     font-size: 0.9rem;
@@ -266,36 +290,11 @@
     color: var(--muted);
   }
 
-  .values {
-    margin-top: 0.9rem;
-    display: flex;
-    justify-content: center;
-    gap: 1.6rem;
-  }
-
-  .values dt {
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    text-transform: uppercase;
-  }
-
-  .values dd {
-    font-size: 0.95rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    color: var(--ink);
-  }
-
   .leq-note {
     margin-top: 0.7rem;
     font-size: 0.68rem;
     color: var(--muted);
   }
-
-  /* 窓が埋まるまでの値は参考値なので、そうと分かる見た目にする */
-  .leq-note.pending { opacity: 0.5; }
 
   .meter {
     position: relative;
