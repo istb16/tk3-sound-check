@@ -9,15 +9,12 @@
  */
 
 import {
-  ACTIVITY_RANGE_DB,
-  FFT_SIZE,
-  activePowerSpectrum,
-  bandPowers,
-  dbfs,
-  frameRmsList,
-  percentile,
-  rms,
-} from '../../lib/signal.ts';
+  clamp, dbfs, frameRmsList, linearFit, linearRegression, movingAverage, percentile,
+  powerDb, rms, stdev,
+} from '../../lib/dsp/stats.ts';
+import {
+  ACTIVITY_RANGE_DB, FFT_SIZE, activePowerSpectrum, bandPowers,
+} from '../../lib/dsp/spectrum.ts';
 
 /** 解析に使うフレーム長[秒] */
 const FRAME_SEC = 0.02;
@@ -48,10 +45,6 @@ const NOISE_FLOOR_FALLBACK_PERCENTILE = 0.20;
  * これを下回ると推定値が不安定になり、実測でSNRを +13dB 過大評価していた。
  */
 const MIN_NOISE_FRAMES = 15;
-
-function clampNum(v: number, lo: number, hi: number): number {
-  return Math.min(hi, Math.max(lo, v));
-}
 
 function frameSizeFor(sampleRate: number): number {
   return Math.max(1, Math.floor(sampleRate * FRAME_SEC));
@@ -148,7 +141,7 @@ export function estimateSnr(
   // ガードを縮めるほうが実測で明確に良い（最大誤差 13.1dB → 4.3dB）。
   let guardFrames = rt60Sec == null
     ? 0
-    : Math.round(clampNum(rt60Sec, 0, 2) / (frameSize / sampleRate));
+    : Math.round(clamp(rt60Sec, 0, 2) / (frameSize / sampleRate));
   let usableForNoise = markUsableForNoise(active, guardFrames);
   while (guardFrames > 0 && countTrue(usableForNoise) < MIN_NOISE_FRAMES) {
     guardFrames = Math.floor(guardFrames / 2);
@@ -270,14 +263,6 @@ function splitActive(frames: number[]): boolean[] {
   return levels.map((v) => v >= fallback);
 }
 
-function stdev(values: number[]): number {
-  if (values.length < 2) return 0;
-  const m = values.reduce((a, b) => a + b, 0) / values.length;
-  let s = 0;
-  for (const v of values) s += (v - m) * (v - m);
-  return Math.sqrt(s / values.length);
-}
-
 /**
  * 有音／無音の分離結果を外に出す（検証基盤が真値の計算に使う）。
  *
@@ -390,7 +375,7 @@ export function estimateSpectralSlope(
     const f = (b + 0.5) * SLOPE_BAND_HZ;
     if (f < SLOPE_FROM_HZ || f > top) continue;
     xs.push(Math.log2(f / SLOPE_FROM_HZ));
-    ys.push(10 * Math.log10(powers[b] + 1e-20));
+    ys.push(powerDb(powers[b]));
   }
   if (xs.length < SLOPE_MIN_BANDS) return null;
 
@@ -399,21 +384,12 @@ export function estimateSpectralSlope(
   // 平坦な床の傾き0を「良好」と読んでしまう。
   let peakLevel = -Infinity;
   for (let b = 0; b < powers.length; b++) {
-    peakLevel = Math.max(peakLevel, 10 * Math.log10(powers[b] + 1e-20));
+    peakLevel = Math.max(peakLevel, powerDb(powers[b]));
   }
   const fitMean = ys.reduce((a, b) => a + b, 0) / ys.length;
   if (fitMean < peakLevel - SLOPE_SIGNAL_SPAN_DB) return null;
 
-  const n = xs.length;
-  const mx = xs.reduce((a, b) => a + b, 0) / n;
-  const my = ys.reduce((a, b) => a + b, 0) / n;
-  let num = 0;
-  let den = 0;
-  for (let i = 0; i < n; i++) {
-    num += (xs[i] - mx) * (ys[i] - my);
-    den += (xs[i] - mx) * (xs[i] - mx);
-  }
-  return den === 0 ? null : num / den;
+  return linearRegression(xs, ys)?.slope ?? null;
 }
 
 // ==========================================================================
@@ -592,41 +568,3 @@ export function estimateReverb(data: Float32Array, sampleRate: number): ReverbEs
   };
 }
 
-/** 移動平均。窓は中央合わせ、端は詰める */
-function movingAverage(values: number[], window: number): number[] {
-  const half = Math.floor(window / 2);
-  const out = new Array<number>(values.length);
-  for (let i = 0; i < values.length; i++) {
-    const from = Math.max(0, i - half);
-    const to   = Math.min(values.length, i + half + 1);
-    let sum = 0;
-    for (let j = from; j < to; j++) sum += values[j];
-    out[i] = sum / (to - from);
-  }
-  return out;
-}
-
-/** levels[from..to) を時間に対して直線近似する。slope は dB/秒 */
-function linearFit(
-  levels: number[],
-  from: number,
-  to: number,
-  hopSec: number,
-): { slope: number; r2: number } {
-  const n = to - from;
-  if (n < 2) return { slope: 0, r2: 0 };
-
-  let sx = 0, sy = 0;
-  for (let k = 0; k < n; k++) { sx += k * hopSec; sy += levels[from + k]; }
-  const mx = sx / n, my = sy / n;
-
-  let sxy = 0, sxx = 0, syy = 0;
-  for (let k = 0; k < n; k++) {
-    const dx = k * hopSec - mx;
-    const dy = levels[from + k] - my;
-    sxy += dx * dy; sxx += dx * dx; syy += dy * dy;
-  }
-  if (sxx === 0 || syy === 0) return { slope: 0, r2: 0 };
-
-  return { slope: sxy / sxx, r2: (sxy * sxy) / (sxx * syy) };
-}

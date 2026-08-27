@@ -81,20 +81,46 @@ export async function decodeFile(file: File): Promise<AudioBuffer> {
   return ctx.decodeAudioData(arrayBuffer);
 }
 
+/** 録音を途中で打ち切ったときの拒否理由。呼び出し側はこれをエラー表示しない */
+export const RECORDING_ABORTED = 'RecordingAborted';
+
+function abortedError(): Error {
+  return Object.assign(new Error('recording aborted'), { name: RECORDING_ABORTED });
+}
+
+/**
+ * 一定時間だけ録音する。
+ *
+ * `signal` を渡すと途中で打ち切れる。**画面を離れられたときに必ず渡すこと**——
+ * 打ち切らないと、録音が終わるまでマイクが開いたまま（ブラウザの録音インジケータが
+ * 点いたまま）になり、さらに解決後の `createObjectURL` が後片付けの後に走って
+ * 解放されないURLが残る。
+ */
 export async function recordMicrophone(
   durationMs: number,
   onTick?: (progress: number) => void,
+  signal?: AbortSignal,
 ): Promise<Recording> {
+  if (signal?.aborted) throw abortedError();
+
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: RAW_AUDIO_CONSTRAINTS,
     video: false,
   });
+
+  // 許可ダイアログが出ている間に離脱された場合。ここで閉じないと開きっぱなしになる
+  if (signal?.aborted) {
+    stream.getTracks().forEach((t) => t.stop());
+    throw abortedError();
+  }
 
   const ctx = new AudioContext();
   const capture = await setupRawCapture(ctx, stream);
 
   const recorder = new MediaRecorder(stream);
   const chunks: Blob[] = [];
+
+  let onAbort: (() => void) | null = null;
 
   try {
     return await new Promise<Recording>((resolve, reject) => {
@@ -129,12 +155,23 @@ export async function recordMicrophone(
         if (elapsed >= durationMs) clearInterval(interval);
       }, 100);
 
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         clearInterval(interval);
         recorder.stop();
       }, durationMs);
+
+      onAbort = () => {
+        clearInterval(interval);
+        clearTimeout(timer);
+        // onstop を無効にしてから止める。中断した録音を解析に回さない
+        recorder.onstop = null;
+        if (recorder.state !== 'inactive') recorder.stop();
+        reject(abortedError());
+      };
+      signal?.addEventListener('abort', onAbort, { once: true });
     });
   } finally {
+    if (onAbort) signal?.removeEventListener('abort', onAbort);
     stream.getTracks().forEach((t) => t.stop());
     ctx.close().catch(() => {});
   }

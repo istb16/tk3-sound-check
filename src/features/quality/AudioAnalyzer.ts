@@ -22,7 +22,7 @@
  * 受け取る薄いラッパ `analyzeAudio` を使う。
  */
 
-import { clamp } from '../../lib/signal.ts';
+import { clamp } from '../../lib/dsp/stats.ts';
 import { detectProvenance, unreliableAxes, type Provenance } from './provenance.ts';
 import {
   estimateSpectralSlope,

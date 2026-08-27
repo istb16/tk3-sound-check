@@ -23,13 +23,19 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/*
+ * 中央寄せは flex ではなく `margin-inline: auto` で行う。
+ *
+ * body を flex にすると、間に挟まる `#app`（ただの div）が flex アイテムになり
+ * **中身に合わせて縮む**。その中の `main { inline-size: 100% }` は縮んだ親に
+ * 対する100%なので効かず、`min-inline-size` の値が実効幅になっていた。
+ * デスクトップでメニューが3列にならず2列＋歯抜けになっていたのはこれが原因。
+ */
 body {
   background: var(--bg);
   color: var(--ink);
   font-family: 'Hiragino Sans', 'Yu Gothic UI', system-ui, sans-serif;
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
+  min-block-size: 100vh;
   padding: 2.5rem 1.5rem 5rem;
 }
 

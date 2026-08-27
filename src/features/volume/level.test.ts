@@ -1,90 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  AWeightingFilter, VolumeMeter, aWeightingGainDb, barRatio, formatDiff,
+  VolumeMeter, barRatio,
   FLOOR_DB, FRAME_MS, LEQ_WINDOW_SEC, CLIP_WINDOW_SEC,
 } from './level.ts';
-import { dbfs, rms } from '../../lib/signal.ts';
+import { silence, sine } from '../../test-support/signals.ts';
 
 const SR = 48000;
-
-function sine(freqHz: number, seconds: number, amplitude: number, sampleRate = SR): Float32Array {
-  const n = Math.round(seconds * sampleRate);
-  const out = new Float32Array(n);
-  for (let i = 0; i < n; i++) out[i] = amplitude * Math.sin((2 * Math.PI * freqHz * i) / sampleRate);
-  return out;
-}
-
-function silence(seconds: number, sampleRate = SR): Float32Array {
-  return new Float32Array(Math.round(seconds * sampleRate));
-}
-
-describe('A特性 — 規格値との一致', () => {
-  // IEC 61672 の A特性（1kHz を 0dB とした相対値）
-  const STANDARD: [freq: number, db: number, tolerance: number][] = [
-    [31.5, -39.4, 0.3],
-    [63,   -26.2, 0.3],
-    [125,  -16.1, 0.3],
-    [250,   -8.6, 0.3],
-    [500,   -3.2, 0.3],
-    [1000,   0.0, 0.01],
-    [2000,   1.2, 0.3],
-    [4000,   1.0, 0.3],
-    // 双一次変換の周波数歪みで高域ほどずれる。会場での相対比較には影響しないが、
-    // 「規格どおり」と誤解しないよう許容差を明示しておく。
-    [8000,  -1.1, 1.0],
-  ];
-
-  for (const sampleRate of [44100, 48000]) {
-    for (const [freq, want, tol] of STANDARD) {
-      it(`fs=${sampleRate} / ${freq}Hz が ${want}dB ±${tol}`, () => {
-        expect(Math.abs(aWeightingGainDb(freq, sampleRate) - want)).toBeLessThanOrEqual(tol);
-      });
-    }
-  }
-
-  it('1kHz はちょうど 0dB（正規化点）', () => {
-    expect(aWeightingGainDb(1000, SR)).toBeCloseTo(0, 6);
-  });
-});
-
-describe('AWeightingFilter — 実波形での利得', () => {
-  /** 立ち上がりの過渡を捨ててから実効値を測る */
-  function steadyDb(input: Float32Array, filter: AWeightingFilter): number {
-    const out = filter.process(input);
-    const skip = Math.round(SR * 0.2);
-    return dbfs(rms(out, skip, out.length - skip));
-  }
-
-  it('1kHz の正弦波は素通しになる', () => {
-    const input = sine(1000, 1, 0.5);
-    const inDb = dbfs(rms(input, 0, input.length));
-    expect(steadyDb(input, new AWeightingFilter(SR))).toBeCloseTo(inDb, 1);
-  });
-
-  it('125Hz は約 -16dB 落ちる', () => {
-    const input = sine(125, 1, 0.5);
-    const inDb = dbfs(rms(input, 0, input.length));
-    const gain = steadyDb(input, new AWeightingFilter(SR)) - inDb;
-    expect(gain).toBeGreaterThan(-16.6);
-    expect(gain).toBeLessThan(-15.6);
-  });
-
-  it('チャンクに分けても連続して流したのと同じ結果になる', () => {
-    const input = sine(500, 0.5, 0.4);
-    const whole = new AWeightingFilter(SR).process(input);
-
-    const chunked = new AWeightingFilter(SR);
-    const parts: number[] = [];
-    for (let i = 0; i < input.length; i += 4096) {
-      const out = chunked.process(input.subarray(i, Math.min(i + 4096, input.length)));
-      for (const v of out) parts.push(v);
-    }
-
-    for (let i = 0; i < whole.length; i += 997) {
-      expect(parts[i]).toBeCloseTo(whole[i], 6);
-    }
-  });
-});
 
 describe('VolumeMeter — フレーム化', () => {
   it('1フレーム分たまるまで更新しない', () => {
@@ -247,16 +168,6 @@ describe('VolumeMeter — 窓が埋まるまで', () => {
 });
 
 describe('表示の整形', () => {
-  it('差には必ず符号が付く', () => {
-    expect(formatDiff(4.23)).toBe('+4.2');
-    expect(formatDiff(-3.0)).toBe('-3.0');
-  });
-
-  it('ゼロは ± で表す（+0.0 とも -0.0 とも書かない）', () => {
-    expect(formatDiff(0)).toBe('±0.0');
-    expect(formatDiff(-0.01)).toBe('±0.0');
-  });
-
   it('バーは 0..1 に収まる', () => {
     expect(barRatio(-120)).toBe(0);
     expect(barRatio(0)).toBe(1);

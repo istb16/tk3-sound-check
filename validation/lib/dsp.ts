@@ -1,9 +1,9 @@
 /**
  * 検証スクリプト側の重い信号処理。
- * src/lib/signal.ts の FFT を再利用し、製品コードには持ち込まない。
+ * src/lib/dsp/fft.ts の FFT を再利用し、製品コードには持ち込まない。
  */
 
-import { fft, ifft } from '../../src/lib/signal.ts';
+import { fft, ifft } from '../../src/lib/dsp/fft.ts';
 
 /**
  * FFT による高速畳み込み（オーバーラップ加算法）。

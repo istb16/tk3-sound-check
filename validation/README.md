@@ -212,7 +212,7 @@ validation/
     paths.ts            パスと引数
 ```
 
-`lib/` は `src/lib/signal.ts` の FFT を再利用する。逆に製品コード側は
+`lib/` は `src/lib/dsp/fft.ts` の FFT を再利用する。逆に製品コード側は
 `validation/` に一切依存しない。
 
 ## デバッグ

@@ -7,6 +7,14 @@ export type VolumeText = {
   note: string;
   startBtn: string;
   stopBtn: string;
+  resumeBtn: string;
+  /** 端末が計測を止めたときの見出しと説明 */
+  stalledTitle: string;
+  stalledBody: string;
+  /** 中断しても基準は残っていることの断り */
+  stalledKeepsReference: string;
+  /** 再開したら別のマイクだった。基準は比較に使えない */
+  referenceDropped: string;
   setReferenceBtn: string;
   clearReferenceBtn: string;
   /** 基準を取る前の案内 */
@@ -45,6 +53,15 @@ export const T: Record<Lang, VolumeText> = {
       'このツールが答えられるのは「さっきと比べてどう変わったか」だけです。',
     startBtn:          '測定を開始',
     stopBtn:           '停止',
+    resumeBtn:         '測定を再開',
+    stalledTitle:      '計測が止まりました',
+    stalledBody:
+      '端末の画面が消えると、ブラウザがマイクの取り込みを止めます。' +
+      '固まった数字を出し続けるより、止まったことをお伝えします。\n' +
+      '再開すると測り直します（平均が安定するまで10秒かかります）。',
+    stalledKeepsReference: '基準は保持しています。',
+    referenceDropped:
+      '再開したときに別のマイクが開いたため、基準を破棄しました。取り直してください。',
     setReferenceBtn:   '基準にする',
     clearReferenceBtn: '基準を消す',
     noReference:       '「基準にする」を押すと、そこからの変化量を表示します。',
@@ -75,6 +92,15 @@ export const T: Record<Lang, VolumeText> = {
       'is impossible in principle. All this tool can answer is "how does it compare to before".',
     startBtn:          'Start measuring',
     stopBtn:           'Stop',
+    resumeBtn:         'Resume measuring',
+    stalledTitle:      'Measurement stopped',
+    stalledBody:
+      'When the screen turns off, the browser stops capturing from the microphone. ' +
+      'Rather than keep showing a frozen number, we tell you it stopped.\n' +
+      'Resuming starts a fresh measurement (the average needs 10 s to settle).',
+    stalledKeepsReference: 'Your reference has been kept.',
+    referenceDropped:
+      'A different microphone opened on resume, so the reference was dropped. Set it again.',
     setReferenceBtn:   'Set reference',
     clearReferenceBtn: 'Clear reference',
     noReference:       'Press "Set reference" to start showing the change from that point.',

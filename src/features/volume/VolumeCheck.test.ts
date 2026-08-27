@@ -3,13 +3,14 @@ import { mount, unmount } from 'svelte';
 import { page } from 'vitest/browser';
 
 // vi.mock はホイストされるため、他のインポートより先に実行される
-vi.mock('../../lib/audio.ts', () => ({
+vi.mock('../../lib/audio/capture.ts', () => ({
   startMonitor: vi.fn(),
 }));
 
 import VolumeCheck from './VolumeCheck.svelte';
-import { startMonitor } from '../../lib/audio.ts';
+import { startMonitor } from '../../lib/audio/capture.ts';
 import { LEQ_WINDOW_SEC } from './level.ts';
+import { sine } from '../../test-support/signals.ts';
 
 /**
  * ボリュームチェックのUI。マイクはモックし、テスト側から任意の波形を流し込む。
@@ -37,13 +38,6 @@ function mockMonitorOk(deviceLabel = 'テスト用マイク'): void {
     feed = onChunk;
     return { stop: stopSpy, sampleRate: SR, deviceLabel };
   });
-}
-
-function sine(seconds: number, amplitude: number): Float32Array {
-  const n = Math.round(seconds * SR);
-  const out = new Float32Array(n);
-  for (let i = 0; i < n; i++) out[i] = amplitude * Math.sin((2 * Math.PI * 1000 * i) / SR);
-  return out;
 }
 
 const bigText = (): string => document.querySelector('.big')?.textContent?.trim() ?? '';
@@ -94,7 +88,7 @@ describe('ボリュームチェック — 測定中', () => {
     mountApp();
     await page.getByRole('button', { name: '測定を開始' }).click();
 
-    feed!(sine(1, 0.5));
+    feed!(sine(1000, 1, 0.5, SR));
     // 振幅0.5の正弦波 → 実効値 -9.03dBFS
     await expect.poll(bigText).toMatch(/-9\.0dB/);
     await expect.element(page.getByText(/「基準にする」を押すと/)).toBeVisible();
@@ -110,11 +104,11 @@ describe('ボリュームチェック — 測定中', () => {
     const btn = page.getByRole('button', { name: '基準にする' });
     await expect.element(btn).toBeDisabled();
 
-    feed!(sine(1, 0.5));
+    feed!(sine(1000, 1, 0.5, SR));
     await expect.element(btn).toBeDisabled();
     await expect.element(page.getByText(/測定を安定させています（あと 9 秒）/)).toBeVisible();
 
-    feed!(sine(LEQ_WINDOW_SEC, 0.5));
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
     await expect.element(btn).toBeEnabled();
     await expect.element(page.getByText('直近10秒の平均（A特性）')).toBeVisible();
   });
@@ -133,7 +127,7 @@ describe('ボリュームチェック — 基準との差', () => {
     mountApp();
     await page.getByRole('button', { name: '測定を開始' }).click();
 
-    feed!(sine(LEQ_WINDOW_SEC, 0.25));
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
     await expect.poll(bigText).toMatch(/-15\.1dB/);
 
     await page.getByRole('button', { name: '基準にする' }).click();
@@ -146,12 +140,12 @@ describe('ボリュームチェック — 基準との差', () => {
     await page.getByRole('button', { name: '測定を開始' }).click();
 
     // 窓を埋めてから基準を取る
-    feed!(sine(LEQ_WINDOW_SEC, 0.25));
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
     await expect.poll(bigText).toMatch(/-15\.1dB/);
     await page.getByRole('button', { name: '基準にする' }).click();
 
     // 窓をすべて置き換える長さを流す
-    feed!(sine(LEQ_WINDOW_SEC, 0.5));
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
     await expect.poll(bigText).toMatch(/\+6\.0dB/);
   });
 
@@ -159,7 +153,7 @@ describe('ボリュームチェック — 基準との差', () => {
     mockMonitorOk();
     mountApp();
     await page.getByRole('button', { name: '測定を開始' }).click();
-    feed!(sine(LEQ_WINDOW_SEC, 0.25));
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
     await expect.poll(bigText).toMatch(/-15\.1dB/);
     await page.getByRole('button', { name: '基準にする' }).click();
 
@@ -172,7 +166,7 @@ describe('ボリュームチェック — 基準との差', () => {
     mockMonitorOk();
     mountApp();
     await page.getByRole('button', { name: '測定を開始' }).click();
-    feed!(sine(LEQ_WINDOW_SEC, 0.25));
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
     await page.getByRole('button', { name: '基準にする' }).click();
     await expect.poll(bigText).toMatch(/±0\.0dB/);
 
@@ -240,7 +234,7 @@ describe('ボリュームチェック — 停止と後片付け', () => {
     mockMonitorOk();
     mountApp();
     await page.getByRole('button', { name: '測定を開始' }).click();
-    feed!(sine(LEQ_WINDOW_SEC, 0.25));
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
     await page.getByRole('button', { name: '基準にする' }).click();
     await expect.poll(bigText).toMatch(/±0\.0dB/);
 
@@ -335,3 +329,103 @@ describe('ボリュームチェック — 言語', () => {
     await expect.element(page.getByText(/not calibrated/)).toBeVisible();
   });
 });
+describe('ボリュームチェック — 計測が止まったとき', () => {
+  /** 基準を取れる状態まで進める */
+  async function measureAndSetReference(): Promise<void> {
+    await page.getByRole('button', { name: '測定を開始' }).click();
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    await page.getByRole('button', { name: '基準にする' }).click();
+  }
+
+  it('チャンクが途切れたら計測を止め、マイクも閉じてそう伝える', async () => {
+    // 固まった「+3.5dB」は正しい測定値と見分けがつかない。そのまま
+    // フェーダーを動かされるのが最悪の結末なので、黙って固まらない
+    mockMonitorOk();
+    mountApp();
+    await page.getByRole('button', { name: '測定を開始' }).click();
+    feed!(sine(1000, 1, 0.5, SR));
+
+    await expect.element(page.getByText('計測が止まりました')).toBeVisible();
+    await expect.element(page.getByRole('button', { name: '測定を再開' })).toBeVisible();
+    expect(stopSpy).toHaveBeenCalled();
+  });
+
+  it('中断しても基準は捨てない', async () => {
+    // 中断中に会場の状態は変わっている。基準を捨てると
+    // 「さっきと比べてどうか」を取り戻す手立てが無くなる
+    mockMonitorOk();
+    mountApp();
+    await measureAndSetReference();
+
+    await expect.element(page.getByText('計測が止まりました')).toBeVisible();
+    await expect.element(page.getByText('基準は保持しています。')).toBeVisible();
+
+    await page.getByRole('button', { name: '測定を再開' }).click();
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    // 基準が残っているので、再開後も差の表示に戻る
+    await expect.element(page.getByText('基準')).toBeVisible();
+    expect(document.body.textContent).not.toContain('「基準にする」を押すと');
+  });
+
+  it('再開したときに別のマイクが開いていたら基準を捨てて理由を出す', async () => {
+    // 感度の違う機材の値を引き算しても、意味の無い数字が出るだけである
+    mockMonitorOk('内蔵マイク');
+    mountApp();
+    await measureAndSetReference();
+    await expect.element(page.getByText('計測が止まりました')).toBeVisible();
+
+    mockMonitorOk('USB Audio CODEC');
+    await page.getByRole('button', { name: '測定を再開' }).click();
+
+    await expect.element(page.getByText(/基準を破棄しました/)).toBeVisible();
+    await expect.element(page.getByText(/「基準にする」を押すと/)).toBeVisible();
+  });
+
+  it('再開に失敗しても基準は捨てない', async () => {
+    // 「基準は保持しています」と出した直後に、黙って捨てるのが最も質の悪い裏切り
+    mockMonitorOk();
+    mountApp();
+    await measureAndSetReference();
+    await expect.element(page.getByText('計測が止まりました')).toBeVisible();
+
+    vi.mocked(startMonitor).mockRejectedValueOnce(new Error('device busy'));
+    await page.getByRole('button', { name: '測定を再開' }).click();
+    await expect.element(page.getByText(/測定を開始できませんでした/)).toBeVisible();
+
+    mockMonitorOk();
+    await page.getByRole('button', { name: 'もう一度試す' }).click();
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    await expect.element(page.getByText('基準')).toBeVisible();
+    expect(document.body.textContent).not.toContain('「基準にする」を押すと');
+  });
+
+  it('基準を取り直したら「破棄しました」の断りは消える', async () => {
+    // 残したままだと、すぐ下に出ている基準値と矛盾する
+    mockMonitorOk('内蔵マイク');
+    mountApp();
+    await measureAndSetReference();
+    await expect.element(page.getByText('計測が止まりました')).toBeVisible();
+
+    mockMonitorOk('USB Audio CODEC');
+    await page.getByRole('button', { name: '測定を再開' }).click();
+    await expect.element(page.getByText(/基準を破棄しました/)).toBeVisible();
+
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    await page.getByRole('button', { name: '基準にする' }).click();
+    await expect.element(page.getByText('基準')).toBeVisible();
+    expect(document.body.textContent).not.toContain('基準を破棄しました');
+  });
+
+  it('中断からそのまま停止すると基準も消える', async () => {
+    mockMonitorOk();
+    mountApp();
+    await measureAndSetReference();
+    await expect.element(page.getByText('計測が止まりました')).toBeVisible();
+
+    await page.getByRole('button', { name: '停止' }).click();
+    await page.getByRole('button', { name: '測定を開始' }).click();
+    feed!(sine(1000, 1, 0.5, SR));
+    await expect.element(page.getByText(/「基準にする」を押すと/)).toBeVisible();
+  });
+});
+

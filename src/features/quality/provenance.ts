@@ -13,14 +13,8 @@
  * したがって帯域上限はスペクトルから実測するしかない。
  */
 
-import {
-  FFT_SIZE,
-  averagePowerSpectrum,
-  bandPowers,
-  dbfs,
-  frameRmsList,
-  percentile,
-} from '../../lib/signal.ts';
+import { dbfs, frameRmsList, percentile, powerDb } from '../../lib/dsp/stats.ts';
+import { FFT_SIZE, averagePowerSpectrum, bandPowers } from '../../lib/dsp/spectrum.ts';
 
 /** 加工の痕跡の種類 */
 export type ProvenanceFlag =
@@ -177,7 +171,7 @@ function measureBandwidth(
 
   // バンドごとのレベル[dB]
   const levels = new Float32Array(powers.length);
-  for (let b = 0; b < powers.length; b++) levels[b] = 10 * Math.log10(powers[b] + 1e-20);
+  for (let b = 0; b < powers.length; b++) levels[b] = powerDb(powers[b]);
 
   const scanFrom = Math.floor(CLIFF_SCAN_FROM_HZ / BAND_WIDTH_HZ);
   const from = Math.max(CLIFF_WINDOW_BANDS, scanFrom);

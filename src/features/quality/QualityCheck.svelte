@@ -4,8 +4,8 @@
   import { LABELS } from './scores.ts';
   import { T } from './i18n.ts';
   // 共有層。マイクの取り込みと WAV 書き出しは機能に依らない
-  import { decodeFile, recordMicrophone } from '../../lib/audio.ts';
-  import { encodeWavFloat32, wavFileName } from '../../lib/wav.ts';
+  import { RECORDING_ABORTED, decodeFile, recordMicrophone } from '../../lib/audio/capture.ts';
+  import { encodeWavFloat32, wavFileName } from '../../lib/audio/wav.ts';
   import type { Lang } from '../../shell/i18n.ts';
 
   import MicGuide from './MicGuide.svelte';
@@ -72,6 +72,15 @@
     ''
   );
 
+  /**
+   * 破棄済みか。解析も録音も await をまたぐので、途中でメニューへ戻られると
+   * 後片付けの**後**に `createObjectURL` が走る。32bit float のWAVは10秒で
+   * 約1.9MBあり、解放されないままタブが生きている限り積み上がる。
+   */
+  let disposed = false;
+  /** 進行中の録音を打ち切るための取っ手 */
+  let recordAbort: AbortController | null = null;
+
   async function handleFile(file: File): Promise<void> {
     if (!file.type.match(/audio/i) && !file.name.match(/\.(wav|mp3|ogg|webm|flac|aac)$/i)) {
       errorType = 'invalid-file'; errorDetail = '';
@@ -81,10 +90,13 @@
     rawCapture = true; // ファイル入力は復号のみ。取り込み経路による劣化はない
     const url = URL.createObjectURL(file);
     try {
-      scores = await analyzeAudio(await decodeFile(file));
+      const result = await analyzeAudio(await decodeFile(file));
+      if (disposed) { URL.revokeObjectURL(url); return; }
+      scores = result;
       audioUrl = url;
       state = 'done';
     } catch (e) {
+      if (disposed) { URL.revokeObjectURL(url); return; }
       URL.revokeObjectURL(url);
       errorType = 'analysis-failed';
       errorDetail = e instanceof Error ? e.message : String(e);
@@ -94,12 +106,20 @@
 
   async function startRecording(): Promise<void> {
     state = 'recording'; errorType = ''; errorDetail = ''; recordProgress = 0;
+    const abort = new AbortController();
+    recordAbort = abort;
     try {
-      const rec = await recordMicrophone(RECORD_DURATION, (p) => { recordProgress = p; });
+      const rec = await recordMicrophone(
+        RECORD_DURATION, (p) => { recordProgress = p; }, abort.signal,
+      );
+      if (disposed) return;
       const { buffer, blob } = rec;
       rawCapture = rec.rawCapture;
       state = 'analyzing';
-      scores = await analyzeAudio(buffer);
+      const result = await analyzeAudio(buffer);
+      // 解析の間に離脱されていたら、ここから先のURLは誰も解放できない
+      if (disposed) return;
+      scores = result;
       audioUrl = URL.createObjectURL(blob);
       // 解析したのは buffer の中身そのもの。再生用の blob（コーデック経由）ではなく
       // こちらを保存する。
@@ -107,9 +127,13 @@
       wavName = wavFileName(new Date());
       state = 'done';
     } catch (e) {
+      // 自分で打ち切ったものをエラーとして見せない
+      if (disposed || (e instanceof Error && e.name === RECORDING_ABORTED)) return;
       errorType = e instanceof Error && e.name === 'NotAllowedError' ? 'mic-denied' : 'recording-failed';
       errorDetail = e instanceof Error ? e.message : String(e);
       state = 'error';
+    } finally {
+      if (recordAbort === abort) recordAbort = null;
     }
   }
 
@@ -132,6 +156,10 @@
    * タブが生きている限り積み上がる。
    */
   onDestroy(() => {
+    disposed = true;
+    // 録音中に離脱されたら即座にマイクを閉じる。10秒待つ間、録音インジケータが
+    // 点いたままになるのは事故
+    recordAbort?.abort();
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     if (wavUrl)   URL.revokeObjectURL(wavUrl);
   });
@@ -159,6 +187,10 @@
     <StatusPanel type="analyzing" />
   </div>
 {:else if state === 'done' && scores}
+  <!-- 2列に切り替える判断は、ビューポートではなく**この領域の幅**で行う。
+       画面が広くても main の幅は 55vw なので、ビューポートで判断すると
+       1列ぶんの幅しか無いのに2列に割ってしまう -->
+  <div class="result-wrap">
   <section class="result-section">
     {#if audioUrl}
       <div class="result-full">
@@ -166,7 +198,7 @@
       </div>
     {/if}
     {#if wavUrl}
-      <p class="save-wav">
+      <p class="save-wav result-full">
         <a href={wavUrl} download={wavName}>{t.saveWav}</a>
         <span class="save-wav-hint">{t.saveWavHint}</span>
       </p>
@@ -182,17 +214,17 @@
         </ul>
       </div>
     {/if}
+    <!-- 2列のときに対になる相手を持たせる。総合点の隣が判定、レーダーの隣が内訳。
+         以前は半分幅の項目の次が必ず全幅の項目だったので、**右カラムが常に空**で
+         2列にする意味が無かった。DOMの順は変えていない——1列のときの読む順
+         （総合点 → 判定 → レーダー → 内訳）は、判定が答えなので動かせない -->
     <VuMeter score={scores.overall} {t} />
-    <div class="result-full">
-      <VerdictPanel {scores} {t} />
-    </div>
+    <div><VerdictPanel {scores} {t} /></div>
     <div class="panel chart-panel">
       <p class="panel-label">SPECTRUM</p>
       <RadarChart scores={scores} labels={LABELS} displayLabels={t.radarLabels} size={255} />
     </div>
-    <div class="result-full">
-      <ScoreBreakdown {scores} {t} {unreliable} />
-    </div>
+    <div><ScoreBreakdown {scores} {t} {unreliable} /></div>
     {#if scores.advice.length > 0}
       <div class="panel result-full">
         <p class="panel-label">{t.adviceLabel}</p>
@@ -205,6 +237,7 @@
     {/if}
     <button class="btn-quiet result-full" onclick={reset}>{t.resetBtn}</button>
   </section>
+  </div>
 {/if}
 
 <style>
@@ -269,9 +302,13 @@
     gap: 1.1rem;
   }
 
-  .result-full { width: 100%; }
+  .result-full { inline-size: 100%; }
 
-  @media (min-width: 768px) {
+  /* この領域の幅で判断する。ビューポートで判断すると、main が 55vw のせいで
+     1列ぶんの幅しか無いのに2列に割れてしまう */
+  .result-wrap { container-type: inline-size; }
+
+  @container (min-width: 640px) {
     .result-section {
       display: grid;
       grid-template-columns: 1fr 1fr;

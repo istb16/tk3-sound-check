@@ -9,7 +9,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { decodeWav } from './lib/wav.ts';
-import { averagePowerSpectrum, bandPowers, FFT_SIZE } from '../src/lib/signal.ts';
+import { averagePowerSpectrum, bandPowers, FFT_SIZE } from '../src/lib/dsp/spectrum.ts';
 import { ROOT } from './lib/paths.ts';
 
 const file = process.argv[2];

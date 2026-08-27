@@ -8,29 +8,47 @@
 export type Lang = 'ja' | 'en';
 
 export type ShellText = {
-  /** アプリ全体の名前。個々の機能名（音質チェック等）とは別物 */
+  /**
+   * アプリ全体の名前。個々の機能名（音質チェック等）とは別物。
+   *
+   * 看板に出る綴りは `WORDMARK`（英字固定）で、こちらは文中とタブのタイトル用。
+   * 言語を切り替えても看板が変わらないようにしている——JA/EN を切り替える
+   * サイトでは、翻訳しなくて済む名前のほうが看板に向く。
+   */
   productName: string;
+  /**
+   * 看板の下に置く一行。
+   *
+   * 仕事は説得より**安心**である。「名前と3つのボタンしか無い画面」は説明を
+   * 省いたのではなく書き忘れたように見えるので、そこを埋める。
+   * 誇張しないこと——「dBAは原理的に出せません」と言い続けてきた製品が、
+   * 看板だけ誇張していると信用が落ちる。
+   */
+  tagline: string;
   menuLead: string;
-  /** 未実装機能の見出しと本文 */
-  comingSoonLabel: string;
-  comingSoonBody: string;
+  /** 機能ページから戻る先の名前。行き先を言うので「SOUND CHECK」ではない */
   backToMenu: string;
 };
+
+/** 看板の綴り。言語で変えない */
+export const WORDMARK = 'SOUND CHECK';
 
 export const SHELL: Record<Lang, ShellText> = {
   ja: {
     productName:     'サウンドチェック',
+    tagline:
+      '耳では分からないことを、その場で数値にする。\n' +
+      '会議の録音環境から、会場のPAまで。',
     menuLead:        '調べたいものを選んでください。',
-    comingSoonLabel: '準備中',
-    comingSoonBody:  'この機能はまだ作っていません。',
-    backToMenu:      'メニューに戻る',
+    backToMenu:      'メニュー',
   },
   en: {
     productName:     'Sound Check',
+    tagline:
+      "Put a number on what your ears can't tell apart.\n" +
+      'From meeting rooms to the PA in the hall.',
     menuLead:        'Pick what you want to measure.',
-    comingSoonLabel: 'Coming soon',
-    comingSoonBody:  'This one is not built yet.',
-    backToMenu:      'Back to menu',
+    backToMenu:      'Menu',
   },
 };
 

@@ -9,7 +9,7 @@
 import { makeNoiseRng } from './rng.ts';
 import { separateActiveFrames } from '../../src/features/quality/estimators.ts';
 import { fftConvolve, lowpass, normalizePeak, rmsAll } from './dsp.ts';
-import { ifft } from '../../src/lib/signal.ts';
+import { ifft } from '../../src/lib/dsp/fft.ts';
 
 const FRAME_SEC = 0.02;
 /** 有音と見なす閾値（フレームレベルのp95から何dB下まで） */

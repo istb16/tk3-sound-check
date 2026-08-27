@@ -7,23 +7,16 @@
    */
   import { onDestroy } from 'svelte';
   import type { Lang } from '../../shell/i18n.ts';
-  import { startMonitor, type Monitor } from '../../lib/audio.ts';
+  import { DEFAULT_STALL_MS, MonitorSession } from '../../lib/audio/session.svelte.ts';
   import { T } from './i18n.ts';
+  import { formatSigned } from '../../lib/format.ts';
   import {
-    VolumeMeter, barRatio, formatDiff, FLOOR_DB, LEQ_WINDOW_SEC,
+    VolumeMeter, barRatio, FLOOR_DB, LEQ_WINDOW_SEC,
     type MeterState,
   } from './level.ts';
 
   let { lang }: { lang: Lang } = $props();
   const t = $derived(T[lang]);
-
-  type State = 'idle' | 'starting' | 'listening' | 'error';
-  type ErrorKind = '' | 'mic-denied' | 'failed';
-
-  let state       = $state<State>('idle');
-  let errorKind   = $state<ErrorKind>('');
-  let errorDetail = $state('');
-  let deviceLabel = $state('');
 
   let instantDb   = $state(FLOOR_DB);
   let leqDb       = $state(FLOOR_DB);
@@ -34,20 +27,56 @@
 
   /** 基準にした時点の Leq。null なら未設定 */
   let reference = $state<number | null>(null);
+  /** 再開時に別のマイクが開いたため基準を捨てたか */
+  let referenceDropped = $state(false);
 
-  let monitor: Monitor | null = null;
   let meter: VolumeMeter | null = null;
-  /** 破棄済みか。await の途中で画面を離れられたときにマイクを閉じるため */
-  let disposed = false;
-  /** 起動ごとに増やす。古い起動から届くチャンクを捨てる */
-  let session = 0;
+
+  // マイクの開閉と失敗の分類は共有の状態機械に任せる。ここが持つのは測定だけ
+  const session = new MonitorSession({
+    // A特性の係数はサンプルレート依存なので、レートが確定してからでないと作れない
+    onStart: ({ sampleRate, deviceLabel, previousDeviceLabel }) => {
+      meter = new VolumeMeter(sampleRate);
+      // 中断からの再開で別のマイクが開いていたら、中断前の基準はもう比較に使えない。
+      // 感度が違う機材の値を引き算しても意味の無い数字が出るだけである
+      if (previousDeviceLabel && previousDeviceLabel !== deviceLabel) {
+        reference = null;
+        referenceDropped = true;
+      }
+    },
+    onChunk: (chunk) => {
+      if (meter?.push(chunk)) applyState(meter.state);
+    },
+    onStop: (reason) => {
+      meter = null;
+      instantDb   = leqDb = peakHoldDb = FLOOR_DB;
+      clipSeconds = 0;
+      leqReady    = false;
+      warmupSec   = LEQ_WINDOW_SEC;
+      // 中断（stalled）でも起動失敗（failed）でも基準を捨てない。同じ端末・
+      // 同じ場所なら、再開しても基準はそのまま比較に使える——そして中断中に
+      // 会場の状態は変わっているので、捨てると「さっきと比べてどうか」を
+      // 取り戻す手立てが無くなる。**「基準は保持しています」と出した直後に
+      // 再開が失敗して黙って捨てる**のが、いちばん質の悪い裏切り方になる
+      if (reason === 'user') { reference = null; referenceDropped = false; }
+    },
+    // 画面が消えて計測が止まったとき、固まった「+3.5dB」は正しい測定値と
+    // 見分けがつかない。そのままフェーダーを動かされるのが最悪の結末なので、
+    // 止まったことを必ず出す
+    stallMs: DEFAULT_STALL_MS,
+    // 数分の計測を端末のオートロックが殺すのを防ぐだけ。取れなくても失敗にしない
+    wakeLock: true,
+  });
+
+  const state = $derived(session.state);
+  const deviceLabel = $derived(session.deviceLabel);
 
   const diffDb = $derived(reference === null ? null : leqDb - reference);
 
   // 文面ではなく種別で持つ。言語を切り替えたときにエラー行だけ元の言語で残らないように
   const errorMsg = $derived(
-    errorKind === 'mic-denied' ? t.errorMicDenied :
-    errorKind === 'failed'     ? t.errorFailed(errorDetail) :
+    session.errorKind === 'mic-denied' ? t.errorMicDenied :
+    session.errorKind === 'failed'     ? t.errorFailed(session.errorDetail) :
     ''
   );
 
@@ -60,64 +89,38 @@
     warmupSec   = s.warmupRemainingSec;
   }
 
-  async function start(): Promise<void> {
-    if (state === 'starting') return; // 二重に押されるとマイクが2本開く
-    errorKind   = '';
-    errorDetail = '';
-    state = 'starting';
-    const token = ++session;
+  const start = (): void => { referenceDropped = false; void session.start(); };
 
-    try {
-      const m = await startMonitor((chunk) => {
-        // メーターが出来るまでの数ms分と、古い起動のぶんは捨てる。
-        // A特性の係数はサンプルレート依存なので、AudioContext のレートが
-        // 確定してからでないとメーターを作れない
-        if (token !== session || !meter) return;
-        if (meter.push(chunk)) applyState(meter.state);
-      });
-
-      // 許可ダイアログが出ている間に画面を離れられた場合。
-      // ここで閉じないとマイクが開きっぱなしになる
-      if (disposed || token !== session) { m.stop(); return; }
-
-      monitor     = m;
-      meter       = new VolumeMeter(m.sampleRate);
-      deviceLabel = m.deviceLabel;
-      state = 'listening';
-    } catch (e) {
-      if (disposed || token !== session) return;
-      stop();
-      if (e instanceof Error && e.name === 'NotAllowedError') {
-        errorKind = 'mic-denied';
-      } else {
-        errorKind   = 'failed';
-        errorDetail = e instanceof Error ? e.message : String(e);
-      }
-      state = 'error';
-    }
+  /** 基準を取り直したら、破棄の断りは役目を終える（残すと数値と矛盾する） */
+  function setReference(): void {
+    reference = leqDb;
+    referenceDropped = false;
   }
-
-  function stop(): void {
-    session++; // 起動途中のものがあれば無効にする
-    monitor?.stop();
-    monitor = null;
-    meter   = null;
-    reference   = null;
-    instantDb   = leqDb = peakHoldDb = FLOOR_DB;
-    clipSeconds = 0;
-    leqReady    = false;
-    warmupSec   = LEQ_WINDOW_SEC;
-    deviceLabel = '';
-    if (state === 'listening' || state === 'starting') state = 'idle';
-  }
+  /** 中断からの再開。基準は持ち越す（別のマイクなら onStart が捨てる） */
+  const resume = (): void => { void session.start(); };
+  const stop  = (): void => session.stop();
 
   // 画面を離れたらマイクを必ず閉じる。録音インジケータが点いたままになるのは事故
-  onDestroy(() => { disposed = true; stop(); });
+  onDestroy(() => session.dispose());
 
   const fmt = (db: number): string => (db <= FLOOR_DB ? '--' : db.toFixed(1));
 </script>
 
-{#if state !== 'listening'}
+{#if state === 'stalled'}
+  <div class="narrow-wrap">
+    <div class="panel" role="alert">
+      <p class="panel-label stalled-label">{t.stalledTitle}</p>
+      <p class="note">{t.stalledBody}</p>
+      {#if reference !== null}
+        <p class="kept">{t.stalledKeepsReference}</p>
+      {/if}
+      <button class="btn-primary" onclick={resume}>{t.resumeBtn}</button>
+    </div>
+    <div class="actions">
+      <button class="btn-quiet" onclick={stop}>{t.stopBtn}</button>
+    </div>
+  </div>
+{:else if state !== 'listening'}
   <div class="narrow-wrap">
     <div class="panel">
       <p class="note">{t.note}</p>
@@ -134,12 +137,16 @@
     <div class="panel readout">
       <p class="panel-label">{t.measuring}</p>
 
+      {#if referenceDropped}
+        <p class="error" role="alert">{t.referenceDropped}</p>
+      {/if}
+
       {#if diffDb === null}
         <p class="big big-current">{fmt(leqDb)}<span class="unit">dB</span></p>
         <p class="hint">{t.noReference}</p>
       {:else}
         <p class="big" class:up={diffDb > 0.05} class:down={diffDb < -0.05}>
-          {formatDiff(diffDb)}<span class="unit">dB</span>
+          {formatSigned(diffDb)}<span class="unit">dB</span>
         </p>
         <dl class="values">
           <div><dt>{t.referenceLabel}</dt><dd>{fmt(reference ?? FLOOR_DB)} dB</dd></div>
@@ -177,7 +184,7 @@
       {#if reference === null}
         <!-- 窓が埋まる前の Leq を基準にすると、現在値だけが収束していって
              フェーダーを触っていないのに差が出る -->
-        <button class="btn-primary" onclick={() => (reference = leqDb)} disabled={!leqReady}>
+        <button class="btn-primary" onclick={setReference} disabled={!leqReady}>
           {t.setReferenceBtn}
         </button>
       {:else}
@@ -218,6 +225,14 @@
 
   .btn-primary:disabled { opacity: 0.4; cursor: default; }
   .btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .stalled-label { color: #B00020; }
+
+  .kept {
+    margin-top: 0.7rem;
+    font-size: 0.78rem;
+    color: var(--body);
+  }
 
   .readout { text-align: center; }
   .readout .panel-label { text-align: left; margin-bottom: 0.8rem; }

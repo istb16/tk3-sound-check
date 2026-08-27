@@ -4,7 +4,8 @@ import { page } from 'vitest/browser';
 import type { AudioScores } from './AudioAnalyzer.ts';
 
 // vi.mock はホイストされるため、他のインポートより先に実行される
-vi.mock('../../lib/audio.ts', () => ({
+vi.mock('../../lib/audio/capture.ts', () => ({
+  RECORDING_ABORTED: 'RecordingAborted',
   decodeFile:       vi.fn(),
   recordMicrophone: vi.fn(),
 }));
@@ -13,7 +14,7 @@ vi.mock('./AudioAnalyzer.ts', () => ({
 }));
 
 import QualityCheck from './QualityCheck.svelte';
-import { decodeFile, recordMicrophone, type Recording } from '../../lib/audio.ts';
+import { decodeFile, recordMicrophone, type Recording } from '../../lib/audio/capture.ts';
 import { analyzeAudio } from './AudioAnalyzer.ts';
 
 // 実データを通したフルフローは e2e.test.ts が担当する。
@@ -365,5 +366,74 @@ describe('音質チェック — 解析結果表示', () => {
     await expect.poll(() => document.querySelector('.vu-meter')?.getAttribute('aria-label'))
       .toBe('総合スコア 40点');
     expect(vi.mocked(analyzeAudio)).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('音質チェック — 結果の並び', () => {
+  afterEach(async () => { await page.viewport(1280, 800); });
+
+  /** 結果画面まで進める */
+  async function showResults(): Promise<void> {
+    mockAnalysisSuccess();
+    mountApp();
+    selectFile(wavFile());
+    await expect.element(page.getByText('BREAKDOWN')).toBeVisible();
+  }
+
+  it('幅があるときは2列になり、右カラムが空にならない', async () => {
+    // 以前は「半分幅の項目の次が必ず全幅の項目」で対になる相手がおらず、
+    // 2列にしても右半分がずっと空だった
+    await page.viewport(1440, 1200);
+    await showResults();
+
+    const section = document.querySelector('.result-section') as HTMLElement;
+    const half = [...section.children].filter(
+      (el) => !el.classList.contains('result-full'),
+    ) as HTMLElement[];
+    expect(half.length, '半分幅の項目が2の倍数でない').toBe(4);
+
+    // 上下の段で、それぞれ2枚が同じ行に並んでいること
+    const rows = new Map<number, number>();
+    for (const el of half) {
+      const top = Math.round(el.getBoundingClientRect().top);
+      rows.set(top, (rows.get(top) ?? 0) + 1);
+    }
+    expect([...rows.values()], '同じ行に2枚ずつ並んでいない').toEqual([2, 2]);
+  });
+
+  it('幅が足りないときは1列に落ちる', async () => {
+    // 2列に割る判断はビューポートではなくこの領域の幅で行う。
+    // ビューポートで判断すると、1列ぶんの幅しか無いのに2列に割れる
+    await page.viewport(560, 1400);
+    await showResults();
+
+    const section = document.querySelector('.result-section') as HTMLElement;
+    const tops = [...section.children].map((el) =>
+      Math.round(el.getBoundingClientRect().top),
+    );
+    expect(new Set(tops).size, '横に並んでいる項目がある').toBe(tops.length);
+  });
+
+  it('1列のときの読む順は 総合点 → 判定 → レーダー → 内訳', async () => {
+    // 判定がこの機能の答えなので、レーダーより先に出す
+    await page.viewport(560, 1400);
+    await showResults();
+
+    const order = ['SIGNAL QUALITY', '判定', 'SPECTRUM', 'BREAKDOWN'];
+    const tops = order.map((label) => {
+      const el = [...document.querySelectorAll('.vu-eyebrow, .panel-label')]
+        .find((n) => n.textContent?.trim() === label) as HTMLElement;
+      expect(el, `${label} が見つからない`).toBeTruthy();
+      return el.getBoundingClientRect().top;
+    });
+    expect(tops).toEqual([...tops].sort((a, b) => a - b));
+  });
+});
+
+describe('配信されるもの', () => {
+  it('favicon が小さい（公開サイトなので全員が落とす）', async () => {
+    const res = await fetch('/favicon.png');
+    const size = (await res.blob()).size;
+    expect(size, `favicon.png が ${(size / 1024).toFixed(0)}KB`).toBeLessThan(100 * 1024);
   });
 });
