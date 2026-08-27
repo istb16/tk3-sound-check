@@ -1,17 +1,13 @@
 import type { Lang } from '../../shell/i18n.ts';
+import { MONITOR, type MonitorText } from '../common-text.ts';
 
-export type HowlingText = {
+/** 共通の9個（停止・再開・止まった・マイク名・失敗）は MonitorText が持つ */
+export type HowlingText = MonitorText & {
   name: string;
   summary: string;
   /** 何をする（しない）機能かの説明。開始前の画面に出す */
   note: string;
   startBtn: string;
-  stopBtn: string;
-  retryBtn: string;
-  resumeBtn: string;
-  /** 端末が計測を止めたときの見出しと説明 */
-  stalledTitle: string;
-  stalledBody: string;
   /** 中断前に捕まえていた周波数の見出しと、経過時間が分からないことの断り */
   frozenLabel: string;
   frozenNote: string;
@@ -35,12 +31,8 @@ export type HowlingText = {
   /** 鳴き終わった直後（まだ経過秒が意味を持たない） */
   agoJustNow: string;
   clipWarn: string;
-  deviceLabel: string;
-  deviceUnknown: string;
   /** 音を出さないことの明示 */
   passiveNote: string;
-  errorMicDenied: string;
-  errorFailed: (msg: string) => string;
 };
 
 const jaAgo = (sec: number): string => {
@@ -59,6 +51,7 @@ const enAgo = (sec: number): string => {
 
 export const T: Record<Lang, HowlingText> = {
   ja: {
+    ...MONITOR.ja,
     name:    'ハウリングチェック',
     summary: '鳴っているハウリングの周波数を特定する。',
     note:
@@ -70,10 +63,7 @@ export const T: Record<Lang, HowlingText> = {
       'このツール自身は音を出しません。鳴きかけの予兆も出しません' +
       '（空調やファンと区別がつかないため）。',
     startBtn: '測定を開始',
-    stopBtn:  '停止',
-    retryBtn: 'もう一度試す',
     resumeBtn: '測定を再開',
-    stalledTitle: '計測が止まりました',
     stalledBody:
       '端末の画面が消えると、ブラウザがマイクの取り込みを止めます。' +
       '聞いていないのに「聞いています」と出し続けるより、止まったことをお伝えします。\n' +
@@ -100,15 +90,13 @@ export const T: Record<Lang, HowlingText> = {
       '入力が割れています。端末を音源から離してください。' +
       'この状態では周波数を取り逃すことがあります。',
 
-    deviceLabel:   '使用中のマイク',
-    deviceUnknown: '（名前を取得できませんでした）',
     passiveNote:   'このツールは音を出しません。聞いているだけです。',
 
-    errorMicDenied: 'マイクへのアクセスが拒否されました。ブラウザの設定を確認してください。',
-    errorFailed:    (msg) => `測定を開始できませんでした: ${msg}`,
+    errorFailed:   (msg) => `測定を開始できませんでした: ${msg}`,
   },
 
   en: {
+    ...MONITOR.en,
     name:    'Howling Check',
     summary: 'Identify the frequency of the feedback that is ringing.',
     note:
@@ -122,10 +110,7 @@ export const T: Record<Lang, HowlingText> = {
       'It never plays sound itself, and it never warns about feedback that has not ' +
       'happened yet (that cannot be told apart from HVAC or a fan).',
     startBtn: 'Start listening',
-    stopBtn:  'Stop',
-    retryBtn: 'Try again',
     resumeBtn: 'Resume listening',
-    stalledTitle: 'Measurement stopped',
     stalledBody:
       'When the screen turns off, the browser stops capturing from the microphone. ' +
       'Rather than keep saying "nothing ringing" while not listening, we tell you it stopped.\n' +
@@ -152,11 +137,8 @@ export const T: Record<Lang, HowlingText> = {
       'The input is clipping. Move the device away from the source — ' +
       'the frequency can be missed while this lasts.',
 
-    deviceLabel:   'Microphone in use',
-    deviceUnknown: '(name unavailable)',
     passiveNote:   'This tool never plays sound. It only listens.',
 
-    errorMicDenied: 'Microphone access denied. Check your browser settings.',
-    errorFailed:    (msg) => `Could not start listening: ${msg}`,
+    errorFailed:   (msg) => `Could not start listening: ${msg}`,
   },
 };

@@ -1,6 +1,7 @@
 /** 音質チェックの文言。他の機能はそれぞれ自分の i18n.ts を持つ。 */
 import type { Lang } from '../../shell/i18n.ts';
 import type { AdviceCode } from './AudioAnalyzer.ts';
+import { MIC_DENIED } from '../common-text.ts';
 
 export type CategoryKey = 'volume' | 'frequency' | 'reverb' | 'clip' | 'noise';
 export type GradeKey = 'good' | 'ok' | 'warn' | 'bad';
@@ -82,7 +83,9 @@ export const T: Record<Lang, QualityText> = {
     micBtn:        (sec) => `マイクで録音（${sec}秒）`,
     errorInvalidFile: 'WAV または MP3 ファイルを選択してください。',
     errorAnalysis:    (msg) => `解析に失敗しました: ${msg}`,
-    errorMicDenied:   'マイクへのアクセスが拒否されました。ブラウザの設定を確認してください。',
+    // 拒否したのはブラウザであって、こちらが何を測ろうとしていたかは関係が無い。
+    // 3機能で同じ文を出す（features/common-text.ts）
+    errorMicDenied:   MIC_DENIED.ja,
     errorRecording:   (msg) => `録音に失敗しました: ${msg}`,
     vuAriaLabel:      (score) => `総合スコア ${score}点`,
     grades: { good: '優秀', ok: '良好', warn: '普通', bad: '要改善' },
@@ -176,7 +179,7 @@ export const T: Record<Lang, QualityText> = {
     micBtn:        (sec) => `Record with mic (${sec}s)`,
     errorInvalidFile: 'Please select a WAV or MP3 file.',
     errorAnalysis:    (msg) => `Analysis failed: ${msg}`,
-    errorMicDenied:   'Microphone access denied. Check your browser settings.',
+    errorMicDenied:   MIC_DENIED.en,
     errorRecording:   (msg) => `Recording failed: ${msg}`,
     vuAriaLabel:      (score) => `Overall score: ${score}`,
     grades: { good: 'Excellent', ok: 'Good', warn: 'Fair', bad: 'Poor' },

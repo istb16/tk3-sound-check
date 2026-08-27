@@ -1,16 +1,13 @@
 import type { Lang } from '../../shell/i18n.ts';
+import { MONITOR, type MonitorText } from '../common-text.ts';
 
-export type VolumeText = {
+/** 共通の9個（停止・再開・止まった・マイク名・失敗）は MonitorText が持つ */
+export type VolumeText = MonitorText & {
   name: string;
   summary: string;
   /** 何をする（しない）機能かの説明。開始前の画面に出す */
   note: string;
   startBtn: string;
-  stopBtn: string;
-  resumeBtn: string;
-  /** 端末が計測を止めたときの見出しと説明 */
-  stalledTitle: string;
-  stalledBody: string;
   /** 中断しても基準は残っていることの断り */
   stalledKeepsReference: string;
   /** 再開したら別のマイクだった。基準は比較に使えない */
@@ -36,18 +33,14 @@ export type VolumeText = {
    */
   clipDuration: (sec: number) => string;
   clipNone: string;
-  deviceLabel: string;
-  deviceUnknown: string;
   measuring: string;
   /** 相対値であることの断り。絶対音圧と誤解されると判断を誤る */
   relativeNote: string;
-  errorMicDenied: string;
-  errorFailed: (msg: string) => string;
-  retryBtn: string;
 };
 
 export const T: Record<Lang, VolumeText> = {
   ja: {
+    ...MONITOR.ja,
     name:    'ボリュームチェック',
     summary: '会場の音量を測り、ミキサーで動かした量を数値で見る。',
     note:
@@ -55,9 +48,7 @@ export const T: Record<Lang, VolumeText> = {
       '変化量を dB で表示します。フェーダーをどれだけ動かしたかが数値で見えます。\n' +
       'マイクの感度が判別できないため、実際の音圧（dBA）は原理的に出せません。',
     startBtn:          '測定を開始',
-    stopBtn:           '停止',
     resumeBtn:         '測定を再開',
-    stalledTitle:      '計測が止まりました',
     stalledBody:
       '端末の画面が消えると、ブラウザがマイクの取り込みを止めます。' +
       '固まった数字を出し続けるより、止まったことをお伝えします。\n' +
@@ -76,16 +67,13 @@ export const T: Record<Lang, VolumeText> = {
     clipLabel:         '音割れ',
     clipDuration:      (sec) => `直近10秒のうち ${sec.toFixed(1)} 秒`,
     clipNone:          'なし',
-    deviceLabel:       '使用中のマイク',
-    deviceUnknown:     '（名前を取得できませんでした）',
     measuring:         '測定中',
     relativeNote:
       '表示は相対値です。マイクが校正されていないため dB(A) ではありません。',
-    errorMicDenied: 'マイクへのアクセスが拒否されました。ブラウザの設定を確認してください。',
     errorFailed:    (msg) => `測定を開始できませんでした: ${msg}`,
-    retryBtn:       'もう一度試す',
   },
   en: {
+    ...MONITOR.en,
     name:    'Volume Check',
     summary: 'Measure venue level and see how much a fader move actually changed it.',
     note:
@@ -94,9 +82,7 @@ export const T: Record<Lang, VolumeText> = {
       'The microphone sensitivity cannot be determined, so absolute sound pressure (dBA) ' +
       'is impossible in principle.',
     startBtn:          'Start measuring',
-    stopBtn:           'Stop',
     resumeBtn:         'Resume measuring',
-    stalledTitle:      'Measurement stopped',
     stalledBody:
       'When the screen turns off, the browser stops capturing from the microphone. ' +
       'Rather than keep showing a frozen number, we tell you it stopped.\n' +
@@ -115,13 +101,9 @@ export const T: Record<Lang, VolumeText> = {
     clipLabel:         'Clipping',
     clipDuration:      (sec) => `${sec.toFixed(1)} s of the last 10 s`,
     clipNone:          'none',
-    deviceLabel:       'Microphone in use',
-    deviceUnknown:     '(name unavailable)',
     measuring:         'Measuring',
     relativeNote:
       'Values are relative. The microphone is not calibrated, so these are not dB(A).',
-    errorMicDenied: 'Microphone access denied. Check your browser settings.',
     errorFailed:    (msg) => `Could not start measuring: ${msg}`,
-    retryBtn:       'Try again',
   },
 };

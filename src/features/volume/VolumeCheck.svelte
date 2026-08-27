@@ -9,6 +9,7 @@
   import type { Lang } from '../../shell/i18n.ts';
   import { DEFAULT_STALL_MS, MonitorSession } from '../../lib/audio/session.svelte.ts';
   import { T } from './i18n.ts';
+  import { monitorErrorMsg } from '../common-text.ts';
   import { formatSigned } from '../../lib/format.ts';
   import {
     VolumeMeter, barRatio, FLOOR_DB, LEQ_WINDOW_SEC,
@@ -84,12 +85,7 @@
 
   const diffDb = $derived(showDb && reference !== null ? leqDb - reference : null);
 
-  // 文面ではなく種別で持つ。言語を切り替えたときにエラー行だけ元の言語で残らないように
-  const errorMsg = $derived(
-    session.errorKind === 'mic-denied' ? t.errorMicDenied :
-    session.errorKind === 'failed'     ? t.errorFailed(session.errorDetail) :
-    ''
-  );
+  const errorMsg = $derived(monitorErrorMsg(session.errorKind, session.errorDetail, t));
 
   function applyState(s: MeterState): void {
     instantDb   = s.instantDb;
@@ -211,46 +207,11 @@
 {/if}
 
 <style>
-  .note {
-    font-size: 0.84rem;
-    line-height: 1.8;
-    color: var(--body);
-    white-space: pre-line;
-  }
-
-  .error {
-    margin-top: 0.9rem;
-    font-size: 0.82rem;
-    line-height: 1.6;
-    color: #B00020;
-  }
-
-  .btn-primary {
-    width: 100%;
-    margin-top: 1.1rem;
-    padding: 0.85rem;
-    background: var(--ink);
-    color: #ECEEF5;
-    border: 1px solid var(--ink);
-    border-radius: 6px;
-    font-size: 0.9rem;
-    font-weight: 700;
-    cursor: pointer;
-  }
-
-  .btn-primary:disabled { opacity: 0.4; cursor: default; }
-  .btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-  .stalled-label { color: #B00020; }
-
   .kept {
     margin-top: 0.7rem;
     font-size: 0.78rem;
     color: var(--body);
   }
-
-  .readout { text-align: center; }
-  .readout .panel-label { text-align: left; margin-bottom: 0.8rem; }
 
   /* 変化量が主役。会場では一目で読めることがすべて */
   .big {
@@ -262,8 +223,9 @@
     color: var(--ink);
   }
 
-  .big.up   { color: #B00020; }
+  .big.up   { color: var(--danger); }
   .big.down { color: #006E80; }
+
   /* 残り秒数。基準を取る前の主役はこれになる */
   .big-count { font-size: 2.6rem; }
 
@@ -280,13 +242,6 @@
     font-weight: 700;
     letter-spacing: 0.04em;
     margin-left: 0.3rem;
-    color: var(--muted);
-  }
-
-  .hint {
-    margin-top: 0.7rem;
-    font-size: 0.78rem;
-    line-height: 1.6;
     color: var(--muted);
   }
 
@@ -328,17 +283,9 @@
     color: var(--muted);
   }
 
-  .clip-row.clipping { color: #B00020; font-weight: 700; }
+  .clip-row.clipping { color: var(--danger); font-weight: 700; }
 
   .mono { font-variant-numeric: tabular-nums; }
-
-  .device {
-    margin-top: 0.9rem;
-    font-size: 0.7rem;
-    color: var(--muted);
-    text-align: left;
-    word-break: break-word;
-  }
 
   .relative-note {
     margin-top: 0.35rem;

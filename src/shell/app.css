@@ -19,6 +19,17 @@
   --line:    #CDD0E0;
   --surface: #FFFFFF;
   --accent:  #006E80;
+  /*
+   * 「何かがおかしい」専用の赤。**この色を他の意味に使わない。**
+   *
+   * ハウリングの突出度バーもボリュームのレベルバーも、閾値を超えると
+   * `--accent` からこの色へ変わることで異常を示している。赤を通常の状態にも
+   * 使うほど、その変化が読めなくなる（features/registry.ts の accent も参照）。
+   *
+   * 音質チェックの採点色（`features/quality/scores.ts` の #BF0009 ほか）は
+   * 別系統である。あちらは 4 段の階調を作る色で、二値の合図ではない。
+   */
+  --danger:  #B00020;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -79,3 +90,69 @@ body {
 
 .btn-quiet:hover { border-color: var(--ink); color: var(--ink); }
 .btn-quiet:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/*
+ * 受動リアルタイム機能（ボリューム・ハウリング）が共有する部品。
+ *
+ * この2つは同じ骨格を持つ——開始前の説明パネル、計測中の読み取り画面、
+ * 端末が計測を止めたときのパネル。以前は同じ定義が両方の <style> に
+ * 複製されていて、`.hint` の字が 0.78rem と 0.76rem、`.device` の余白が
+ * 0.9rem と 1rem に**ずれていた**。設計上の差ではなく写し間違いである。
+ * 機能を足すたびに同じずれが増える形だったので、ここに集約した。
+ */
+
+/* 主張するボタン（開始・再開・基準にする）。.btn-quiet と対になる */
+.btn-primary {
+  width: 100%;
+  margin-top: 1.1rem;
+  padding: 0.85rem;
+  background: var(--ink);
+  color: #ECEEF5;
+  border: 1px solid var(--ink);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-primary:disabled { opacity: 0.4; cursor: default; }
+.btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 開始前パネルの本文。「何をする（しない）機能か」を書く場所 */
+.note {
+  font-size: 0.84rem;
+  line-height: 1.8;
+  color: var(--body);
+  white-space: pre-line;
+}
+
+.error {
+  margin-top: 0.9rem;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--danger);
+}
+
+/* 計測が止まったことの見出し。パネルの label 位置に赤で出す */
+.stalled-label { color: var(--danger); }
+
+/* 計測中の読み取り画面。数値は中央、ラベルだけ左に残す */
+.readout { text-align: center; }
+.readout .panel-label { text-align: left; margin-bottom: 0.8rem; }
+
+/* 主役の数字に添える一行 */
+.hint {
+  margin-top: 0.7rem;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* 使用中のマイク名。測定対象の取り違えに気づける唯一の手がかりなので必ず出す */
+.device {
+  margin-top: 1rem;
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-align: left;
+  word-break: break-word;
+}

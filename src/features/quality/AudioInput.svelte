@@ -196,7 +196,10 @@
     border-radius: 5px;
     padding: 0.7rem 0.9rem;
     font-size: 0.8rem;
-    color: #BF0009;
+    /* 採点の赤(#BF0009)ではなく、全機能共通の「何かがおかしい」の赤。
+       同じ「エラーの断り」が画面によって違う色で出ていた。
+       地色と枠は赤の薄い版で、この文字色に付随する */
+    color: var(--danger);
     font-weight: 500;
   }
 </style>

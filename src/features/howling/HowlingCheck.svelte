@@ -14,6 +14,7 @@
   import type { Lang } from '../../shell/i18n.ts';
   import { DEFAULT_STALL_MS, MonitorSession } from '../../lib/audio/session.svelte.ts';
   import { T } from './i18n.ts';
+  import { monitorErrorMsg } from '../common-text.ts';
   import { formatFrequency, ratio } from '../../lib/format.ts';
   import { formatOctaveBand } from '../../lib/dsp/octave.ts';
   import {
@@ -69,11 +70,7 @@
 
   const state = $derived(session.state);
 
-  const errorMsg = $derived(
-    session.errorKind === 'mic-denied' ? t.errorMicDenied :
-    session.errorKind === 'failed'     ? t.errorFailed(session.errorDetail) :
-    ''
-  );
+  const errorMsg = $derived(monitorErrorMsg(session.errorKind, session.errorDetail, t));
 
   const start = (): void => { void session.start(); };
   const stop  = (): void => session.stop();
@@ -192,42 +189,9 @@
 {/if}
 
 <style>
-  .note {
-    font-size: 0.84rem;
-    line-height: 1.8;
-    color: var(--body);
-    white-space: pre-line;
-  }
-
-  .error {
-    margin-top: 0.9rem;
-    font-size: 0.82rem;
-    line-height: 1.6;
-    color: #B00020;
-  }
-
-  .btn-primary {
-    width: 100%;
-    margin-top: 1.1rem;
-    padding: 0.85rem;
-    background: var(--ink);
-    color: #ECEEF5;
-    border: 1px solid var(--ink);
-    border-radius: 6px;
-    font-size: 0.9rem;
-    font-weight: 700;
-    cursor: pointer;
-  }
-
-  .btn-primary:disabled { opacity: 0.4; cursor: default; }
-  .btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-  .stalled-label { color: #B00020; }
   .section-label.left { margin-top: 1rem; }
 
-  .readout { text-align: center; }
-  .readout .panel-label { text-align: left; margin-bottom: 0.8rem; }
-  .readout.alert { border-color: #B00020; }
+  .readout.alert { border-color: var(--danger); }
 
   .status {
     font-size: 0.95rem;
@@ -236,7 +200,7 @@
     color: var(--muted);
   }
 
-  .status.ringing { color: #B00020; }
+  .status.ringing { color: var(--danger); }
 
   /* 周波数が主役。会場では一目で読めることがすべて */
   .big {
@@ -252,23 +216,16 @@
   .slash { font-size: 1.2rem; color: var(--muted); margin: 0 0.2rem; }
   .freq  { font-size: 1.6rem; }
 
-  .hint {
-    margin-top: 0.5rem;
-    font-size: 0.76rem;
-    line-height: 1.6;
-    color: var(--muted);
-  }
-
   .hint.left { text-align: left; }
 
   .warn {
     margin-top: 0.7rem;
     padding: 0.5rem 0.6rem;
-    border: 1px solid #B00020;
+    border: 1px solid var(--danger);
     border-radius: 4px;
     font-size: 0.74rem;
     line-height: 1.6;
-    color: #B00020;
+    color: var(--danger);
     text-align: left;
   }
 
@@ -308,7 +265,7 @@
     transition: height 0.06s linear;
   }
 
-  .hot .bar-fill { background: #B00020; }
+  .hot .bar-fill { background: var(--danger); }
 
   /* 閾値の線。バーが伸びていくのが「どこに向かって」なのかが見える。
      これは測定値の提示であって「危険」という断定ではない */
@@ -350,14 +307,6 @@
   .ev-freq { font-size: 0.82rem; font-weight: 700; color: var(--body); }
   .ev-detail { font-size: 0.7rem; color: var(--muted); }
   .ev-ago { margin-left: auto; font-size: 0.7rem; color: var(--muted); }
-
-  .device {
-    margin-top: 1rem;
-    font-size: 0.7rem;
-    color: var(--muted);
-    text-align: left;
-    word-break: break-word;
-  }
 
   .passive {
     margin-top: 0.35rem;
