@@ -233,6 +233,33 @@ function evaluate(item: ManifestItem, samples: Float32Array, mos: number | null)
       errorLabel = 'RT60[秒]';
       break;
     }
+    case 'rt60band': {
+      // 真値は中帯域のRT60。ISO 3382 が代表値とする 500Hz/1kHz オクターブの平均に対応する。
+      truthValue = item.truth.rt60Sec;
+      estimate = reverbEst.rt60Sec;
+      errorLabel = 'RT60[秒] (帯域依存)';
+      break;
+    }
+    case 'rt60rep': {
+      // 真値を固定して乱数だけ振る条件。誤差そのものより「判定が同じ答えを返すか」を見る。
+      // 誤差表にも出るが、真値が2水準しか無いので rt60 条件とは別の行に分ける。
+      truthValue = item.truth.rt60Sec;
+      estimate = reverbEst.rt60Sec;
+      errorLabel = 'RT60[秒] (再現性)';
+      break;
+    }
+    case 'snrbabble': {
+      truthValue = item.truth.snrDb;
+      estimate = estimateSnr(samples, sr, reverbEst.rt60Sec).snrDb;
+      errorLabel = 'SNR[dB] (多人数の話し声)';
+      break;
+    }
+    case 'snrimpulse': {
+      truthValue = item.truth.snrDb;
+      estimate = estimateSnr(samples, sr, reverbEst.rt60Sec).snrDb;
+      errorLabel = 'SNR[dB] (衝撃性ノイズ)';
+      break;
+    }
     default:
       errorLabel = '';
   }
@@ -543,10 +570,20 @@ const ADVICE_TRUTH: Array<{
   },
   {
     code: 'noise-high',
-    criterion: 'SNR < 15dB',
+    criterion: 'SNR < 15dB（定常ノイズ）',
     conditionTypes: ['snr', 'clean'],
     shouldAdvise: (r) => (r.conditionType === 'clean' ? false
       : r.truthValue === null ? null : r.truthValue < 15),
+    truthOf: (r) => r.truthValue ?? 99,
+  },
+  {
+    // 同じ助言を非定常ノイズだけで別行にする。**まとめてはいけない。**
+    // 1行にすると、定常ノイズの良い成績が非定常の見落としを薄めて見えなくなる。
+    // 尺度が違うものを混ぜないのは、採点と助言の閾値を分けているのと同じ理由。
+    code: 'noise-high',
+    criterion: 'SNR < 15dB（非定常: 話し声・打鍵音）',
+    conditionTypes: ['snrbabble', 'snrimpulse'],
+    shouldAdvise: (r) => (r.truthValue === null ? null : r.truthValue < 15),
     truthOf: (r) => r.truthValue ?? 99,
   },
   {
@@ -736,6 +773,135 @@ function drrCapability(rows: Row[]): DrrCapability[] {
   return out;
 }
 
+// ==========================================================================
+// 帯域依存の残響による系統誤差
+// ==========================================================================
+
+/**
+ * 部屋のプロファイルごとのRT60誤差。
+ *
+ * `flat` の行が対照で、他との差がそのまま「周波数依存によって増える誤差」になる。
+ * 広帯域のレベル列から測る推定器は最も遅く減衰する帯域に引っ張られるので、
+ * 低域だけ長い部屋（吸音天井）で最も大きくずれる。
+ */
+interface BandProfileStat {
+  profile: string;
+  lowSec: number;
+  midSec: number;
+  highSec: number;
+  n: number;
+  measured: number;
+  bias: number | null;
+  mae: number | null;
+  maxAbs: number | null;
+  /** flat（平坦な応答）のバイアスとの差。周波数依存だけが持ち込む誤差 */
+  excessOverFlat: number | null;
+  confident: number;
+}
+
+function bandProfileStats(rows: Row[]): BandProfileStat[] {
+  const list = rows.filter((r) => r.conditionType === 'rt60band');
+  if (list.length === 0) return [];
+
+  const byProfile = new Map<string, Row[]>();
+  for (const r of list) {
+    const k = String(r.params.profile);
+    byProfile.set(k, [...(byProfile.get(k) ?? []), r]);
+  }
+
+  const stat = (group: Row[]): { bias: number | null; mae: number | null; maxAbs: number | null; measured: number } => {
+    const ok = group.filter((r) => r.estimate !== null && r.truthValue !== null);
+    const errs = ok.map((r) => (r.estimate as number) - (r.truthValue as number));
+    return {
+      measured: ok.length,
+      bias: errs.length ? errs.reduce((a, b) => a + b, 0) / errs.length : null,
+      mae: errs.length ? errs.reduce((a, b) => a + Math.abs(b), 0) / errs.length : null,
+      maxAbs: errs.length ? Math.max(...errs.map(Math.abs)) : null,
+    };
+  };
+
+  const flatBias = byProfile.has('flat') ? stat(byProfile.get('flat') as Row[]).bias : null;
+
+  const out: BandProfileStat[] = [];
+  for (const [profile, group] of byProfile) {
+    const s = stat(group);
+    out.push({
+      profile,
+      lowSec: Number(group[0].params.lowSec),
+      midSec: Number(group[0].params.midSec),
+      highSec: Number(group[0].params.highSec),
+      n: group.length,
+      measured: s.measured,
+      bias: s.bias === null ? null : round(s.bias, 3),
+      mae: s.mae === null ? null : round(s.mae, 3),
+      maxAbs: s.maxAbs === null ? null : round(s.maxAbs, 3),
+      excessOverFlat: s.bias === null || flatBias === null ? null : round(s.bias - flatBias, 3),
+      confident: group.filter((r) => !r.unreliable.includes('reverb')).length,
+    });
+  }
+  // 平坦を先頭に置く（対照だから）。あとは中帯域のRT60順
+  return out.sort((a, b) =>
+    (a.profile === 'flat' ? -1 : b.profile === 'flat' ? 1 : a.midSec - b.midSec));
+}
+
+// ==========================================================================
+// 判定の再現性
+// ==========================================================================
+
+/**
+ * 真値を固定して乱数だけを振ったときの、判定のばらつき。
+ *
+ * 誤差表は「真値をずらしたときにどれだけ当たるか」を測る。しかしこの道具の出力は
+ * 3値の判定なので、利用者にとって意味があるのは**同じ部屋を測り直して同じ答えが
+ * 出るか**である。推定誤差が判定境界の間隔より広ければ、判定は測定ではなく抽選になる。
+ */
+interface ReproducibilityStat {
+  rt60Sec: number;
+  n: number;
+  measured: number;
+  estimateMin: number | null;
+  estimateMax: number | null;
+  reverbScoreMin: number;
+  reverbScoreMax: number;
+  good: number;
+  usable: number;
+  poor: number;
+  unconfirmed: number;
+  /** 残響の助言が出た件数 */
+  advisedReverb: number;
+}
+
+function reproducibility(rows: Row[]): ReproducibilityStat[] {
+  const list = rows.filter((r) => r.conditionType === 'rt60rep');
+  if (list.length === 0) return [];
+
+  const byRt60 = new Map<number, Row[]>();
+  for (const r of list) {
+    const k = Number(r.params.rt60Sec);
+    byRt60.set(k, [...(byRt60.get(k) ?? []), r]);
+  }
+
+  const out: ReproducibilityStat[] = [];
+  for (const [rt60Sec, group] of [...byRt60].sort((a, b) => a[0] - b[0])) {
+    const ests = group.map((r) => r.estimate).filter((v): v is number => v !== null);
+    out.push({
+      rt60Sec,
+      n: group.length,
+      measured: ests.length,
+      estimateMin: ests.length ? round(Math.min(...ests), 3) : null,
+      estimateMax: ests.length ? round(Math.max(...ests), 3) : null,
+      reverbScoreMin: Math.min(...group.map((r) => r.scores.reverb)),
+      reverbScoreMax: Math.max(...group.map((r) => r.scores.reverb)),
+      good:   group.filter((r) => r.verdict === 'good').length,
+      usable: group.filter((r) => r.verdict === 'usable').length,
+      poor:   group.filter((r) => r.verdict === 'poor').length,
+      unconfirmed: group.filter((r) => r.verdictUnconfirmed).length,
+      advisedReverb: group.filter((r) => r.advice.includes('reverb-strong')).length,
+    });
+  }
+  return out;
+}
+
 /** 劣化の強さとスコアの向きが合っているか */
 interface Monotonicity {
   conditionType: string;
@@ -780,6 +946,17 @@ const MONOTONICITY_TARGETS: Array<{ type: string; axis: keyof Row['scores']; exp
   // 直接音対残響比が大きい（=マイクが近い）ほど残響は乗らないので、残響点は高い。
   // これは欠陥ではなく実際の聞こえ方だが、「部屋の評価」としては交絡になる。
   { type: 'drr',    axis: 'reverb',    expectedSign: +1 },
+  // 非定常ノイズでも、SNRが高いほどノイズ点は高いべき。定常ノイズ(snr)と同じ推定器を
+  // 使っているので、同じ期待符号で並べれば「どのノイズなら測れているか」が読める。
+  { type: 'snrbabble',  axis: 'noise', expectedSign: +1 },
+  // 衝撃性ノイズは実測で `blind`（推定値が真値と無相関）になる。**これは想定どおりの
+  // 失敗ではなく、記録しておくべき盲点である。** 直したら ok に変わる。
+  { type: 'snrimpulse', axis: 'noise', expectedSign: +1 },
+  // rt60band はここに入れない。プロファイルは実在する部屋を模して選んでいるので
+  // 中帯域のRT60に同値(0.5秒)が2件あり、しかも低域・高域も同時に動く。順位相関の
+  // 軸として成立しないので、入れると設計の都合を「blind」と報告してしまう
+  // （実際に ρ=-0.115 と出た）。この条件が測るのは向きではなく系統誤差なので、
+  // 専用の節（帯域ごとにRT60が違う部屋での系統誤差）で平坦な応答との差を見る。
 ];
 
 /**
@@ -1068,8 +1245,56 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
     L.push('');
   }
 
+  if (report.bandProfiles.length > 0) {
+    L.push('## 6. 帯域ごとにRT60が違う部屋での系統誤差');
+    L.push('');
+    L.push('検証基盤の既定のインパルス応答は**スペクトルが平坦**な指数減衰で、全帯域が同じ');
+    L.push('速さで減衰する。実室はそうならない——空気吸収と吸音材の効きが周波数で違うので、');
+    L.push('高域ほど早く減衰する。広帯域のレベル列から測る推定器は**最も遅く減衰する帯域に');
+    L.push('引っ張られる**ため、平坦な応答しか試していないとこの誤差は原理的に見えない。');
+    L.push('');
+    L.push('真値は中帯域(500〜2000Hz)のRT60。ISO 3382 が代表値とする 500Hz/1kHz');
+    L.push('オクターブの平均に対応する。`flat` が対照で、「平坦との差」がそのまま');
+    L.push('周波数依存だけが持ち込む誤差になる。');
+    L.push('');
+    L.push('| プロファイル | 低 / 中 / 高 [秒] | 件数 | 測定できた | バイアス[秒] | MAE[秒] | 最大誤差[秒] | 平坦との差[秒] | 確定値 |');
+    L.push('|---|---|---:|---:|---:|---:|---:|---:|---:|');
+    for (const b of report.bandProfiles) {
+      L.push(
+        `| ${b.profile} | ${b.lowSec} / ${b.midSec} / ${b.highSec} | ${b.n} | ${b.measured} | ` +
+        `${b.bias ?? 'n/a'} | ${b.mae ?? 'n/a'} | ${b.maxAbs ?? 'n/a'} | ` +
+        `${b.excessOverFlat ?? 'n/a'} | ${b.confident} |`,
+      );
+    }
+    L.push('');
+  }
+
+  if (report.reproducibility.length > 0) {
+    L.push('## 7. 判定の再現性（真値を固定して乱数だけ振る）');
+    L.push('');
+    L.push('誤差表は「真値をずらしたときにどれだけ当たるか」を測る。しかしこの道具の出力は');
+    L.push('3値の判定なので、利用者にとって意味があるのは**同じ部屋を測り直して同じ答えが');
+    L.push('出るか**である。RT60とマイク位置を固定し、応答の実現（乱数）だけを振った条件。');
+    L.push('');
+    L.push('**推定誤差が判定境界の間隔より広ければ、判定は測定ではなく抽選になる。**');
+    L.push('残響軸は0.2秒で満点・0.9秒で0点の直線なので、RT60の誤差[秒]は 20/0.7 倍して');
+    L.push('点数になる。判定の境界（達成率 0.55 と 0.35）の間隔は 0.20 しかない。');
+    L.push('');
+    L.push('| 真のRT60[秒] | 件数 | 測定できた | 推定値の範囲[秒] | 残響軸 | good | usable | poor | 断定せず | 残響の助言 |');
+    L.push('|---:|---:|---:|---|---|---:|---:|---:|---:|---:|');
+    for (const p of report.reproducibility) {
+      const range = p.estimateMin === null ? 'n/a' : `${p.estimateMin} – ${p.estimateMax}`;
+      L.push(
+        `| ${p.rt60Sec} | ${p.n} | ${p.measured} | ${range} | ` +
+        `${p.reverbScoreMin}–${p.reverbScoreMax} / ${AXIS_MAX.reverb} | ` +
+        `${p.good} | ${p.usable} | ${p.poor} | ${p.unconfirmed} | ${p.advisedReverb} |`,
+      );
+    }
+    L.push('');
+  }
+
   if (report.verdicts.some((v) => v.n > 0)) {
-    L.push('## 6. 判定の分離（複合条件）');
+    L.push('## 8. 判定の分離（複合条件）');
     L.push('');
     L.push('判定は**最弱の軸**で決まるので、複数の軸が同時に下がる複合条件でこそ意味を持つ。');
     L.push('「良好」の群と「不可」の群でMOSの分布が重なっているなら、閾値は意味をなしていない。');
@@ -1086,7 +1311,7 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
   }
 
   if (report.advice.some((a) => a.positives + a.negatives > 0)) {
-    L.push('## 7. 助言の的中と空振り');
+    L.push('## 9. 助言の的中と空振り');
     L.push('');
     L.push('注入した物理量から「この助言が出るべきか」の真値が作れる。**空振りは見落としより重い**——');
     L.push('出すべき助言を落とすより、直さなくてよいものを直せと言うほうが道具への信頼を損なう。');
@@ -1113,7 +1338,7 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
     }
   }
 
-  L.push('## 8. 劣化なし基準の挙動');
+  L.push('## 10. 劣化なし基準の挙動');
   L.push('');
   L.push('| id | 総合 | ノイズ | 残響 | 周波数 | 音量 | 音割れ | 帯域上限[Hz] | 検出フラグ | 参考値扱いの軸 |');
   L.push('|---|---:|---:|---:|---:|---:|---:|---:|---|---|');
@@ -1190,6 +1415,8 @@ function buildReport(rows: Row[], sources: string[], mosNote: string, mosAvailab
     },
     weighting: weighting(rows),
     drrCapability: drrCapability(rows),
+    bandProfiles: bandProfileStats(rows),
+    reproducibility: reproducibility(rows),
     verdicts: verdictStats(rows),
     advice: adviceStats(rows),
     cleanRows: rows.filter((r) => r.conditionType === 'clean'),

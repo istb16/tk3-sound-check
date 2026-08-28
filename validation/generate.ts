@@ -23,13 +23,17 @@ import { resample, resampledContentHz } from './lib/dsp.ts';
 import { speechLike } from './lib/speechlike.ts';
 import {
   activeSpeechRms,
+  addBabbleNoise,
+  addImpulsiveNoise,
   addNoise,
+  applyBandedReverb,
   applyClipping,
   applyLowpass,
   applyLevel,
   applyTilt,
   applyReverb,
   normalizeSpeechLevel,
+  type BandRt60Profile,
 } from './lib/degrade.ts';
 import { CORPUS_DIR, GENERATED_DIR, MANIFEST, numArg, parseArgs } from './lib/paths.ts';
 
@@ -110,6 +114,69 @@ const DRR_RT60_SEC = 0.6;
  *   +20 近接マイク / +10 卓上マイク / 0 部屋の向こう / -10 かなり遠い
  */
 const DRR_DB_LIST = [20, 15, 10, 5, 0, -10];
+
+/**
+ * 帯域ごとにRT60が違う部屋のプロファイル（低/中/高）。
+ *
+ * `makeRir` の応答はスペクトルが平坦で、全帯域が同じ速さで減衰する。実室はそうならず、
+ * 高域ほど早く減衰する。広帯域のレベル列から測る推定器は最も遅く減衰する帯域に
+ * 引っ張られるので、**平坦な応答しか試していないとこの誤差は原理的に見えない。**
+ *
+ * `flat` は対照。他の3件との差がそのまま「周波数依存によって増える誤差」になる。
+ * 真値は中帯域（500〜2000Hz）のRT60で、ISO 3382 が代表値とする
+ * 500Hz/1kHz オクターブの平均に対応する。
+ */
+const RT60_BAND_PROFILES: Array<{ name: string; profile: BandRt60Profile }> = [
+  { name: 'flat',    profile: { lowSec: 0.5, midSec: 0.5, highSec: 0.5  } },
+  { name: 'meeting', profile: { lowSec: 0.7, midSec: 0.5, highSec: 0.35 } },
+  { name: 'hard',    profile: { lowSec: 1.2, midSec: 0.9, highSec: 0.6  } },
+  { name: 'ceiling', profile: { lowSec: 0.9, midSec: 0.4, highSec: 0.25 } },
+];
+
+/**
+ * 多人数の話し声（非定常ノイズ）のSNR[dB]。
+ *
+ * 既存のノイズ条件は白色とピンクだけ、つまり定常ノイズしかない。有音／無音の分離に
+ * 依存するSNR推定がいちばん苦手な入力が試されていなかった。低SNR側で楽観に振れるので、
+ * 判定の「適していない」境界（SNR 15.8dB相当）をまたぐ範囲まで振る。
+ */
+const BABBLE_SNR_LIST = [25, 20, 15, 10, 5];
+/**
+ * 重ねる声の数。
+ *
+ * 4声と8声を試したが誤差はほぼ同じだった（素材が3〜4しか無いので、増やした分は
+ * 同じ素材を別の開始位置で重ねることになり、包絡の変調が浅くなるだけで水準は動かない）。
+ * 条件を2倍にする価値が無いので1つに固定する。
+ */
+const BABBLE_VOICES = 6;
+
+/**
+ * 衝撃性ノイズ（打鍵音）のSNR[dB]と毎秒の回数。
+ *
+ * **この道具の最大の盲点を機械可読にするための条件。** 実測では真SNR 15〜22dB の
+ * 範囲で推定値が 27dB 前後に張り付き、真値と無相関になる。単調性の節が
+ * これを `blind` として記録する。
+ *
+ * SNR 10dB 以下は生成できない——衝撃音は波高率が高いので、素材のピーク（0.95）に
+ * 足すと 1.0 を超えて音割れという別の劣化が混ざる。生成側でピークを見て飛ばす。
+ */
+const IMPULSE_SNR_LIST = [25, 20, 15];
+const IMPULSE_PER_SEC_LIST = [2, 8];
+/** 混合後のピークがこれを超える条件は生成しない（音割れの混入を避ける） */
+const IMPULSE_PEAK_LIMIT = 0.98;
+
+/**
+ * 判定の再現性を測る条件。RT60 とマイク位置を固定し、**乱数だけを振る。**
+ *
+ * 誤差表は「真値をずらしたときにどれだけ当たるか」を測るが、この道具の出力は
+ * 3値の判定なので、本当に問うべきは「同じ部屋を測り直して同じ答えが出るか」である。
+ * 真値を固定して応答の実現だけを変えると、判定のばらつきがそのまま観測できる。
+ *
+ * 0.5秒と0.7秒を選ぶ理由は、判定の境界がその間にあること。0.7秒は ANSI/ASA S12.60 が
+ * 10,000〜20,000ft³ の教室に許す上限そのもので、判定がいちばん効いてほしい領域である。
+ */
+const RT60_REPEAT_SEC_LIST = [0.5, 0.7];
+const RT60_REPEAT_COUNT = 5;
 
 /**
  * 複合条件（--mixed）。2つ以上の劣化を同時に掛ける。
@@ -310,6 +377,18 @@ function main(): void {
   const sources = loadSources();
   const items: ManifestItem[] = [];
   let seedCounter = SEED * 100003;
+  /**
+   * 後から足した条件のための乱数カウンタ。**`seedCounter` と混ぜてはいけない。**
+   *
+   * `seedCounter` は素材をまたいで連続しているので、どこに条件を足しても
+   * （末尾であっても）2番目以降の素材の乱数がずれる。実際に一度ずらしてしまい、
+   * 既存252件の真値が動いた。既存行の数値を動かさずに条件を増やせるよう、
+   * 追加分は独立した種空間から取る。
+   *
+   * 次に条件を足すときも、既存のループの seed 消費数を変えないこと。
+   * 変えると「何を直したせいで数値が動いたのか」が読めなくなる。
+   */
+  let addedSeedCounter = SEED * 700001;
 
   for (const [si, src] of sources.entries()) {
     const clean = trim(src.samples, src.sampleRate);
@@ -457,6 +536,87 @@ function main(): void {
         emit(`${tag}-mix-${parts.join('-')}`, data,
           { type: 'mixed', params: { ...spec } as Record<string, number> },
           truth);
+      }
+    }
+
+    // ======================================================================
+    // ここから下は後から足した条件。**この位置より上に挿してはいけない。**
+    //
+    // seedCounter は発行順に消費される共有カウンタなので、既存ループの前に
+    // 新しいループを挿すと以降すべての乱数がずれ、レポートの既存行が
+    // 全部変わって「何を直したせいで数値が動いたのか」が読めなくなる。
+    // ======================================================================
+
+    // ---- 帯域ごとにRT60が違う残響（実室の周波数依存） ----
+    for (const { name, profile } of RT60_BAND_PROFILES) {
+      const r = applyBandedReverb(clean, sr, profile, addedSeedCounter++);
+      emit(`${tag}-rt60band-${name}`, r.out,
+        {
+          type: 'rt60band',
+          params: {
+            profile: name,
+            lowSec: profile.lowSec, midSec: profile.midSec, highSec: profile.highSec,
+          },
+        },
+        {
+          rt60Sec: r.trueRt60Sec,
+          lowRt60Sec: r.trueLowRt60Sec,
+          highRt60Sec: r.trueHighRt60Sec,
+          drrDb: r.trueDrrDb,
+        });
+    }
+
+    // ---- 多人数の話し声（非定常ノイズ） ----
+    //
+    // 素材は同じレートの他の話者を使う。素材が1つしか無い場合は作れないので飛ばす。
+    const others = sources
+      .filter((o) => o !== src && o.sampleRate === sr)
+      .map((o) => trim(o.samples, o.sampleRate));
+    if (others.length === 0) {
+      console.log(`  ${src.name}: 同じレートの他素材が無いため babble 条件を飛ばします`);
+    } else {
+      for (const snr of BABBLE_SNR_LIST) {
+        const r = addBabbleNoise(clean, sr, snr, others, BABBLE_VOICES, addedSeedCounter++);
+        emit(`${tag}-babble${snr}`, r.out,
+          { type: 'snrbabble', params: { targetSnrDb: snr, voices: r.voices } },
+          {
+            snrDb: r.trueSnrDb,
+            requestedSnrDb: r.requestedSnrDb,
+            activeSpeechRms: r.activeSpeechRms,
+            noiseRms: r.noiseRms,
+            sourceNoiseRms: r.sourceNoiseRms,
+          });
+      }
+    }
+
+    // ---- 衝撃性ノイズ（打鍵音） ----
+    for (const perSec of IMPULSE_PER_SEC_LIST) {
+      for (const snr of IMPULSE_SNR_LIST) {
+        const r = addImpulsiveNoise(clean, sr, snr, perSec, addedSeedCounter++);
+        // 波高率が高いので、低いSNRでは素材のピークに足すと1.0を超える。
+        // 音割れという別の劣化が混ざるので生成しない（帯域制限で中身の無い
+        // カットオフを飛ばしているのと同じ判断）。
+        if (r.peak > IMPULSE_PEAK_LIMIT) continue;
+        emit(`${tag}-click${perSec}-${snr}`, r.out,
+          { type: 'snrimpulse', params: { targetSnrDb: snr, clicksPerSec: perSec } },
+          {
+            snrDb: r.trueSnrDb,
+            requestedSnrDb: r.requestedSnrDb,
+            activeSpeechRms: r.activeSpeechRms,
+            noiseRms: r.noiseRms,
+            sourceNoiseRms: r.sourceNoiseRms,
+            peak: r.peak,
+          });
+      }
+    }
+
+    // ---- 判定の再現性（真値を固定して乱数だけ振る） ----
+    for (const rt60 of RT60_REPEAT_SEC_LIST) {
+      for (let rep = 0; rep < RT60_REPEAT_COUNT; rep++) {
+        const r = applyReverb(clean, sr, rt60, addedSeedCounter++);
+        emit(`${tag}-rt60rep-${String(rt60).replace('.', '_')}-${rep}`, r.out,
+          { type: 'rt60rep', params: { rt60Sec: rt60, rep } },
+          { rt60Sec: r.trueRt60Sec, drrDb: r.trueDrrDb });
       }
     }
   }

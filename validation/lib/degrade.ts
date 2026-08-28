@@ -6,7 +6,7 @@
  * 構成上わかっている真の値(truth)を返す。
  */
 
-import { makeNoiseRng } from './rng.ts';
+import { makeNoiseRng, makeRng } from './rng.ts';
 import { separateActiveFrames } from '../../src/features/quality/estimators.ts';
 import { fftConvolve, lowpass, normalizePeak, rmsAll } from './dsp.ts';
 import { ifft } from '../../src/lib/dsp/fft.ts';
@@ -148,6 +148,21 @@ export function addNoise(
     ? lowpass(raw, contentHz, sampleRate)
     : raw;
 
+  return mixAtSnr(clean, sampleRate, noise, targetSnrDb);
+}
+
+/**
+ * 任意のノイズ波形を目標SNRになるよう混ぜ、真値を計算する。
+ *
+ * ノイズの作り方（定常・多人数の話し声・衝撃音）によらず**真値の定義を1つに保つ**ための層。
+ * 定義が分かれると、ノイズの種類ごとの誤差を横に並べて比べられなくなる。
+ */
+export function mixAtSnr(
+  clean: Float32Array,
+  sampleRate: number,
+  noise: Float32Array,
+  targetSnrDb: number,
+): NoiseResult {
   const speech = activeSpeechRms(clean, sampleRate);
   const wantNoiseRms = speech / Math.pow(10, targetSnrDb / 20);
   const g = wantNoiseRms / (rmsAll(noise) || 1);
@@ -275,18 +290,31 @@ export const DEFAULT_DRR_DB = 10;
 /**
  * 目標のDRRになるよう残響成分の振幅を求める。
  * 振幅を2倍にすると残響エネルギーは4倍（=6dB）なので解析的に解ける。
+ *
+ * インパルス応答の作り方を引数に取る。帯域ごとにRT60が違う応答（makeBandedRir）でも
+ * 同じ手順でDRRを合わせられるようにするため。
  */
+function amplitudeForDrrOf(
+  makeIr: (amp: number) => Float32Array,
+  sampleRate: number,
+  targetDrrDb: number,
+): number {
+  const probeAmp = 0.45;
+  const probe = makeIr(probeAmp);
+  const probeDrr = drrOf(probe, sampleRate);
+  // DRR は振幅の2乗に反比例する → 必要な倍率は 10^((probeDrr - target)/20)
+  return probeAmp * Math.pow(10, (probeDrr - targetDrrDb) / 20);
+}
+
 function amplitudeForDrr(
   rt60Sec: number,
   sampleRate: number,
   seed: number,
   targetDrrDb: number,
 ): number {
-  const probeAmp = 0.45;
-  const probe = makeRir(rt60Sec, sampleRate, seed, probeAmp);
-  const probeDrr = drrOf(probe, sampleRate);
-  // DRR は振幅の2乗に反比例する → 必要な倍率は 10^((probeDrr - target)/20)
-  return probeAmp * Math.pow(10, (probeDrr - targetDrrDb) / 20);
+  return amplitudeForDrrOf(
+    (amp) => makeRir(rt60Sec, sampleRate, seed, amp), sampleRate, targetDrrDb,
+  );
 }
 
 export function applyReverb(
@@ -488,4 +516,232 @@ export function applyLevel(
     requestedDbfs: targetDbfs,
     peakLimited,
   };
+}
+
+// ==========================================================================
+// 帯域ごとにRT60が違う残響（実室の周波数依存）
+// ==========================================================================
+
+/**
+ * 帯域ごとのRT60[秒]。
+ *
+ * `makeRir` の応答は**スペクトルが平坦**な指数減衰で、全帯域が同じ速さで減衰する。
+ * 実際の部屋はそうならない——空気吸収と吸音材の効きが周波数で違うため、高域ほど
+ * 早く減衰する。そして広帯域のレベル列から測る推定器は、**最も遅く減衰する帯域に
+ * 引っ張られる**。平坦な応答しか試していないと、この誤差は原理的に見えない。
+ *
+ * 実測（本プロファイル4種・CMU ARCTIC 4話者）:
+ *   平坦   0.5/0.5/0.5  → 誤差 -0.04秒
+ *   会議室 0.7/0.5/0.35 → 誤差 +0.13秒
+ *   硬い   1.2/0.9/0.6  → 誤差 +0.12秒
+ *   吸音天井 0.9/0.4/0.25 → 誤差 +0.31秒（真値0.40秒を0.71秒と読み、残響の助言が誤発火する）
+ */
+export interface BandRt60Profile {
+  /** BAND_SPLIT_LO_HZ 未満のRT60[秒] */
+  lowSec: number;
+  /**
+   * BAND_SPLIT_LO_HZ〜BAND_SPLIT_HI_HZ のRT60[秒]。
+   * **ここが真値になる。** ISO 3382 は残響時間をオクターブバンド別に測り、
+   * 500Hz と 1kHz の平均を代表値とするので、この帯がその代表値に対応する。
+   */
+  midSec: number;
+  /** BAND_SPLIT_HI_HZ 以上のRT60[秒] */
+  highSec: number;
+}
+
+/** 帯域分割の境界[Hz]。中帯域が 500Hz と 1kHz のオクターブを含むように取る */
+const BAND_SPLIT_LO_HZ = 500;
+const BAND_SPLIT_HI_HZ = 2000;
+
+/**
+ * 帯域ごとに異なるRT60を持つインパルス応答。
+ *
+ * 帯域分割は `lowpass`（線形位相FIR・群遅延補正済み）の相補分解で作る。
+ * 中帯域は lp(2k) − lp(500)、高帯域は 原信号 − lp(2k)。同じタップ数のフィルタなので
+ * 群遅延が揃い、減算でバンドパスになる。
+ *
+ * 直接音は**フィルタを通した後**に足す。先に足すと直接音まで前後に滲み、
+ * DRR の定義（先頭 predelay サンプルが直接音）が崩れる。
+ * 残響側にはFIRのプリリンギングで predelay より前に少量のエネルギーが載るが、
+ * DRR の真値は合成後の応答から `drrOf` で実測するので自己矛盾は起きない。
+ */
+export function makeBandedRir(
+  profile: BandRt60Profile,
+  sampleRate: number,
+  seed: number,
+  amp: number,
+): Float32Array {
+  const maxRt = Math.max(profile.lowSec, profile.midSec, profile.highSec);
+  const len = Math.ceil(maxRt * 1.2 * sampleRate);
+  const predelay = Math.floor(0.005 * sampleRate);
+
+  const decayNoise = (rt60Sec: number, noiseSeed: number): Float32Array => {
+    const rnd = makeNoiseRng(noiseSeed);
+    const decay = Math.log(1000) / rt60Sec;
+    const out = new Float32Array(len);
+    for (let i = predelay; i < len; i++) {
+      out[i] = rnd() * Math.exp(-decay * ((i - predelay) / sampleRate));
+    }
+    return out;
+  };
+
+  // 帯域ごとに別の乱数列を使う。同じ列を使い回すと帯域間に相関が残り、
+  // 合成後のスペクトルが平坦な応答に近づいてしまう。
+  const lo = decayNoise(profile.lowSec, seed);
+  const mid = decayNoise(profile.midSec, seed + 1);
+  const high = decayNoise(profile.highSec, seed + 2);
+
+  const loPass  = lowpass(lo, BAND_SPLIT_LO_HZ, sampleRate);
+  const midHi   = lowpass(mid, BAND_SPLIT_HI_HZ, sampleRate);
+  const midLo   = lowpass(mid, BAND_SPLIT_LO_HZ, sampleRate);
+  const highLo  = lowpass(high, BAND_SPLIT_HI_HZ, sampleRate);
+
+  const ir = new Float32Array(len);
+  for (let i = 0; i < len; i++) {
+    ir[i] = (loPass[i] + (midHi[i] - midLo[i]) + (high[i] - highLo[i])) * amp;
+  }
+  ir[0] += 1; // 直接音
+
+  return ir;
+}
+
+export interface BandedReverbResult {
+  out: Float32Array;
+  /** ISO 3382 の代表値に対応する真値[秒]（中帯域のRT60） */
+  trueRt60Sec: number;
+  trueLowRt60Sec: number;
+  trueHighRt60Sec: number;
+  /** 合成した応答から実測した直接音対残響比[dB] */
+  trueDrrDb: number;
+}
+
+export function applyBandedReverb(
+  clean: Float32Array,
+  sampleRate: number,
+  profile: BandRt60Profile,
+  seed: number,
+  targetDrrDb = DEFAULT_DRR_DB,
+): BandedReverbResult {
+  const amp = amplitudeForDrrOf(
+    (a) => makeBandedRir(profile, sampleRate, seed, a), sampleRate, targetDrrDb,
+  );
+  const ir = makeBandedRir(profile, sampleRate, seed, amp);
+  const wet = fftConvolve(clean, ir).subarray(0, clean.length).slice();
+
+  let peak = 0;
+  for (let i = 0; i < clean.length; i++) peak = Math.max(peak, Math.abs(clean[i]));
+
+  return {
+    out: normalizePeak(wet, peak),
+    trueRt60Sec: profile.midSec,
+    trueLowRt60Sec: profile.lowSec,
+    trueHighRt60Sec: profile.highSec,
+    trueDrrDb: drrOf(ir, sampleRate),
+  };
+}
+
+// ==========================================================================
+// 多人数の話し声（非定常ノイズ）
+// ==========================================================================
+
+export interface BabbleResult extends NoiseResult {
+  /** 重ねた声の数 */
+  voices: number;
+}
+
+/**
+ * 他の話者の音声を重ねて暗騒音にする。
+ *
+ * 会議室の実際のノイズは定常ではない。既存の検証条件は白色とピンクだけなので、
+ * 有音／無音の分離に依存するSNR推定がいちばん苦手な入力が試されていなかった。
+ *
+ * 実測（4素材 × SNR 6水準）: 4声で バイアス +1.92dB / MAE 2.94 / 最大 8.67、
+ * 8声で MAE 2.58 / 最大 21.51。定常ノイズ（MAE 1.60）より悪く、**低SNR側で
+ * 系統的に楽観へ振れる**（真0〜5dBの条件で +3〜+8.7dB）。判定の「適していない」境界が
+ * SNR 15.8dB にあるので、この誤差は録音を境界の外へ押し出す方向に働く。
+ *
+ * 素材は同じレートの**他の話者**を使う。合成ノイズではなく実音声なので、帯域は
+ * 素材と自動的に揃い、`addNoise` のような `contentHz` の帯域制限は要らない。
+ */
+export function addBabbleNoise(
+  clean: Float32Array,
+  sampleRate: number,
+  targetSnrDb: number,
+  others: Float32Array[],
+  voices: number,
+  seed: number,
+): BabbleResult {
+  if (others.length === 0) throw new Error('babble には他の素材が必要です');
+
+  const rnd = makeRng(seed);
+  const babble = new Float32Array(clean.length);
+  for (let v = 0; v < voices; v++) {
+    const src = others[v % others.length];
+    if (src.length === 0) continue;
+    // 声ごとに開始位置をずらす。同じ素材を使い回す場合でも、ずらせば
+    // 発話の切れ目が重ならず「常に誰かが喋っている」状態になる。
+    const offset = Math.floor(rnd() * src.length);
+    for (let i = 0; i < clean.length; i++) {
+      babble[i] += src[(i + offset) % src.length];
+    }
+  }
+
+  return { ...mixAtSnr(clean, sampleRate, babble, targetSnrDb), voices };
+}
+
+// ==========================================================================
+// 衝撃性ノイズ（打鍵音）
+// ==========================================================================
+
+/** 打鍵1回の長さ[秒]。実際のキーストロークのクリック音に合わせる */
+const CLICK_SEC = 0.006;
+
+export interface ImpulseResult extends NoiseResult {
+  /** 毎秒の打鍵回数 */
+  clicksPerSec: number;
+  /**
+   * 混合後のピーク絶対値。
+   *
+   * 打鍵音は継続時間が短いので、同じRMSでも波高率が高い。1.0を超える条件は
+   * 音割れという別の劣化が混ざるので、生成側で飛ばす判断に使う。
+   */
+  peak: number;
+}
+
+/**
+ * 打鍵音のような衝撃性ノイズを足す。
+ *
+ * **この道具の最大の盲点がここにある。** 実測（ピークが1.0を超えない条件のみ）では
+ * 真SNR 15〜19dB の録音を 27〜33dB と読み、ノイズ軸は 15〜18/25 のまま、
+ * `noise-high` の助言は一度も出なかった。バイアスは +13〜+17dB。
+ *
+ * 理由は仕組みから明らかで、衝撃音は継続時間が短いため無音フレームの選定を
+ * ほとんど汚さず、ノイズフロアの推定が静かなまま残る。有音フレーム側の平均パワーも
+ * わずかしか上がらない。**大きく鳴るほど黙る**形の誤りではなく、
+ * **どれだけ鳴っても気づかない**形の誤りである。
+ */
+export function addImpulsiveNoise(
+  clean: Float32Array,
+  sampleRate: number,
+  targetSnrDb: number,
+  clicksPerSec: number,
+  seed: number,
+): ImpulseResult {
+  const rnd = makeRng(seed);
+  const noise = new Float32Array(clean.length);
+  const dur = Math.max(1, Math.floor(sampleRate * CLICK_SEC));
+  const count = Math.round((clean.length / sampleRate) * clicksPerSec);
+
+  for (let k = 0; k < count; k++) {
+    const at = Math.floor(rnd() * Math.max(1, clean.length - dur));
+    for (let i = 0; i < dur; i++) {
+      noise[at + i] += (rnd() * 2 - 1) * Math.exp(-i / (dur / 4));
+    }
+  }
+
+  const mixed = mixAtSnr(clean, sampleRate, noise, targetSnrDb);
+  let peak = 0;
+  for (let i = 0; i < mixed.out.length; i++) peak = Math.max(peak, Math.abs(mixed.out[i]));
+
+  return { ...mixed, clicksPerSec, peak };
 }
