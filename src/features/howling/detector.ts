@@ -42,13 +42,18 @@ export const FFT_SIZE = 4096;
 export const FRAME_MS = 100;
 
 /**
- * 発振と断じるのに必要な連続フレーム数。3フレーム = 約250ms。
+ * 発振と断じるのに必要な連続フレーム数。
  *
  * 設計時は500msだったが、腕のいいオペレーターはハウリングを 0.2〜0.5秒で殺す。
  * 500ms を要求すると**その人の現場では一つも捕まらない**——「下手な現場でだけ
  * 動く道具」になる。拍手や机を叩く音はインパルス（10〜20ms）で桁が2つ違うので、
- * 250ms でも弾ける。250ms と 500ms の差で新たに拾うのは口笛や楽器の短い音であり、
+ * 3フレームでも弾ける。ここと500msの差で新たに拾うのは口笛や楽器の短い音であり、
  * そこは倍音列の判定が落とす。
+ *
+ * **3フレーム＝250ms ではない。** 窓(85ms)がホップ(100ms)より短く重なりが無いので、
+ * 実際に要求している連続長は**約300ms**である（実測: 0.15秒 0% / 0.2秒 20% /
+ * 0.25秒 70% / 0.3秒 100%）。0.2〜0.5秒のうち下半分は捕まらない。詰めるには
+ * ホップを縮めて窓を重ねるしかなく、計算量と引き換えになる。
  */
 export const SUSTAIN_FRAMES = 3;
 
@@ -87,6 +92,27 @@ const HARMONIC_SEARCH_BINS = 3;
 
 /** 発振が途切れたとみなすまでの猶予フレーム数。表示のちらつきを防ぐ */
 const GAP_FRAMES = 2;
+
+/**
+ * 「同じ鳴きの続き」とみなす周波数の近さ[比]。**±1ビンと併せて要求する。**
+ *
+ * ビンだけで見ると、同じ「±1ビン」が帯域の下端と上端でまるで違う厳しさになる。
+ * 48kHz・FFT4096 のビン幅 11.7Hz は 3.2kHz に対して ±0.37% だが、
+ * **210Hz に対しては ±5.6%（約95セント）**——半音近く動いても同じビンに入る。
+ * 同じ規則が下端では約15倍緩い。
+ *
+ * その緩さを実際に通り抜けるのが**女性話者の声の基音**である。250Hz帯
+ * (176.8〜353.6Hz) の候補にとって `f/2` は検出範囲の外なので、倍音判定は
+ * 「2f と 3f の両方」の一本しか残らない。声の倍音の強さはフレームごとに揺れるので、
+ * その AND が3フレーム連続で外れることは普通に起き、持続判定がそれを止められない。
+ * 実音声（CMU Arctic 65本・レベル9条件・計585試行）で 26件(4.4%) の空振りが出て、
+ * **全件が 189〜314Hz、うち24件が女性話者**だった。相対で締めると 2件(0.3%) になる。
+ *
+ * 本物は落ちない——発振の周波数はループの位相条件で決まるので動かない。±20セント
+ * (1.2%)の揺れを与えても検出率は変わらなかった。0.5%〜3% のどこに置いても結果は
+ * 同じで、閾値に敏感な値ではない。
+ */
+const SAME_RUN_RATIO = 0.02;
 
 /** 突出度を測るときの近傍の取り方 */
 const PROMINENCE_SHAPE = {
@@ -437,9 +463,22 @@ export class HowlingDetector {
   // 持続と履歴
   // ======================================================================
 
+  /**
+   * 候補が、追っている鳴きの続きとみなせるか。
+   *
+   * **ビンの近さと周波数の近さの両方**を要求する。片方では足りない——ビンだけだと
+   * 低域で緩くなりすぎ（声の基音が通る）、比だけだと高域で隣のビンへ次々に
+   * 乗り移りながら追い続けてしまう。
+   */
+  private continues(cand: Candidate, bin: number, freqHz: number): boolean {
+    if (Math.abs(cand.bin - bin) > 1) return false;
+    return Math.abs(cand.freqHz - freqHz) / freqHz <= SAME_RUN_RATIO;
+  }
+
   private track(cand: Candidate | null): void {
     if (this.active) {
-      if (cand && Math.abs(cand.bin - this.active.bin) <= 1) {
+      const mean = this.active.freqSum / this.active.freqCount;
+      if (cand && this.continues(cand, this.active.bin, mean)) {
         this.active.bin = cand.bin;
         this.active.freqSum += cand.freqHz;
         this.active.freqCount++;
@@ -451,7 +490,9 @@ export class HowlingDetector {
       else return;
     }
 
-    if (cand && this.runBin >= 0 && Math.abs(cand.bin - this.runBin) <= 1) {
+    // runBin >= 0 なら runFrames >= 1（cand が無い回で両方とも落としている）
+    if (cand && this.runBin >= 0
+        && this.continues(cand, this.runBin, this.runFreqSum / this.runFrames)) {
       this.runFrames++;
       this.runFreqSum += cand.freqHz;
     } else if (cand) {

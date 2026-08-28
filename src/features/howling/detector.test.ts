@@ -7,6 +7,7 @@ import { formatFrequency } from '../../lib/format.ts';
 import {
   addHarmonicStack, addImpulses, addTone, clipHard, pinkNoise, silence, whiteNoise,
 } from '../../test-support/signals.ts';
+import { atRms, loadCorpusFile, mix } from '../../test-support/corpus.ts';
 
 /**
  * ハウリング検出の実測。人手のラベル付けは不要——注入した周波数が真値になる。
@@ -268,6 +269,73 @@ describe('ハウリング検出 — 空振りへの余裕', () => {
   });
 });
 
+// ==========================================================================
+// 実音声（fixtures/corpus/ があるときだけ効く）
+// ==========================================================================
+
+/**
+ * 合成の陰性セットは倍音の強さが規則正しすぎる。**本物の声でこそ空振りする。**
+ *
+ * ここに並ぶ4本は、実際に「発振中」と誤って言われた本人である（189〜314Hz、
+ * すべて250Hz帯）。持続判定が ±1ビン だけを見ていたころ、11.7Hz のビン幅は
+ * 210Hz に対して ±5.6% ＝ ほぼ半音ぶんの猶予になっていて、声の基音の揺れが
+ * そのまま「同じ鳴きが続いている」と読まれていた。
+ *
+ * slt は米女性話者。基音が 250Hz帯 に入るので最も危ない。bdl / awb は男性で、
+ * 基音は検出範囲の下——こちらは倍音のほうが候補になるので経路が違う。
+ */
+const CORPUS_NEGATIVE = [
+  'cmu-arctic-files-slt-0003.wav',
+  'cmu-arctic-files-slt-0007.wav',
+  'cmu-arctic-files-slt-0011.wav',
+  'cmu-arctic-files-slt-0014.wav',
+  'cmu-arctic-files-bdl-0001.wav',
+  'cmu-arctic-files-awb-0001.wav',
+];
+
+/** 実音声を会場の暗騒音の上に置く。素材が無ければ null */
+async function hallMix(name: string, seed: number, speechRms = 0.06): Promise<Float32Array | null> {
+  const speech = await loadCorpusFile(name, SR);
+  if (speech === null) return null;
+  return mix(atRms(speech, speechRms), pinkNoise(speech.length, 0.02, seed));
+}
+
+describe('ハウリング検出 — 実音声を発振と呼ばない', () => {
+  for (const [i, name] of CORPUS_NEGATIVE.entries()) {
+    it(`${name} を発振と呼ばない`, async () => {
+      const d = await hallMix(name, 900 + i);
+      if (d === null) {
+        console.log(`[skip] ${name} は無い（npm run fetch-corpus で取得できる）`);
+        return;
+      }
+      const r = run(d);
+      expect(
+        r.everRinging,
+        `空振り: ${r.detected.map((f) => f.toFixed(0)).join(', ')}Hz`,
+      ).toBe(false);
+    });
+  }
+
+  // 実音声で締めた結果、本物まで落ちていないことを同じ素材で確かめる。
+  // 陰性だけ足すと「常に黙る」実装がテストを通ってしまう
+  for (const freq of [250, 3200]) {
+    it(`実音声の上に載せた ${freq}Hz の発振は捕まえる`, async () => {
+      let tried = 0;
+      for (const [i, name] of CORPUS_NEGATIVE.entries()) {
+        const d = await hallMix(name, 950 + i);
+        if (d === null) continue;
+        tried++;
+        addTone(d, SR, freq, 0.12, { startSec: 1.0 });
+        const r = run(d);
+        expect(r.everRinging, `${name} で見落とし`).toBe(true);
+        expect(Math.abs(r.detected[0] - freq), `${name}: ${r.detected[0].toFixed(1)}Hz`)
+          .toBeLessThan(8);
+      }
+      if (tried === 0) console.log('[skip] fixtures/corpus/ が無い');
+    });
+  }
+});
+
 describe('ハウリング検出 — 履歴', () => {
   it('鳴き終わると履歴に残り、経過秒が進む', () => {
     const d = addTone(pinkNoise(SR * 4, 0.03, 30), SR, 3200, 0.12, {
@@ -382,6 +450,19 @@ describe('ハウリング検出 — 骨組み', () => {
     expect(firstRingingFrame).toBeGreaterThan(0);
     const detectedAtSec = (firstRingingFrame * FRAME_MS) / 1000;
     expect(detectedAtSec - 1.0).toBeLessThanOrEqual(0.5);
+  });
+
+  it('0.3秒の鳴きは、開始位置がフレーム格子のどこでも捕まる', () => {
+    // 3フレーム連続を要求するが、窓(85ms)がホップ(100ms)より短いので重なりが無く、
+    // 実際には約285〜385msの連続が要る。**捕まえられる下限は 250ms ではなく 300ms**
+    // であり、その境界が開始位置のずれで揺れないことをここで固定する
+    for (let k = 0; k < 5; k++) {
+      const start = 1.0 + k * 0.02;
+      const d = addTone(pinkNoise(SR * 3, 0.03, 900 + k), SR, 3200, 0.12, {
+        startSec: start, durationSec: 0.3, rampSec: 0.01,
+      });
+      expect(run(d).everRinging, `開始 ${start.toFixed(2)}秒 で見落とし`).toBe(true);
+    }
   });
 });
 
