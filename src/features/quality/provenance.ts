@@ -20,7 +20,8 @@ import { FFT_SIZE, averagePowerSpectrum, bandPowers } from '../../lib/dsp/spectr
 export type ProvenanceFlag =
   | 'band-limited'    // 帯域上限が音声用途として不足（低ビットレート圧縮 / 電話品質）
   | 'digital-silence' // 無音区間が不自然に静か（ノイズ抑制ゲートの痕跡）
-  | 'zero-run';       // 完全な無音サンプルが連続（ゲート or DTXの痕跡）
+  | 'zero-run'        // 完全な無音サンプルが連続（ゲート or DTXの痕跡）
+  | 'impulsive-noise'; // 打鍵音のような短い衝撃音（SNRの測定値が実際より良く出る）
 
 export interface Provenance {
   /** 実測した帯域上限[Hz]。カットオフが見つからなければナイキスト周波数 */
@@ -31,6 +32,8 @@ export interface Provenance {
   silenceFloorDb: number;
   /** 完全な無音(値0)が連続した最長区間[ms] */
   maxZeroRunMs: number;
+  /** 時間的に孤立した立ち上がりの毎秒回数。打鍵音のような衝撃音の指標 */
+  impulsePeaksPerSec: number;
   /** 加工済みと判定されたか */
   processed: boolean;
   flags: ProvenanceFlag[];
@@ -62,6 +65,14 @@ const DIGITAL_SILENCE_DB = -75;
 const ZERO_RUN_MS = 100;
 /** 崖検出に使う集約バンド幅 */
 const BAND_WIDTH_HZ = 100;
+/** 衝撃音を数えるフレーム長[ms]。打鍵のクリック音（数ms）が埋もれない長さ */
+const IMPULSE_FRAME_MS = 5;
+/** 前後どれだけ離れたレベルと比べるか[ms] */
+const IMPULSE_GAP_MS = 20;
+/** 孤立した立ち上がりと認める前後との差[dB] */
+const IMPULSE_RISE_DB = 20;
+/** 衝撃性ノイズありと申告する毎秒回数。掃引の詳細は measureImpulsePeaks の注記 */
+const IMPULSE_PEAKS_PER_SEC = 0.5;
 /**
  * 崖の前後を平均するバンド数の候補（100Hz単位 = 500/1000/1500Hz）。
  *
@@ -130,16 +141,19 @@ export function detectProvenance(data: Float32Array, sampleRate: number): Proven
   const { bandwidthHz, cutoffDropDb } = measureBandwidth(data, sampleRate);
   const silenceFloorDb = measureSilenceFloor(data, sampleRate);
   const maxZeroRunMs   = measureMaxZeroRun(data, sampleRate);
+  const impulsePeaksPerSec = measureImpulsePeaks(data, sampleRate);
 
   if (bandwidthHz <= BAND_LIMIT_HZ && bandwidthHz < nyquist) flags.push('band-limited');
   if (silenceFloorDb < DIGITAL_SILENCE_DB) flags.push('digital-silence');
   if (maxZeroRunMs >= ZERO_RUN_MS) flags.push('zero-run');
+  if (impulsePeaksPerSec >= IMPULSE_PEAKS_PER_SEC) flags.push('impulsive-noise');
 
   return {
     bandwidthHz,
     cutoffDropDb,
     silenceFloorDb,
     maxZeroRunMs,
+    impulsePeaksPerSec,
     processed: flags.length > 0,
     flags,
   };
@@ -302,6 +316,53 @@ function measureSilenceFloor(data: Float32Array, sampleRate: number): number {
   const frames = frameRmsList(data, frameSize);
   if (frames.length < 4) return 0;
   return dbfs(percentile(frames, 0.10));
+}
+
+/**
+ * 衝撃性ノイズの検出。**時間的に孤立した立ち上がり**を数える。
+ *
+ * これが必要なのは、ノイズ軸が打鍵音に対して原理的に無反応だから。実測では
+ * 真SNR 15dB の録音を30dB前後と読み、バイアス +9.4dB、真値との相関はほぼ0
+ * （validation の snrimpulse 条件が `blind` と出る）。衝撃音は継続時間が短いので
+ * 無音区間の選定をほとんど汚さず、ノイズフロアの推定が静かなまま残るためである。
+ *
+ * **スコアと判定は動かさない。** 加工の痕跡と同じ扱いで、事実として申告するだけに
+ * とどめる。ここで参考値に落とすと、空振りしたときに正常な録音のノイズ軸が
+ * 消えることになる。
+ *
+ * 指標の選び方は実測で決めた。棄却した候補:
+ *   フレームパワーの尖度        … 全条件でほぼ同じ（打鍵の有無で分離しない）
+ *   波高率（ピーク÷RMS）        … 同じ
+ *   無音側フレームの上側の裾    … クリーン素材が同じ値になる（息継ぎと唇の音で
+ *                                 もともと裾が長い。clean 13.6〜22.5dB に対し
+ *                                 打鍵入りも 13.5〜22.5dB）
+ *
+ * 効いたのは「前後 IMPULSE_GAP_MS のレベルより IMPULSE_RISE_DB 以上高い短フレーム」の
+ * 毎秒回数。発話の立ち上がりは高いレベルが100ms以上続くので、前後**両側**を
+ * 条件にすると外れる。閾値の掃引（validation の全941件）:
+ *
+ *   0.20回/秒 … 適合率 0.590 / 再現率 0.958
+ *   0.35回/秒 … 適合率 0.976 / 再現率 0.833
+ *   0.50回/秒 … 適合率 1.000 / 再現率 0.750   ← 採用
+ *   0.80回/秒 … 適合率 1.000 / 再現率 0.417
+ *
+ * **空振りは見落としより重い**ので、空振りが0になる最小の値を採る。0.35回/秒で
+ * 唯一の空振りになるのは劣化なしに近い素材（ksp）で、この話者は子音の立ち上がりが
+ * 鋭い。声質を「打鍵音がある」と申告するのは、この道具がいちばんしてはいけない誤り。
+ */
+function measureImpulsePeaks(data: Float32Array, sampleRate: number): number {
+  const frame = Math.max(1, Math.round(sampleRate * IMPULSE_FRAME_MS / 1000));
+  const levels = frameRmsList(data, frame).map(dbfs);
+  const gap = Math.max(1, Math.round(IMPULSE_GAP_MS / IMPULSE_FRAME_MS));
+  const seconds = data.length / sampleRate;
+  if (seconds <= 0 || levels.length <= gap * 2) return 0;
+
+  let peaks = 0;
+  for (let i = gap; i + gap < levels.length; i++) {
+    if (levels[i] - levels[i - gap] >= IMPULSE_RISE_DB
+      && levels[i] - levels[i + gap] >= IMPULSE_RISE_DB) peaks++;
+  }
+  return peaks / seconds;
 }
 
 /** 完全な無音(値がちょうど0)が連続した最長区間[ms] */

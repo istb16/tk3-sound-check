@@ -921,6 +921,57 @@ function pauseStats(rows: Row[]): PauseStat[] {
 }
 
 // ==========================================================================
+// 衝撃性ノイズの検出
+// ==========================================================================
+
+/**
+ * `impulsive-noise` フラグの的中と空振り。
+ *
+ * ノイズ軸はこの種のノイズに無反応なので、**スコアで表現できない事実を
+ * フラグで申告する**。助言と同じ扱いで、空振りは見落としより重い。
+ *
+ * 陽性は `snrimpulse` 条件だけ。他のすべての条件（劣化なし・定常ノイズ・
+ * 多人数の話し声・残響・帯域制限…）が陰性で、そこに1件でも出たら空振りである。
+ */
+interface ImpulseDetection {
+  positives: number;
+  negatives: number;
+  truePositives: number;
+  falsePositives: number;
+  falseNegatives: number;
+  precision: number | null;
+  recall: number | null;
+  /** 空振りした行（条件の種類つき） */
+  falsePositiveIds: string[];
+}
+
+function impulseDetection(rows: Row[]): ImpulseDetection | null {
+  const list = rows.filter((r) => r.conditionType === 'snrimpulse');
+  if (list.length === 0) return null;
+
+  let tp = 0, fp = 0, fn = 0, positives = 0, negatives = 0;
+  const falsePositiveIds: string[] = [];
+  for (const r of rows) {
+    const should = r.conditionType === 'snrimpulse';
+    const flagged = r.flags.includes('impulsive-noise');
+    if (should) positives++; else negatives++;
+    if (should && flagged) tp++;
+    else if (!should && flagged) {
+      fp++;
+      if (falsePositiveIds.length < 5) falsePositiveIds.push(`${r.id} (${r.conditionType})`);
+    } else if (should && !flagged) fn++;
+  }
+
+  return {
+    positives, negatives,
+    truePositives: tp, falsePositives: fp, falseNegatives: fn,
+    precision: tp + fp > 0 ? round(tp / (tp + fp), 3) : null,
+    recall: positives > 0 ? round(tp / positives, 3) : null,
+    falsePositiveIds,
+  };
+}
+
+// ==========================================================================
 // 判定の再現性
 // ==========================================================================
 
@@ -1367,8 +1418,34 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
     L.push('');
   }
 
+  if (report.impulseDetection !== null) {
+    const d = report.impulseDetection;
+    L.push('## 8. 衝撃性ノイズの検出');
+    L.push('');
+    L.push('ノイズ軸は打鍵音のような衝撃音に無反応なので（節2の `snrimpulse` が `blind`）、');
+    L.push('**スコアで表現できない事実を加工痕跡のフラグとして申告する**。スコアと判定は');
+    L.push('動かさない。助言と同じく空振りは見落としより重い——正常な録音に');
+    L.push('「打鍵音がある」と言うほうが道具への信頼を損なう。');
+    L.push('');
+    L.push('陽性は `snrimpulse` 条件だけ。他のすべての条件が陰性で、そこに出たら空振りである。');
+    L.push('');
+    L.push('| 出すべき | 出すべきでない | 的中 | 空振り | 見落とし | 適合率 | 再現率 |');
+    L.push('|---:|---:|---:|---:|---:|---:|---:|');
+    L.push(
+      `| ${d.positives} | ${d.negatives} | ${d.truePositives} | ${d.falsePositives} | ` +
+      `${d.falseNegatives} | ${d.precision ?? 'n/a'} | ${d.recall ?? 'n/a'} |`,
+    );
+    L.push('');
+    if (d.falsePositiveIds.length > 0) {
+      L.push('空振り:');
+      L.push('');
+      for (const id of d.falsePositiveIds) L.push(`- ${id}`);
+      L.push('');
+    }
+  }
+
   if (report.reproducibility.length > 0) {
-    L.push('## 8. 判定の再現性（真値を固定して乱数だけ振る）');
+    L.push('## 9. 判定の再現性（真値を固定して乱数だけ振る）');
     L.push('');
     L.push('誤差表は「真値をずらしたときにどれだけ当たるか」を測る。しかしこの道具の出力は');
     L.push('3値の判定なので、利用者にとって意味があるのは**同じ部屋を測り直して同じ答えが');
@@ -1392,7 +1469,7 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
   }
 
   if (report.verdicts.some((v) => v.n > 0)) {
-    L.push('## 9. 判定の分離（複合条件）');
+    L.push('## 10. 判定の分離（複合条件）');
     L.push('');
     L.push('判定は**最弱の軸**で決まるので、複数の軸が同時に下がる複合条件でこそ意味を持つ。');
     L.push('「良好」の群と「不可」の群でMOSの分布が重なっているなら、閾値は意味をなしていない。');
@@ -1409,7 +1486,7 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
   }
 
   if (report.advice.some((a) => a.positives + a.negatives > 0)) {
-    L.push('## 10. 助言の的中と空振り');
+    L.push('## 11. 助言の的中と空振り');
     L.push('');
     L.push('注入した物理量から「この助言が出るべきか」の真値が作れる。**空振りは見落としより重い**——');
     L.push('出すべき助言を落とすより、直さなくてよいものを直せと言うほうが道具への信頼を損なう。');
@@ -1436,7 +1513,7 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
     }
   }
 
-  L.push('## 11. 劣化なし基準の挙動');
+  L.push('## 12. 劣化なし基準の挙動');
   L.push('');
   L.push('| id | 総合 | ノイズ | 残響 | 周波数 | 音量 | 音割れ | 帯域上限[Hz] | 検出フラグ | 参考値扱いの軸 |');
   L.push('|---|---:|---:|---:|---:|---:|---:|---:|---|---|');
@@ -1515,6 +1592,7 @@ function buildReport(rows: Row[], sources: string[], mosNote: string, mosAvailab
     drrCapability: drrCapability(rows),
     bandProfiles: bandProfileStats(rows),
     pauses: pauseStats(rows),
+    impulseDetection: impulseDetection(rows),
     reproducibility: reproducibility(rows),
     verdicts: verdictStats(rows),
     advice: adviceStats(rows),

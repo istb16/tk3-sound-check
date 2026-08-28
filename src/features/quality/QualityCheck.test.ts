@@ -37,6 +37,7 @@ const cleanProvenance = {
   cutoffDropDb: 4,
   silenceFloorDb: -52,
   maxZeroRunMs: 0,
+  impulsePeaksPerSec: 0,
   processed: false,
   flags: [],
 } satisfies AudioScores['provenance'];

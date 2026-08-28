@@ -45,6 +45,13 @@ export type QualityText = {
   provenanceBandLimited: (hz: number) => string;
   provenanceDigitalSilence: string;
   provenanceZeroRun: string;
+  /**
+   * 打鍵音のような衝撃性ノイズの申告。
+   *
+   * ノイズ軸はこの種のノイズに原理的に無反応で、SNRの測定値が実際より
+   * 9dB以上良く出る。**スコアを動かさない代わりに事実を言う。**
+   */
+  provenanceImpulsiveNoise: string;
   provenanceRawFallback: string;
   /** 信用できない軸に付けるバッジ */
   provenanceUnreliable: string;
@@ -141,6 +148,10 @@ export const T: Record<Lang, QualityText> = {
     provenanceZeroRun:
       '完全な無音が長く連続しています（ノイズゲートまたはDTXの痕跡）。' +
       '話していない区間が切り落とされています。',
+    provenanceImpulsiveNoise:
+      '打鍵音のような短い音が入っています。' +
+      'この種の音は背景ノイズの測定値にほとんど乗らないため、' +
+      '**ノイズの点数は実際より良く出ています**。キーボードから離れて録り直すと確実です。',
     provenanceRawFallback:
       'このブラウザでは生の音声を取得できず、圧縮された録音を分析しました。' +
       'ノイズのスコアは参考値です。',
@@ -235,6 +246,11 @@ export const T: Record<Lang, QualityText> = {
     provenanceZeroRun:
       'There are long runs of absolute silence (a sign of a noise gate or DTX). ' +
       'The passages where nobody spoke have been cut away.',
+    provenanceImpulsiveNoise:
+      'Short impulsive sounds such as key clicks are present. ' +
+      'Noise like this barely registers in the background-noise measurement, so ' +
+      '**the noise score is better than the recording deserves**. ' +
+      'Recording away from the keyboard is the reliable fix.',
     provenanceRawFallback:
       'This browser could not provide raw audio, so a compressed recording was analysed. ' +
       'The noise score is indicative only.',

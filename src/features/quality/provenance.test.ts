@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { detectProvenance, unreliableAxes } from './provenance.ts';
 import { analyzeSamples } from './AudioAnalyzer.ts';
+import { addImpulses, pinkNoise, rng } from '../../test-support/signals.ts';
 
 const SR = 32000;          // ナイキスト 16kHz
 const DURATION = 2;
@@ -213,5 +214,73 @@ describe('detectProvenance — 48kHz録音', () => {
   it('48kHzのフルバンド信号は帯域制限と誤判定しない', () => {
     const p = detectProvenance(noiseAt(MIC_SR, MIC_LEN, MIC_SR / 2), MIC_SR);
     expect(p.flags).not.toContain('band-limited');
+  });
+});
+
+describe('衝撃性ノイズの検出', () => {
+  const SPEECH_SR = 16000;
+  const SPEECH_LEN = SPEECH_SR * 10;
+
+  /**
+   * 発話らしい信号。有音区間と無音区間を交互に持つ。
+   * 衝撃音の検出は「前後より突出した短い立ち上がり」を数えるので、
+   * 発話の立ち上がり・立ち下がりで誤検出しないことをここで確かめる。
+   */
+  function speechLike(): Float32Array {
+    const data = new Float32Array(SPEECH_LEN);
+    const rand = rng(4242);
+    // 0.6秒発話 / 0.4秒無音を繰り返す
+    for (let t = 0; t < SPEECH_LEN; t++) {
+      const phase = (t / SPEECH_SR) % 1;
+      const voiced = phase < 0.6;
+      const env = voiced ? 0.2 * (0.6 + 0.4 * Math.sin((phase / 0.6) * Math.PI)) : 0.0004;
+      // 200Hz の基音に3つのフォルマントを重ねた粗い模擬
+      const s = Math.sin((2 * Math.PI * 200 * t) / SPEECH_SR)
+        + 0.5 * Math.sin((2 * Math.PI * 700 * t) / SPEECH_SR)
+        + 0.3 * Math.sin((2 * Math.PI * 1800 * t) / SPEECH_SR);
+      data[t] = env * (s / 1.8) + 0.0003 * (rand() * 2 - 1);
+    }
+    return data;
+  }
+
+  it('打鍵音を入れると申告する', () => {
+    // 毎秒2回。検出の閾値(0.5回/秒)より十分多い
+    const times: number[] = [];
+    for (let t = 0.15; t < 9.5; t += 0.5) times.push(t);
+    const data = addImpulses(speechLike(), SPEECH_SR, times, 0.35, 7);
+
+    const p = detectProvenance(data, SPEECH_SR);
+    expect(p.impulsePeaksPerSec).toBeGreaterThanOrEqual(0.5);
+    expect(p.flags).toContain('impulsive-noise');
+  });
+
+  it('発話だけなら申告しない', () => {
+    // 空振りは見落としより重い。発話の立ち上がりを衝撃音と数えてはいけない
+    const p = detectProvenance(speechLike(), SPEECH_SR);
+    expect(p.impulsePeaksPerSec).toBeLessThan(0.5);
+    expect(p.flags).not.toContain('impulsive-noise');
+  });
+
+  it('定常ノイズを足しても申告しない', () => {
+    const data = speechLike();
+    const noise = pinkNoise(data.length, 0.01, 99);
+    for (let i = 0; i < data.length; i++) data[i] += noise[i];
+
+    const p = detectProvenance(data, SPEECH_SR);
+    expect(p.flags).not.toContain('impulsive-noise');
+  });
+
+  it('申告してもスコアと判定は動かさない', () => {
+    // 加工痕跡と同じ扱い。参考値に落とすと、空振りしたときに
+    // 正常な録音のノイズ軸が消えることになる
+    const times: number[] = [];
+    for (let t = 0.15; t < 9.5; t += 0.5) times.push(t);
+    const clean = speechLike();
+    const clicky = addImpulses(speechLike(), SPEECH_SR, times, 0.35, 7);
+
+    const a = analyzeSamples(clean, SPEECH_SR);
+    const b = analyzeSamples(clicky, SPEECH_SR);
+    expect(b.provenance.flags).toContain('impulsive-noise');
+    expect(b.unreliable).toEqual(a.unreliable);
   });
 });

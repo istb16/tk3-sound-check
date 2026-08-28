@@ -51,6 +51,7 @@
     if (p.flags.includes('band-limited'))    msgs.push(t.provenanceBandLimited(p.bandwidthHz));
     if (p.flags.includes('digital-silence')) msgs.push(t.provenanceDigitalSilence);
     if (p.flags.includes('zero-run'))        msgs.push(t.provenanceZeroRun);
+    if (p.flags.includes('impulsive-noise')) msgs.push(t.provenanceImpulsiveNoise);
     if (!rawCapture)                         msgs.push(t.provenanceRawFallback);
     return msgs;
   });

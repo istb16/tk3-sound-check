@@ -41,7 +41,7 @@ const mockScores: AudioScores = {
   advice: [],
   provenance: {
     bandwidthHz: 8000, cutoffDropDb: 4, silenceFloorDb: -52,
-    maxZeroRunMs: 0, processed: false, flags: [],
+    maxZeroRunMs: 0, impulsePeaksPerSec: 0, processed: false, flags: [],
   },
   rt60Sec: 0.45,
   unreliable: [],

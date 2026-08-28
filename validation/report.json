@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T03:40:13.072Z",
+  "generatedAt": "2026-08-28T03:48:02.750Z",
   "sources": [
     "corpus:cmu-arctic-files-awb(3本)@16000Hz",
     "corpus:cmu-arctic-files-awb(3本)@48000Hz",
@@ -1850,6 +1850,16 @@
       "fellBack": 0
     }
   ],
+  "impulseDetection": {
+    "positives": 48,
+    "negatives": 893,
+    "truePositives": 36,
+    "falsePositives": 0,
+    "falseNegatives": 12,
+    "precision": 1,
+    "recall": 0.75,
+    "falsePositiveIds": []
+  },
   "reproducibility": [
     {
       "rt60Sec": 0.5,
@@ -5693,7 +5703,9 @@
       "rt60Estimate": 0.5096164653117553,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
@@ -5724,7 +5736,9 @@
       "rt60Estimate": 0.48421168727602576,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
@@ -5755,7 +5769,9 @@
       "rt60Estimate": 0.7374584532434983,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [
         "reverb"
       ],
@@ -5790,7 +5806,9 @@
       "rt60Estimate": 0.6955780414846746,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "poor",
       "verdictUnconfirmed": false,
@@ -8284,7 +8302,9 @@
       "rt60Estimate": 0.4852289168810928,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
@@ -8315,7 +8335,9 @@
       "rt60Estimate": 0.4852289168810928,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
@@ -12259,7 +12281,9 @@
       "rt60Estimate": 0.1667692436399261,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [
         "reverb"
       ],
@@ -12292,7 +12316,9 @@
       "rt60Estimate": 0.24920956820253515,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [
         "reverb"
       ],
@@ -12325,7 +12351,9 @@
       "rt60Estimate": 0.19343470023084997,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
@@ -14826,7 +14854,9 @@
       "rt60Estimate": 0.18226389406379095,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
@@ -14890,7 +14920,9 @@
       "rt60Estimate": 0.18194549333372934,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
@@ -14921,7 +14953,9 @@
       "rt60Estimate": 0.18353832313718985,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [
         "reverb"
       ],
@@ -18839,7 +18873,9 @@
       "rt60Estimate": 0.5540653159923152,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [
         "reverb"
       ],
@@ -18872,7 +18908,9 @@
       "rt60Estimate": null,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [
         "reverb"
       ],
@@ -18907,7 +18945,9 @@
       "rt60Estimate": 0.329034268744792,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [
         "reverb"
       ],
@@ -18940,7 +18980,9 @@
       "rt60Estimate": 0.28906767966051017,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [
         "reverb"
       ],
@@ -21502,7 +21544,9 @@
       "rt60Estimate": 0.3011622419984422,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [
         "reverb"
       ],
@@ -21535,7 +21579,9 @@
       "rt60Estimate": 0.3011622419984422,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
@@ -21566,7 +21612,9 @@
       "rt60Estimate": 0.5564405154344292,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [
         "reverb"
       ],
@@ -21599,7 +21647,9 @@
       "rt60Estimate": 0.28798533768936946,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [
         "reverb"
       ],
@@ -25561,7 +25611,9 @@
       "rt60Estimate": 0.22317796131968032,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [
         "reverb"
       ],
@@ -25594,7 +25646,9 @@
       "rt60Estimate": 0.1961852759149149,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [
         "reverb"
       ],
@@ -25627,7 +25681,9 @@
       "rt60Estimate": 0.19355312610353817,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [
         "reverb"
       ],
@@ -28172,7 +28228,9 @@
       "rt60Estimate": 0.20027434416086684,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [
         "reverb"
       ],
@@ -28238,7 +28296,9 @@
       "rt60Estimate": 0.2003363351032221,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [
         "reverb"
       ],
@@ -28271,7 +28331,9 @@
       "rt60Estimate": 0.23883337897501772,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
@@ -28302,7 +28364,9 @@
       "rt60Estimate": 0.17747866473421708,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [
         "reverb"
       ],
@@ -32194,7 +32258,9 @@
       "rt60Estimate": 0.2761297401023797,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
@@ -32225,7 +32291,9 @@
       "rt60Estimate": 0.2761297401023797,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
@@ -32287,7 +32355,9 @@
       "rt60Estimate": 0.32899813150757556,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
@@ -32318,7 +32388,9 @@
       "rt60Estimate": 0.2518583770158909,
       "rt60Truth": null,
       "bandwidthHz": 8000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
@@ -34810,7 +34882,9 @@
       "rt60Estimate": 0.24674527942914085,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
@@ -34841,7 +34915,9 @@
       "rt60Estimate": 0.24405459626539444,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
@@ -34872,7 +34948,9 @@
       "rt60Estimate": 0.3045870838765613,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
@@ -34903,7 +34981,9 @@
       "rt60Estimate": 0.2706283015133365,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
@@ -34934,7 +35014,9 @@
       "rt60Estimate": 0.24674527942914085,
       "rt60Truth": null,
       "bandwidthHz": 24000,
-      "flags": [],
+      "flags": [
+        "impulsive-noise"
+      ],
       "unreliable": [],
       "verdict": "good",
       "verdictUnconfirmed": false,
