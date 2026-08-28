@@ -5,8 +5,15 @@ import { MONITOR, type MonitorText } from '../common-text.ts';
 export type VolumeText = MonitorText & {
   name: string;
   summary: string;
-  /** 何をする（しない）機能かの説明。開始前の画面に出す */
+  /**
+   * 何をする（しない）機能かの説明。
+   *
+   * 画面を開くとそのまま測り始めるので、**通常は誰も読まない**——出るのは
+   * 起動に失敗したときと、自分で停止したあとだけである。読まれないから
+   * 削るのではなく、その2つの画面には他に読むものが無いから残している。
+   */
   note: string;
+  /** 起動に失敗したとき／自分で止めたあとの、測り始めるボタン */
   startBtn: string;
   /** 中断しても基準は残っていることの断り */
   stalledKeepsReference: string;
@@ -85,7 +92,7 @@ export const T: Record<Lang, VolumeText> = {
     name:    'ボリュームチェック',
     summary: '会場の音量を測り、ミキサーで動かした量を数値で見る。',
     note:
-      '会場でPAから流れている音をマイクで拾い続け、「基準にする」を押した時点からの' +
+      '会場でPAから流れている音をマイクで拾い続け、「基準を計測する」を押した時点からの' +
       '変化量を dB で表示します。フェーダーをどれだけ動かしたかが数値で見えます。\n' +
       'マイクの感度が判別できないため、実際の音圧（dBA）は原理的に出せません。',
     startBtn:          '測定を開始',
@@ -99,11 +106,11 @@ export const T: Record<Lang, VolumeText> = {
       '再開したときに別のマイクが開いたため、基準を破棄しました。取り直してください。',
     referenceUnverified:
       '再開したときに同じマイクかを確認できなかったため、基準を破棄しました。取り直してください。',
-    setReferenceBtn:   '基準にする',
+    setReferenceBtn:   '基準を計測する',
     clearReferenceBtn: '基準を消す',
     setReferenceTitle: '基準を取ってください',
     capturingReferenceTitle: '基準を測っています',
-    noReference:       '「基準にする」を押すと、そこから10秒の平均を基準にして、変化量を表示します。',
+    noReference:       '「基準を計測する」を押すと、そこから10秒の平均を基準にして、変化量を表示します。',
     peakLabel:         'ピーク',
     leqNote:           '直近10秒の平均（A特性）',
     settlingNote:      (sec) => `レベルが変わりました。確定まであと ${sec} 秒（この数値はまだ動きます）`,
@@ -133,7 +140,7 @@ export const T: Record<Lang, VolumeText> = {
     summary: 'Measure venue level and see how much a fader move actually changed it.',
     note:
       'It listens to what the PA is playing and shows how far the level has moved, in dB, ' +
-      'from the moment you press "Set reference". You can see exactly how much a fader move changed.\n' +
+      'from the moment you press "Measure reference". You can see exactly how much a fader move changed.\n' +
       'The microphone sensitivity cannot be determined, so absolute sound pressure (dBA) ' +
       'is impossible in principle.',
     startBtn:          'Start measuring',
@@ -147,12 +154,12 @@ export const T: Record<Lang, VolumeText> = {
       'A different microphone opened on resume, so the reference was dropped. Set it again.',
     referenceUnverified:
       'We could not confirm the same microphone came back on resume, so the reference was dropped. Set it again.',
-    setReferenceBtn:   'Set reference',
+    setReferenceBtn:   'Measure reference',
     clearReferenceBtn: 'Clear reference',
     setReferenceTitle: 'Set a reference',
     capturingReferenceTitle: 'Measuring the reference',
     noReference:
-      'Press "Set reference" to average the next 10 seconds and show the change from there.',
+      'Press "Measure reference" to average the next 10 seconds and show the change from there.',
     peakLabel:         'Peak',
     leqNote:           '10-second average (A-weighted)',
     settlingNote:      (sec) => `The level changed. ${sec} s until this settles (the number is still moving)`,

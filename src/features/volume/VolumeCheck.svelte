@@ -5,7 +5,7 @@
    * 音質チェックとは形が違う。終わりが無く、点数も無く、停止しても何も残らない。
    * だから AppState（idle/recording/analyzing/done）は共有しない。
    */
-  import { onDestroy } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import type { Lang } from '../../shell/i18n.ts';
   import { DEFAULT_STALL_MS, MonitorSession } from '../../lib/audio/session.svelte.ts';
   import { T } from './i18n.ts';
@@ -190,6 +190,19 @@
   }
 
   const start = (): void => { referenceDropped = ''; void session.start(); };
+
+  /**
+   * 画面を開いたらそのまま測り始める。**「測定を開始」の画面は挟まない。**
+   *
+   * この機能はマイクを開かないと何一つ表示できない——開始前の画面には
+   * 押すべきボタンが1つしか無く、読んで決めることも無い。会場でフェーダーの
+   * 前に立っている人に、意味のある選択肢の無い画面を1枚踏ませる理由が無い。
+   *
+   * 失敗したときの画面（説明＋もう一度試す）は残す。自動起動は利用者の操作を
+   * 経ていないので、自動再生ポリシーで AudioContext を起こせない開き方
+   * （リンクを直接踏んだ直後など）があり、そのときは押してもらう必要がある。
+   */
+  onMount(start);
 
   /**
    * 基準の測定を始める。**押した時点の Leq を写すのではない。**

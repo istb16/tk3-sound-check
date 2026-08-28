@@ -326,10 +326,14 @@ describe('シェル — 各機能への入口', () => {
   });
 
   it('/volume はボリュームチェック本体を出す', async () => {
+    // ボリュームチェックは開いた時点で測り始める（開始ボタンの画面を挟まない）
+    vi.mocked(startMonitor).mockResolvedValue({
+      stop: vi.fn(), sampleRate: 48000, deviceLabel: 'テスト用マイク', autoGainControl: false,
+    });
     router.path = '/volume';
     mountApp();
 
-    await expect.element(page.getByRole('button', { name: '測定を開始' })).toBeVisible();
+    await expect.element(page.getByRole('button', { name: '基準を計測する' })).toBeVisible();
   });
 
   it('/howling はハウリングチェック本体を出す', async () => {
@@ -384,7 +388,6 @@ describe('シェル — 言語切替', () => {
 
     router.path = '/volume';
     mountApp();
-    await page.getByRole('button', { name: '測定を開始' }).click();
     await expect.element(page.getByText(/マイクへのアクセスが拒否されました/)).toBeVisible();
 
     await page.getByRole('button', { name: 'EN' }).click();
