@@ -28,6 +28,7 @@ import {
 import { detectProvenance } from '../src/features/quality/provenance.ts';
 import {
   analyzeSamples, AXIS_MAX, AXIS_RATIO_PER_UNIT, AXIS_RATIO_UNCERTAINTY,
+  type AudioScores,
 } from '../src/features/quality/AudioAnalyzer.ts';
 import { scoreMos } from './mos-oracle.ts';
 
@@ -91,8 +92,13 @@ interface Row {
   unreliable: string[];
   /** 総合判定 good/usable/poor */
   verdict: string;
-  /** 測れていない軸があるため good を出さなかったか */
-  verdictUnconfirmed: boolean;
+  /**
+   * 判定を断定しなかった理由。`false` なら断定している。
+   *
+   * boolean ではなく理由を持つ。「測れなかった」と「測れたが境界の誤差圏内」は
+   * 利用者にとって別の状況で、レポートでも分けて数えられる必要がある。
+   */
+  verdictUnconfirmed: AudioScores['verdict']['unconfirmed'];
   /**
    * 出した助言のコード。
    *
