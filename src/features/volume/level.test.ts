@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   VolumeMeter, barRatio,
-  FLOOR_DB, FRAME_MS, LEQ_WINDOW_SEC, CLIP_WINDOW_SEC, NEAR_CLIP_WARN_SEC,
+  FLOOR_DB, FRAME_MS, LEQ_WINDOW_SEC, CLIP_WINDOW_SEC, NEAR_CLIP_WARN_SEC, STEP_DB,
 } from './level.ts';
 import { pinkNoise, silence, sine } from '../../test-support/signals.ts';
 
@@ -365,6 +365,30 @@ describe('VolumeMeter — 基準の測定', () => {
     expect(meter.state.referenceCapturing).toBe(false);
     expect(meter.state.referenceRemainingSec).toBe(0);
     expect(meter.state.referenceDb).not.toBeNull();
+  });
+
+  it('測っている間にレベルが変わったら申告する', () => {
+    // 遡らないだけでは足りない。測定中に変われば同じ混合が起きるが、窓が
+    // 入れ替われば収束中の断りは消えるので、確定した数値の顔で出てしまう
+    const material = pinkNoise(SR * LEQ_WINDOW_SEC, 0.05, 46);
+    const sig = Float32Array.from(material);
+    for (let i = SR * 3; i < sig.length; i++) sig[i] *= 2; // 押した3秒後に +6.02dB
+
+    const meter = new VolumeMeter(SR);
+    meter.beginReference();
+    meter.push(sig);
+
+    expect(meter.state.referenceDb).not.toBeNull();
+    expect(Math.abs(meter.state.referenceStepDb)).toBeGreaterThan(STEP_DB);
+  });
+
+  it('レベルが変わらなければ申告しない', () => {
+    const meter = new VolumeMeter(SR);
+    meter.beginReference();
+    meter.push(pinkNoise(SR * LEQ_WINDOW_SEC, 0.05, 47));
+
+    expect(meter.state.referenceDb).not.toBeNull();
+    expect(meter.state.referenceStepDb).toBe(0);
   });
 
   it('clearReference は測定中でも捨てる', () => {

@@ -42,6 +42,12 @@
   let capturingRef = $state(false);
   let refRemainingSec = $state(LEQ_WINDOW_SEC);
   /**
+   * 基準を測っている間にレベルが変わったか。**基準を取り直すまで消えない。**
+   * 窓が入れ替われば収束中の断りは消えるので、これを持たないと
+   * 混合した基準からの差が確定した数値の顔で出続ける。
+   */
+  let referenceUnsettled = $state(false);
+  /**
    * 再開時に基準を捨てた理由。空文字なら捨てていない。
    *
    * 「別のマイクだった」と「同じマイクか確かめられなかった」を分けるのは、
@@ -66,9 +72,11 @@
       if (resumed && reference !== null) {
         if (!deviceLabel || !previousDeviceLabel) {
           reference = referenceZ = null;
+          referenceUnsettled = false;
           referenceDropped = 'device-unknown';
         } else if (deviceLabel !== previousDeviceLabel) {
           reference = referenceZ = null;
+          referenceUnsettled = false;
           referenceDropped = 'device-changed';
         }
       }
@@ -92,7 +100,11 @@
       // 会場の状態は変わっているので、捨てると「さっきと比べてどうか」を
       // 取り戻す手立てが無くなる。**「基準は保持しています」と出した直後に
       // 再開が失敗して黙って捨てる**のが、いちばん質の悪い裏切り方になる
-      if (reason === 'user') { reference = referenceZ = null; referenceDropped = ''; }
+      if (reason === 'user') {
+        reference = referenceZ = null;
+        referenceUnsettled = false;
+        referenceDropped = '';
+      }
     },
     // 画面が消えて計測が止まったとき、固まった「+3.5dB」は正しい測定値と
     // 見分けがつかない。そのままフェーダーを動かされるのが最悪の結末なので、
@@ -135,6 +147,12 @@
    */
   const settling = $derived(diffDb !== null && settlingSec > 0);
 
+  /**
+   * 数値を確定した顔で出してよくない状態。収束中か、基準が混合しているとき。
+   * どちらも「読んだ値を信じてフェーダーを動かす」のが危ない点で同じである。
+   */
+  const tentative = $derived(settling || referenceUnsettled);
+
   /** 同じ瞬間の重み付け無しの差。主役とは別物なので、食い違うときだけ出す */
   const diffZDb = $derived(showDb && referenceZ !== null ? leqZDb - referenceZ : null);
   const bandMismatch = $derived(
@@ -166,6 +184,8 @@
     if (s.referenceDb !== null && reference === null) {
       reference  = s.referenceDb;
       referenceZ = s.referenceZDb;
+      // 測っている10秒の中でレベルが変わっていたら、この基準は混合である
+      referenceUnsettled = s.referenceStepDb !== 0;
     }
   }
 
@@ -181,6 +201,7 @@
    */
   function setReference(): void {
     reference = referenceZ = null;
+    referenceUnsettled = false;
     meter?.beginReference();
     capturingRef = true;
     refRemainingSec = LEQ_WINDOW_SEC;
@@ -189,6 +210,7 @@
 
   function clearReference(): void {
     reference = referenceZ = null;
+    referenceUnsettled = false;
     meter?.clearReference();
     capturingRef = false;
   }
@@ -244,6 +266,10 @@
         <p class="error" role="alert">{t.agcWarning}</p>
       {/if}
 
+      {#if referenceUnsettled}
+        <p class="error" role="status">{t.referenceUnsettled}</p>
+      {/if}
+
       {#if referenceDropped}
         <p class="error" role="alert">
           {referenceDropped === 'device-changed' ? t.referenceDropped : t.referenceUnverified}
@@ -273,9 +299,9 @@
              断言する見た目にすると、注意書きより先に色のほうが読まれる -->
         <p
           class="big"
-          class:settling
-          class:up={!settling && diffDb > 0.05}
-          class:down={!settling && diffDb < -0.05}
+          class:settling={tentative}
+          class:up={!tentative && diffDb > 0.05}
+          class:down={!tentative && diffDb < -0.05}
         >
           {formatSigned(diffDb)}<span class="unit">dB</span>
         </p>

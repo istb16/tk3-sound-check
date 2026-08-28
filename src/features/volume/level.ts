@@ -193,6 +193,16 @@ export interface MeterState {
   referenceCapturing: boolean;
   /** 基準が揃うまでの残り秒数 */
   referenceRemainingSec: number;
+  /**
+   * 基準を測っている10秒の中で見つかった段差[dB]。0 なら単一のレベルだった。
+   *
+   * **遡らないだけでは足りない。** 押す前のレベル変化は混ざらなくなったが、
+   * 測っている最中に変わればやはり混合した基準が焼き付く——押した3秒後に
+   * +6.02dB 動かすと、以後ずっと +1.07dB が出続ける。しかも窓が入れ替われば
+   * `settlingRemainingSec` は 0 に戻るので、**確定した数値の顔で出る**。
+   * 基準が揃った時点の窓はちょうど測定区間と一致するので、そこで段差を見る。
+   */
+  referenceStepDb: number;
 }
 
 /** 無音（完全な0）のときに返す下限。-Infinity を画面に出さないため */
@@ -205,9 +215,9 @@ export const FLOOR_DB = -120;
  * 本物の段差に対しては正確で、定常ピンクノイズに +6dB を与えた3秒後に
  * 「5.99dB / 旧フレーム残 70」（真値 70）を返す。
  *
- * ただし分割点は窓の両端 STEP_MIN_FRAMES フレームには置けないので、**操作の
- * 直後と直前だけは位置が端に張り付く**。そのぶん残り秒数は 0.5〜9.5秒の範囲に
- * 収まり、真値が 9.5秒を超える最初の0.5秒間は動かない。
+ * ただし分割点は窓の両端 STEP_MIN_FRAMES フレーム(0.2秒)には置けないので、
+ * **操作の直後と直前だけは位置が端に張り付く**。そのぶん残り秒数は 0.2〜9.8秒の
+ * 範囲に収まり、真値が 9.8秒を超える最初の0.2秒間は動かない。
  *
  * 「フェーダーが動いたか」は分からない。分かるのは**10秒前と今でレベルが
  * 違うこと**だけで、それがこの表示に必要な全部である。
@@ -276,6 +286,7 @@ export class VolumeMeter {
   private refTarget = 0;
   private refDb: number | null = null;
   private refZDb: number | null = null;
+  private refStepDb = 0;
 
   constructor(sampleRate: number) {
     this.filter = new AWeightingFilter(sampleRate);
@@ -302,6 +313,7 @@ export class VolumeMeter {
     this.refTarget = (LEQ_WINDOW_SEC * 1000) / FRAME_MS;
     this.refDb = null;
     this.refZDb = null;
+    this.refStepDb = 0;
   }
 
   /** 基準を捨てる。測定中なら中止する */
@@ -312,6 +324,7 @@ export class VolumeMeter {
     this.refTarget = 0;
     this.refDb = null;
     this.refZDb = null;
+    this.refStepDb = 0;
   }
 
   /**
@@ -354,6 +367,9 @@ export class VolumeMeter {
         const mz = this.refSumZ / this.refFrames;
         this.refDb  = m  > 0 ? dbfs(Math.sqrt(m))  : FLOOR_DB;
         this.refZDb = mz > 0 ? dbfs(Math.sqrt(mz)) : FLOOR_DB;
+        // このとき powers の窓はちょうど測定区間と一致する。測っている最中に
+        // レベルが変わっていたら、この基準からの差は信用できない
+        this.refStepDb = this.powers.full ? detectStep(this.powers.values).stepDb : 0;
         this.refTarget = 0;
       }
     }
@@ -408,7 +424,9 @@ export class VolumeMeter {
   }
 
   private get referenceState(): Pick<
-    MeterState, 'referenceDb' | 'referenceZDb' | 'referenceCapturing' | 'referenceRemainingSec'
+    MeterState,
+    | 'referenceDb' | 'referenceZDb' | 'referenceCapturing'
+    | 'referenceRemainingSec' | 'referenceStepDb'
   > {
     return {
       referenceDb:  this.refDb,
@@ -416,6 +434,7 @@ export class VolumeMeter {
       referenceCapturing: this.refTarget > 0,
       referenceRemainingSec:
         this.refTarget > 0 ? ((this.refTarget - this.refFrames) * FRAME_MS) / 1000 : 0,
+      referenceStepDb: this.refStepDb,
     };
   }
 }

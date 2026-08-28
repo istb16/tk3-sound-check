@@ -239,6 +239,39 @@ describe('ボリュームチェック — 収束中（フェーダーを動か�
   });
 });
 
+describe('ボリュームチェック — 基準を測っている間のレベル変化', () => {
+  it('取り直すまで断り続け、数値を確定した顔にしない', async () => {
+    // 基準を遡らせないことで押す前のレベル変化は混ざらなくなったが、
+    // 測っている10秒の最中に変われば同じ混合が焼き付く。しかも窓が
+    // 入れ替われば収束中の断りは消えるので、これが無いと確定した顔で出る
+    mockMonitorOk();
+    mountApp();
+    await page.getByRole('button', { name: '測定を開始' }).click();
+    await page.getByRole('button', { name: '基準にする' }).click();
+
+    // 押した3秒後にフェーダーが +6dB 動いた形
+    feed!(sine(1000, 3, 0.25, SR));
+    feed!(sine(1000, LEQ_WINDOW_SEC - 3, 0.5, SR));
+
+    await expect.element(page.getByText(/基準を測っている間にレベルが変わりました/))
+      .toBeVisible();
+    expect(document.querySelector('.big.settling')).not.toBeNull();
+
+    // 窓が入れ替わると収束中は消えるが、基準の汚れは消えない
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    await expect.poll(() => document.body.textContent?.includes('確定まであと')).toBe(false);
+    await expect.element(page.getByText(/基準を測っている間にレベルが変わりました/))
+      .toBeVisible();
+
+    // 取り直せば消える
+    await page.getByRole('button', { name: '基準を消す' }).click();
+    await page.getByRole('button', { name: '基準にする' }).click();
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    await expect.poll(bigText).toMatch(/±0\.0dB/);
+    expect(document.body.textContent).not.toContain('基準を測っている間に');
+  });
+});
+
 describe('ボリュームチェック — 帯域ごとに変化量が違うとき', () => {
   it('低域だけが動いたときは重み付け無しの差を並べて断る', async () => {
     // 「同じ端末・同じ場所なら差は正しい」が成り立つのは全帯域が一律に

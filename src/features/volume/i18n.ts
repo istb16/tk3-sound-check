@@ -54,6 +54,14 @@ export type VolumeText = MonitorText & {
   /** 端末側のAGCを切れなかった。レベル比較そのものが成立しない */
   agcWarning: string;
   /**
+   * 基準を測っている10秒の中でレベルが変わった。
+   *
+   * 遡らないだけでは足りない——測っている最中に変われば、やはり混合した基準が
+   * 焼き付く。窓が入れ替われば収束中の断りは消えるので、これが無いと確定した
+   * 数値の顔で誤った差が出続ける。
+   */
+  referenceUnsettled: string;
+  /**
    * Leq の窓が埋まるまでの見出しと残り秒数。埋まるまで基準は取れず、dB も出さない。
    * 見出しと秒数を分けているのは、秒数だけを大きく出すため
    */
@@ -106,6 +114,9 @@ export const T: Record<Lang, VolumeText> = {
     agcWarning:
       'この端末は自動ゲイン調整を切れませんでした。端末が音量を勝手に戻すため、' +
       '変化量は信用できません。',
+    referenceUnsettled:
+      '基準を測っている間にレベルが変わりました。この基準からの差は信用できません。' +
+      '取り直してください。',
     warmingUpTitle:      '測定を安定させています',
     warmingUpRemaining:  (sec) => `あと ${sec} 秒`,
     clipLabel:         '音割れ',
@@ -152,6 +163,9 @@ export const T: Record<Lang, VolumeText> = {
     agcWarning:
       'This device would not turn off automatic gain control. It moves the level back on its own, ' +
       'so the change shown cannot be trusted.',
+    referenceUnsettled:
+      'The level changed while the reference was being measured, so the change shown from it ' +
+      'cannot be trusted. Set the reference again.',
     warmingUpTitle:      'Settling the measurement',
     warmingUpRemaining:  (sec) => `${sec} s to go`,
     clipLabel:         'Clipping',
