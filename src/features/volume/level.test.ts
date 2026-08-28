@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   VolumeMeter, barRatio,
-  FLOOR_DB, FRAME_MS, LEQ_WINDOW_SEC, CLIP_WINDOW_SEC,
+  FLOOR_DB, FRAME_MS, LEQ_WINDOW_SEC, CLIP_WINDOW_SEC, NEAR_CLIP_WARN_SEC,
 } from './level.ts';
-import { silence, sine } from '../../test-support/signals.ts';
+import { pinkNoise, silence, sine } from '../../test-support/signals.ts';
 
 const SR = 48000;
 
@@ -65,7 +65,26 @@ describe('VolumeMeter — レベル', () => {
     expect(meter.state.leqReady).toBe(true);
   });
 
-  it('ピークホールドは直近1秒の最大値', () => {
+});
+
+describe('VolumeMeter — ピークホールド', () => {
+  it('RMSではなくサンプルピークを返す', () => {
+    // 振幅0.5の正弦波: ピークは -6.02dBFS、実効値は -9.03dBFS。
+    // 「RMSでは見えない波高を示す」ためにあるので、RMSを返していては役に立たない
+    const meter = new VolumeMeter(SR);
+    meter.push(sine(1000, 0.5, 0.5));
+    expect(meter.state.peakHoldDb).toBeCloseTo(-6.02, 1);
+  });
+
+  it('A特性で落ちる低域でも入力段の振幅を示す', () => {
+    // 60Hz はA特性で約27dB落ちる。重み付け後のRMSで見ていると、入力段が
+    // 振り切っている波形が -30dBFS と表示されて、頭が空いているように読める
+    const meter = new VolumeMeter(SR);
+    meter.push(sine(60, 0.5, 0.999));
+    expect(meter.state.peakHoldDb).toBeGreaterThan(-0.2);
+  });
+
+  it('直近1秒だけを保持する', () => {
     const meter = new VolumeMeter(SR);
     meter.push(sine(1000, 0.2, 0.5));
     const afterLoud = meter.state.peakHoldDb;
@@ -75,7 +94,40 @@ describe('VolumeMeter — レベル', () => {
     expect(meter.state.peakHoldDb).toBeCloseTo(afterLoud, 5);
 
     meter.push(sine(1000, 1.0, 0.01));
-    expect(meter.state.peakHoldDb).toBeLessThan(afterLoud - 20);
+    expect(meter.state.peakHoldDb).toBeCloseTo(-40, 1);
+  });
+});
+
+describe('VolumeMeter — 重み付け無し(Z特性)のLeq', () => {
+  it('全帯域が一律に動いたときはA特性の差と一致する', () => {
+    const before = new VolumeMeter(SR);
+    before.push(pinkNoise(SR * LEQ_WINDOW_SEC, 0.05, 7));
+    const after = new VolumeMeter(SR);
+    const loud = pinkNoise(SR * LEQ_WINDOW_SEC, 0.05, 7);
+    for (let i = 0; i < loud.length; i++) loud[i] *= 2; // +6.02dB
+
+    after.push(loud);
+    const diffA = after.state.leqDb  - before.state.leqDb;
+    const diffZ = after.state.leqZDb - before.state.leqZDb;
+    expect(diffA).toBeCloseTo(6.02, 1);
+    expect(diffZ).toBeCloseTo(6.02, 1);
+  });
+
+  it('低域だけを動かすと差が食い違う（A特性は小さく見せる）', () => {
+    // 「同じ端末・同じ場所なら差は正しい」が成り立つのは全帯域が一律に
+    // 動いたときだけである。サブのフェーダーを上げた形を作って確かめる
+    const base = pinkNoise(SR * LEQ_WINDOW_SEC, 0.05, 11);
+    const boosted = Float32Array.from(base);
+    // 60Hz の成分だけを足す。A特性では約27dB落ちるが、入力には確かに入っている
+    const tone = sine(60, LEQ_WINDOW_SEC, 0.05, SR);
+    for (let i = 0; i < boosted.length; i++) boosted[i] += tone[i];
+
+    const before = new VolumeMeter(SR); before.push(base);
+    const after  = new VolumeMeter(SR); after.push(boosted);
+    const diffA = after.state.leqDb  - before.state.leqDb;
+    const diffZ = after.state.leqZDb - before.state.leqZDb;
+
+    expect(diffZ).toBeGreaterThan(diffA + 1);
   });
 });
 
@@ -144,8 +196,24 @@ describe('VolumeMeter — 音割れ', () => {
     expect(meter.state.clipSeconds).toBe(0);
   });
 
+  it('割れる手前の「限界に近い」を別に数える', () => {
+    // -3dBFS を超えるが 0.98 には届かない。飽和で差が縮み始める領域で、
+    // clipSeconds は 0 のままなので、これが無いと警告が何も出ない
+    const meter = new VolumeMeter(SR);
+    meter.push(sine(1000, 5, 0.9));
+    expect(meter.state.clipSeconds).toBe(0);
+    expect(meter.state.nearClipSeconds).toBeCloseTo(5, 1);
+    expect(meter.state.nearClipSeconds).toBeGreaterThanOrEqual(NEAR_CLIP_WARN_SEC);
+  });
+
+  it('十分に低いレベルでは限界に近いと言わない', () => {
+    const meter = new VolumeMeter(SR);
+    meter.push(sine(1000, 5, 0.3));
+    expect(meter.state.nearClipSeconds).toBe(0);
+  });
+
   it('A特性の重み付け前の値でクリップを見る', () => {
-    // 60Hz はA特性で30dB以上落ちるが、入力段では割れている。
+    // 60Hz はA特性で約27dB落ちる（-30dB になるのは50Hz）が、入力段では割れている。
     // 重み付け後の波形で判定していたら見逃す。
     const meter = new VolumeMeter(SR);
     meter.push(sine(60, 0.3, 1.0));
@@ -164,6 +232,151 @@ describe('VolumeMeter — 窓が埋まるまで', () => {
     meter.push(sine(1000, LEQ_WINDOW_SEC, 0.5));
     expect(meter.state.warmupRemainingSec).toBe(0);
     expect(meter.state.leqReady).toBe(true);
+  });
+});
+
+describe('VolumeMeter — 収束（フェーダーを動かした直後）', () => {
+  /** 定常のピンクノイズを seconds 秒ぶん、gain 倍で流す */
+  function feed(meter: VolumeMeter, seconds: number, gain: number, seed: number): void {
+    const sig = pinkNoise(Math.round(SR * seconds), 0.05, seed);
+    if (gain !== 1) for (let i = 0; i < sig.length; i++) sig[i] *= gain;
+    meter.push(sig);
+  }
+
+  it('レベルが変わっていなければ収束済みとして扱う', () => {
+    const meter = new VolumeMeter(SR);
+    feed(meter, LEQ_WINDOW_SEC + 5, 1, 3);
+    expect(meter.state.stepDb).toBe(0);
+    expect(meter.state.settlingRemainingSec).toBe(0);
+  });
+
+  it('段差の大きさと、確定までの残り秒数を返す', () => {
+    const meter = new VolumeMeter(SR);
+    feed(meter, LEQ_WINDOW_SEC, 1, 3);        // 窓を埋める
+    feed(meter, 3, 2, 4);                     // +6.02dB にして3秒
+
+    const s = meter.state;
+    expect(s.stepDb).toBeCloseTo(6.02, 0);
+    // 窓10秒のうち7秒がまだ操作前。それが出ていくまで数値は動き続ける
+    expect(s.settlingRemainingSec).toBeCloseTo(7, 1);
+  });
+
+  it('表示される差は、収束するまで真の変化より小さい', () => {
+    const meter = new VolumeMeter(SR);
+    feed(meter, LEQ_WINDOW_SEC, 1, 3);
+    const reference = meter.state.leqDb;
+
+    feed(meter, 5, 2, 4);
+    // 移動窓の必然。10log10((5+4*5)/10) = 3.98dB —— 真値 6.02dB ではない
+    expect(meter.state.leqDb - reference).toBeCloseTo(3.98, 0);
+    expect(meter.state.settlingRemainingSec).toBeGreaterThan(0);
+
+    feed(meter, 5, 2, 5);
+    expect(meter.state.leqDb - reference).toBeCloseTo(6.02, 0);
+    expect(meter.state.settlingRemainingSec).toBe(0);
+  });
+
+  it('小さな段差でも操作の0.5秒後には収束中になる', () => {
+    // ここが遅れると、操作直後のいちばん危険な数百ミリ秒のあいだ、確定色つきの
+    // 小さすぎる数値（+2dB 動かして +0.2dB）がそのまま読まれる
+    const base = pinkNoise(Math.round(SR * (LEQ_WINDOW_SEC + 1)), 0.05, 31);
+    const meter = new VolumeMeter(SR);
+    meter.push(base.subarray(0, SR * LEQ_WINDOW_SEC));
+
+    const g = Math.pow(10, 2 / 20); // +2dB
+    const after = base.slice(SR * LEQ_WINDOW_SEC, Math.round(SR * (LEQ_WINDOW_SEC + 0.5)));
+    for (let i = 0; i < after.length; i++) after[i] *= g;
+    meter.push(after);
+
+    expect(meter.state.settlingRemainingSec).toBeGreaterThan(0);
+  });
+
+  it('残り秒数は操作の直後から動く（止まって見えない）', () => {
+    // 分割点が探索範囲の端に張り付くと、カウントダウンが数秒間固まる。
+    // 主役の位置で動かない数字は「壊れた」と読まれる
+    const base = pinkNoise(Math.round(SR * (LEQ_WINDOW_SEC + 6)), 0.05, 32);
+    const meter = new VolumeMeter(SR);
+    meter.push(base.subarray(0, SR * LEQ_WINDOW_SEC));
+
+    const g = 2; // +6.02dB
+    const after = base.slice(SR * LEQ_WINDOW_SEC);
+    for (let i = 0; i < after.length; i++) after[i] *= g;
+
+    const at = (sec: number): number => {
+      const from = Math.round(SR * sec);
+      meter.push(after.subarray(from - Math.round(SR * 0.5), from));
+      return meter.state.settlingRemainingSec;
+    };
+    const half = at(0.5), two = at(2), five = at(5);
+
+    expect(half).toBeGreaterThan(9);   // 窓のほぼ全部がまだ操作前
+    expect(two).toBeLessThan(half);
+    expect(five).toBeLessThan(two);
+  });
+
+  it('窓が埋まる前は段差を言わない（全体が収束前なので）', () => {
+    const meter = new VolumeMeter(SR);
+    feed(meter, 3, 1, 3);
+    feed(meter, 3, 4, 4);
+    expect(meter.state.leqReady).toBe(false);
+    expect(meter.state.settlingRemainingSec).toBe(0);
+  });
+});
+
+describe('VolumeMeter — 基準の測定', () => {
+  it('押した時点から先の10秒で測る（遡らない）', () => {
+    // 開始してから客席へ歩き、着席直後に基準を取る形。遡って測ると歩行中の音が
+    // 基準の半分を占め、**フェーダーに触れていないのに差が出続ける**——しかも
+    // 窓が入れ替わったあとは収束中の断りも消えるので、確定した数値の顔で出る
+    const material = pinkNoise(SR * 30, 0.05, 41);
+    const sig = Float32Array.from(material);
+    for (let i = 0; i < SR * 5; i++) sig[i] *= 0.5; // 最初の5秒だけ -6dB（歩行中）
+
+    const meter = new VolumeMeter(SR);
+    meter.push(sig.subarray(0, SR * LEQ_WINDOW_SEC)); // 窓の半分が歩行中の音
+    expect(meter.state.leqReady).toBe(true);
+    const backward = meter.state.leqDb; // 遡る10秒＝旧実装が基準にしていた値
+
+    meter.beginReference();
+    meter.push(sig.subarray(SR * LEQ_WINDOW_SEC, SR * (LEQ_WINDOW_SEC * 2)));
+    const ref = meter.state.referenceDb;
+    expect(ref).not.toBeNull();
+
+    // 遡る窓は歩行中の音に引かれて2dB近く低い。そこを基準にすると、その差が
+    // そのまま「フェーダーを上げた」に見える
+    expect(ref! - backward).toBeGreaterThan(1.5);
+
+    // 以後レベルは変わらない。触っていないのだから差はゼロであるべき
+    meter.push(sig.subarray(SR * (LEQ_WINDOW_SEC * 2), SR * (LEQ_WINDOW_SEC * 3)));
+    expect(meter.state.leqDb - ref!).toBeCloseTo(0, 0);
+  });
+
+  it('測っている間は残り秒数を返し、揃うまで基準を出さない', () => {
+    const meter = new VolumeMeter(SR);
+    meter.beginReference();
+    expect(meter.state.referenceCapturing).toBe(true);
+    expect(meter.state.referenceRemainingSec).toBe(LEQ_WINDOW_SEC);
+
+    meter.push(pinkNoise(SR * 4, 0.05, 42));
+    expect(meter.state.referenceDb).toBeNull();
+    expect(meter.state.referenceRemainingSec).toBeCloseTo(LEQ_WINDOW_SEC - 4, 5);
+
+    meter.push(pinkNoise(SR * (LEQ_WINDOW_SEC - 4), 0.05, 43));
+    expect(meter.state.referenceCapturing).toBe(false);
+    expect(meter.state.referenceRemainingSec).toBe(0);
+    expect(meter.state.referenceDb).not.toBeNull();
+  });
+
+  it('clearReference は測定中でも捨てる', () => {
+    const meter = new VolumeMeter(SR);
+    meter.beginReference();
+    meter.push(pinkNoise(SR * 4, 0.05, 44));
+    meter.clearReference();
+    expect(meter.state.referenceCapturing).toBe(false);
+    expect(meter.state.referenceDb).toBeNull();
+
+    meter.push(pinkNoise(SR * LEQ_WINDOW_SEC, 0.05, 45));
+    expect(meter.state.referenceDb).toBeNull(); // 中止したので勝手に揃わない
   });
 });
 

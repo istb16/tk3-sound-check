@@ -283,6 +283,18 @@ export interface Monitor {
    * 何を測っているかは呼び出し側が表示できるようにしておく。
    */
   deviceLabel: string;
+  /**
+   * 端末側の自動ゲイン調整を切れなかったか。
+   *
+   * `getUserMedia` には `autoGainControl: false` を渡しているが、Android では
+   * プラットフォーム層のAGCが取り込み経路に入っていて無効化できない機種がある。
+   * 仕様上、切れない機器は `getSettings().autoGainControl` に true を報告する。
+   *
+   * **AGCがONだとレベル比較そのものが成立しない**（下げたぶんを端末が戻す）ので、
+   * 制約を出しただけで済ませず、通ったかどうかを呼び出し側が表示できるようにする。
+   * 報告が無い（undefined）ときは false——分からないことを警告に変えない。
+   */
+  autoGainControl: boolean;
 }
 
 /**
@@ -318,9 +330,12 @@ export async function startMonitor(
   const attached = worklet;
   let stopped = false;
 
+  const track = stream.getAudioTracks()[0];
+
   return {
     sampleRate:  ctx.sampleRate,
-    deviceLabel: stream.getAudioTracks()[0]?.label ?? '',
+    deviceLabel: track?.label ?? '',
+    autoGainControl: track?.getSettings?.().autoGainControl === true,
     stop: () => {
       if (stopped) return;
       stopped = true;

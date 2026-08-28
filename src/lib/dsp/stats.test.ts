@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  anyAbove, clamp, dbfs, linearFit, linearRegression, movingAverage,
+  anyAbove, clamp, dbfs, linearFit, linearRegression, maxAbs, movingAverage,
   percentile, powerDb, rms, stdev,
 } from './stats.ts';
 
@@ -106,5 +106,37 @@ describe('anyAbove — 区間に閾値超えがあるか', () => {
 
   it('配列の終端を越えて読まない', () => {
     expect(anyAbove(d, 3, 100, 0.98)).toBe(false);
+  });
+});
+
+describe('maxAbs — 区間の絶対値の最大', () => {
+  it('符号によらず最大の振幅を返す', () => {
+    expect(maxAbs(Float32Array.from([0.1, -0.9, 0.3]), 0, 3)).toBeCloseTo(0.9, 6);
+  });
+
+  it('区間の外は見ない', () => {
+    const d = Float32Array.from([1.0, 0.1, 0.2, -1.0]);
+    expect(maxAbs(d, 1, 2)).toBeCloseTo(0.2, 6);
+  });
+
+  it('長さが配列を越えても末尾で止まる', () => {
+    expect(maxAbs(Float32Array.from([0.1, 0.5]), 0, 100)).toBeCloseTo(0.5, 6);
+  });
+
+  it('空の区間は 0 を返す（呼び出し側の最大値を動かさない）', () => {
+    expect(maxAbs(Float32Array.from([0.9]), 1, 3)).toBe(0);
+    expect(maxAbs(new Float32Array(0), 0, 1)).toBe(0);
+  });
+
+  it('無音は 0', () => {
+    expect(maxAbs(new Float32Array(8), 0, 8)).toBe(0);
+  });
+
+  // ボリュームは「割れている(0.98)」「限界に近い(0.708)」「波高はいくつか」を
+  // この1回の走査から導く。閾値ごとに anyAbove を回す代わりである
+  it('anyAbove と同じ判定になる', () => {
+    const d = Float32Array.from([0.5, -0.99, 0.2]);
+    expect(maxAbs(d, 0, 3) >= 0.98).toBe(anyAbove(d, 0, 3, 0.98));
+    expect(maxAbs(d, 0, 1) >= 0.98).toBe(anyAbove(d, 0, 1, 0.98));
   });
 });

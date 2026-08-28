@@ -32,11 +32,14 @@ function mountApp(lang: 'ja' | 'en' = 'ja'): void {
   app = mount(VolumeCheck, { target, props: { lang } });
 }
 
-/** startMonitor が成功し、onChunk を feed として取り出せるようにする */
-function mockMonitorOk(deviceLabel = 'テスト用マイク'): void {
+/**
+ * startMonitor が成功し、onChunk を feed として取り出せるようにする。
+ * `autoGainControl` は「端末側のAGCを切れなかった」端末を作るためのもの。
+ */
+function mockMonitorOk(deviceLabel = 'テスト用マイク', autoGainControl = false): void {
   vi.mocked(startMonitor).mockImplementation(async (onChunk) => {
     feed = onChunk;
-    return { stop: stopSpy, sampleRate: SR, deviceLabel };
+    return { stop: stopSpy, sampleRate: SR, deviceLabel, autoGainControl };
   });
 }
 
@@ -100,25 +103,32 @@ describe('ボリュームチェック — 測定中', () => {
     expect(peakText()).toBe('--');
   });
 
-  it('平均の窓が埋まるまで「基準にする」は押せない', async () => {
-    // 窓が埋まる前の Leq を基準にすると、現在値だけが収束していって
-    // フェーダーを触っていないのに差が出る
+  it('基準は窓が埋まるのを待たずに押せる（遡らないので待つ理由が無い）', async () => {
     mockMonitorOk();
     mountApp();
     await page.getByRole('button', { name: '測定を開始' }).click();
 
-    const btn = page.getByRole('button', { name: '基準にする' });
-    await expect.element(btn).toBeDisabled();
+    await expect.element(page.getByRole('button', { name: '基準にする' })).toBeEnabled();
+    await expect.element(page.getByText('基準を取ってください')).toBeVisible();
+  });
+
+  it('基準を測っている間は残り秒数を主役の位置に出し、押し直しは塞ぐ', async () => {
+    // 基準は押した時点から先の10秒で測る。遡って測ると、押す前に起きた
+    // レベル変化（客席へ歩く、演目が変わる）が基準に焼き付く
+    mockMonitorOk();
+    mountApp();
+    await page.getByRole('button', { name: '測定を開始' }).click();
+    await page.getByRole('button', { name: '基準にする' }).click();
+
+    await expect.element(page.getByText('基準を測っています')).toBeVisible();
+    await expect.poll(bigText).toBe('あと 10 秒');
+    await expect.element(page.getByRole('button', { name: '基準にする' })).toBeDisabled();
 
     feed!(sine(1000, 1, 0.5, SR));
-    await expect.element(btn).toBeDisabled();
-    // 待ち時間そのものは縮められないので、あと何秒かを主役の位置で大きく出す
-    await expect.element(page.getByText('測定を安定させています')).toBeVisible();
     await expect.poll(bigText).toBe('あと 9 秒');
 
     feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
-    await expect.element(btn).toBeEnabled();
-    await expect.element(page.getByText('基準を取ってください')).toBeVisible();
+    await expect.poll(bigText).toMatch(/±0\.0dB/);
   });
 
   it('相対値であることを測定中も断る', async () => {
@@ -135,10 +145,10 @@ describe('ボリュームチェック — 基準との差', () => {
     mountApp();
     await page.getByRole('button', { name: '測定を開始' }).click();
 
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
     await expect.element(page.getByText('基準を取ってください')).toBeVisible();
 
     await page.getByRole('button', { name: '基準にする' }).click();
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
     await expect.poll(bigText).toMatch(/±0\.0dB/);
   });
 
@@ -147,10 +157,10 @@ describe('ボリュームチェック — 基準との差', () => {
     mountApp();
     await page.getByRole('button', { name: '測定を開始' }).click();
 
-    // 窓を埋めてから基準を取る
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
+    // 押してからの10秒が基準になる
     await expect.element(page.getByText('基準を取ってください')).toBeVisible();
     await page.getByRole('button', { name: '基準にする' }).click();
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
 
     // 窓をすべて置き換える長さを流す
     feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
@@ -163,8 +173,8 @@ describe('ボリュームチェック — 基準との差', () => {
     mockMonitorOk();
     mountApp();
     await page.getByRole('button', { name: '測定を開始' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
     await page.getByRole('button', { name: '基準にする' }).click();
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
 
     await expect.poll(bigText).toMatch(/±0\.0dB/);
     // 「基準 -15.1 / 現在 -15.1」の並びは消した
@@ -178,13 +188,136 @@ describe('ボリュームチェック — 基準との差', () => {
     mockMonitorOk();
     mountApp();
     await page.getByRole('button', { name: '測定を開始' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
     await page.getByRole('button', { name: '基準にする' }).click();
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
     await expect.poll(bigText).toMatch(/±0\.0dB/);
 
     await page.getByRole('button', { name: '基準を消す' }).click();
     await expect.element(page.getByText('基準を取ってください')).toBeVisible();
     expect(peakText()).toBe('--');
+  });
+});
+
+describe('ボリュームチェック — 収束中（フェーダーを動かした直後）', () => {
+  /** 基準を取ったところまで進める */
+  async function withReference(): Promise<void> {
+    mockMonitorOk();
+    mountApp();
+    await page.getByRole('button', { name: '測定を開始' }).click();
+    await page.getByRole('button', { name: '基準にする' }).click();
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
+    await expect.poll(bigText).toMatch(/±0\.0dB/);
+  }
+
+  it('窓が置き換わるまでは、数値がまだ動くことと残り秒数を出す', async () => {
+    // +6dB 動かした5秒後の表示は移動窓の必然で +4.0dB になる。ここで
+    // 「あと2dB足りない」と読まれてもう一段動かされるのがいちばん重い誤読なので、
+    // 収束済みの +4.0dB と見分けがつく形にする
+    await withReference();
+
+    feed!(sine(1000, 5, 0.5, SR));
+    await expect.poll(bigText).toMatch(/\+4\.0dB/);
+    await expect.element(page.getByText(/確定まであと 5 秒/)).toBeVisible();
+    expect(document.querySelector('.big.settling')).not.toBeNull();
+  });
+
+  it('窓が置き換わりきると断りが消え、真の変化量になる', async () => {
+    await withReference();
+
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    await expect.poll(bigText).toMatch(/\+6\.0dB/);
+    expect(document.body.textContent).not.toContain('確定まであと');
+    expect(document.querySelector('.big.settling')).toBeNull();
+  });
+
+  it('レベルが変わっていなければ断りを出さない', async () => {
+    await withReference();
+
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
+    await expect.poll(bigText).toMatch(/±0\.0dB/);
+    expect(document.body.textContent).not.toContain('確定まであと');
+  });
+});
+
+describe('ボリュームチェック — 帯域ごとに変化量が違うとき', () => {
+  it('低域だけが動いたときは重み付け無しの差を並べて断る', async () => {
+    // 「同じ端末・同じ場所なら差は正しい」が成り立つのは全帯域が一律に
+    // 動いたときだけ。サブのフェーダーを上げると、A特性の主役はほとんど動かない
+    mockMonitorOk();
+    mountApp();
+    await page.getByRole('button', { name: '測定を開始' }).click();
+
+    await page.getByRole('button', { name: '基準にする' }).click();
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
+    await expect.poll(bigText).toMatch(/±0\.0dB/);
+
+    // 60Hz を足す。A特性では約27dB落ちるので主役はほぼ動かないが、
+    // 入力に入っているエネルギーは4倍になっている
+    const mixed = sine(1000, LEQ_WINDOW_SEC, 0.25, SR);
+    const low = sine(60, LEQ_WINDOW_SEC, 0.5, SR);
+    for (let i = 0; i < mixed.length; i++) mixed[i] += low[i];
+    feed!(mixed);
+
+    await expect.element(page.getByText(/広帯域では \+7\.0 dB/)).toBeVisible();
+    await expect.element(page.getByText(/帯域ごとに変化量が違う/)).toBeVisible();
+  });
+
+  it('全帯域が一律に動いたときは2つ目の数字を出さない', async () => {
+    mockMonitorOk();
+    mountApp();
+    await page.getByRole('button', { name: '測定を開始' }).click();
+    await page.getByRole('button', { name: '基準にする' }).click();
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
+
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    await expect.poll(bigText).toMatch(/\+6\.0dB/);
+    expect(document.body.textContent).not.toContain('広帯域では');
+  });
+});
+
+describe('ボリュームチェック — 端末の限界', () => {
+  it('割れる手前でも、限界に張り付いていれば差が縮むことを断る', async () => {
+    // 0.98 に届かないので音割れは「なし」のまま。ここで何も出さないと、
+    // 警告が無いまま差だけが小さくなる
+    mockMonitorOk();
+    mountApp();
+    await page.getByRole('button', { name: '測定を開始' }).click();
+
+    feed!(sine(1000, 3, 0.9, SR));
+    await expect.element(page.getByText(/入力が限界に近い状態/)).toBeVisible();
+    await expect.element(page.getByText(/変化量が実際より小さく出ます/)).toBeVisible();
+  });
+
+  it('余裕のあるレベルでは何も言わない', async () => {
+    mockMonitorOk();
+    mountApp();
+    await page.getByRole('button', { name: '測定を開始' }).click();
+
+    feed!(sine(1000, 3, 0.3, SR));
+    await expect.element(page.getByText('測定中', { exact: true })).toBeVisible();
+    expect(document.body.textContent).not.toContain('入力が限界に近い');
+  });
+});
+
+describe('ボリュームチェック — 端末のAGC', () => {
+  it('AGCを切れなかった端末では、どの数字より先に断る', async () => {
+    // 制約に autoGainControl: false を渡しても、Android にはプラットフォーム層で
+    // AGCが入る機種がある。**AGCがONならこの機能そのものが成立しない**
+    mockMonitorOk('内蔵マイク', true);
+    mountApp();
+    await page.getByRole('button', { name: '測定を開始' }).click();
+
+    await expect.element(page.getByText(/自動ゲイン調整を切れませんでした/)).toBeVisible();
+    await expect.element(page.getByText(/変化量は信用できません/)).toBeVisible();
+  });
+
+  it('切れている端末では何も言わない', async () => {
+    mockMonitorOk('内蔵マイク', false);
+    mountApp();
+    await page.getByRole('button', { name: '測定を開始' }).click();
+
+    await expect.element(page.getByText('測定中', { exact: true })).toBeVisible();
+    expect(document.body.textContent).not.toContain('自動ゲイン調整');
   });
 });
 
@@ -247,15 +380,15 @@ describe('ボリュームチェック — 停止と後片付け', () => {
     mockMonitorOk();
     mountApp();
     await page.getByRole('button', { name: '測定を開始' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
     await page.getByRole('button', { name: '基準にする' }).click();
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
     await expect.poll(bigText).toMatch(/±0\.0dB/);
 
     await page.getByRole('button', { name: '停止' }).click();
     await page.getByRole('button', { name: '測定を開始' }).click();
 
-    // 測り直しなので窓も空。埋め直しても基準は戻らない
-    await expect.poll(bigText).toBe('あと 10 秒');
+    // 測り直しなので基準は戻らない。基準は遡らないので、窓の待ち時間も出ない
+    await expect.element(page.getByText('基準を取ってください')).toBeVisible();
     feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
     await expect.element(page.getByText('基準を取ってください')).toBeVisible();
   });
@@ -269,7 +402,9 @@ describe('ボリュームチェック — 起動中の割り込み', () => {
     vi.mocked(startMonitor).mockImplementation(async (onChunk) => {
       feed = onChunk;
       await gate;
-      return { stop: stopSpy, sampleRate: SR, deviceLabel: 'テスト用マイク' };
+      return {
+        stop: stopSpy, sampleRate: SR, deviceLabel: 'テスト用マイク', autoGainControl: false,
+      };
     });
     return { resolve: release };
   }
@@ -348,8 +483,8 @@ describe('ボリュームチェック — 計測が止まったとき', () => {
   /** 基準を取れる状態まで進める */
   async function measureAndSetReference(): Promise<void> {
     await page.getByRole('button', { name: '測定を開始' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
     await page.getByRole('button', { name: '基準にする' }).click();
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
   }
 
   it('チャンクが途切れたら計測を止め、マイクも閉じてそう伝える', async () => {
@@ -415,6 +550,72 @@ describe('ボリュームチェック — 計測が止まったとき', () => {
     await expect.element(page.getByText(/「基準にする」を押すと/)).toBeVisible();
   });
 
+  it('再開したときに同じマイクか確かめられなければ基準を捨てる', async () => {
+    // マイク名が取れない環境では、機材が変わっても名前の食い違いが出ない。
+    // 確かめられないまま持ち越すと、感度の違う機材の差を平気で表示することになる。
+    // 取り直しは10秒で済むが、別の機材との差は取り返せない
+    mockMonitorOk('');
+    mountApp();
+    await measureAndSetReference();
+    await expect.element(page.getByText('計測が止まりました')).toBeVisible();
+
+    await page.getByRole('button', { name: '測定を再開' }).click();
+
+    await expect.element(page.getByText(/同じマイクかを確認できなかったため/)).toBeVisible();
+    // 「別のマイクが開いた」とは言わない。確かめていないことを断定しない
+    expect(document.body.textContent).not.toContain('別のマイクが開いたため');
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    await expect.element(page.getByText(/「基準にする」を押すと/)).toBeVisible();
+  });
+
+  it('同じマイクが戻ってきたことを確かめられれば基準は残る', async () => {
+    mockMonitorOk('USB Audio CODEC');
+    mountApp();
+    await measureAndSetReference();
+    await expect.element(page.getByText('計測が止まりました')).toBeVisible();
+
+    await page.getByRole('button', { name: '測定を再開' }).click();
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+
+    await expect.poll(bigText).toMatch(/±0\.0dB/);
+    expect(document.body.textContent).not.toContain('破棄しました');
+  });
+
+  it('基準を取る前の中断では破棄を知らせない（捨てるものが無い）', async () => {
+    mockMonitorOk('');
+    mountApp();
+    await page.getByRole('button', { name: '測定を開始' }).click();
+    feed!(sine(1000, 1, 0.5, SR));
+    await expect.element(page.getByText('計測が止まりました')).toBeVisible();
+
+    await page.getByRole('button', { name: '測定を再開' }).click();
+    // 基準が無いので「基準を取ってください」に戻るだけ（窓の待ち時間は出ない）
+    await expect.element(page.getByText('基準を取ってください')).toBeVisible();
+    expect(document.body.textContent).not.toContain('破棄しました');
+  });
+
+  it('前回の破棄理由が次の再開に残らない', async () => {
+    // onStart のガードは基準が無いときに代入ごと飛ばすので、resume() で消さないと
+    // 「別のマイクが開いたため破棄しました」が、破棄も機材の変更も起きていない
+    // 次の再開にそのまま残る。起きていない事象を報告する測定器になる
+    mockMonitorOk('内蔵マイク');
+    mountApp();
+    await measureAndSetReference();
+    await expect.element(page.getByText('計測が止まりました')).toBeVisible();
+
+    mockMonitorOk('USB Audio CODEC');
+    await page.getByRole('button', { name: '測定を再開' }).click();
+    await expect.element(page.getByText(/別のマイクが開いたため/)).toBeVisible();
+
+    // 基準を取り直さないまま、同じマイクでもう一度中断して再開する
+    feed!(sine(1000, 1, 0.5, SR));
+    await expect.element(page.getByText('計測が止まりました')).toBeVisible();
+    await page.getByRole('button', { name: '測定を再開' }).click();
+
+    await expect.element(page.getByText('基準を取ってください')).toBeVisible();
+    expect(document.body.textContent).not.toContain('別のマイクが開いたため');
+  });
+
   it('再開に失敗しても基準は捨てない', async () => {
     // 「基準は保持しています」と出した直後に、黙って捨てるのが最も質の悪い裏切り
     mockMonitorOk();
@@ -444,8 +645,8 @@ describe('ボリュームチェック — 計測が止まったとき', () => {
     await page.getByRole('button', { name: '測定を再開' }).click();
     await expect.element(page.getByText(/基準を破棄しました/)).toBeVisible();
 
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
     await page.getByRole('button', { name: '基準にする' }).click();
+    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
     await expect.poll(bigText).toMatch(/±0\.0dB/);
     expect(document.body.textContent).not.toContain('基準を破棄しました');
   });

@@ -34,6 +34,62 @@ describe('A特性 — 規格値との一致', () => {
   });
 });
 
+/**
+ * 規格表の丸めた値ではなく、アナログ伝達関数の厳密値と比べる。
+ *
+ * 上の表は規格の丸め（-39.4 に対し厳密値 -39.52）を吸収するため許容差 0.3dB を
+ * 置いているが、それでは**設計が 0.2dB ずれても気づけない**。ここでは実際の
+ * 一致度（〜3.15kHz で 0.02dB 以内）を固定して、リグレッションを捕まえる。
+ */
+describe('A特性 — アナログ厳密値との一致', () => {
+  const F1 = 20.598997, F2 = 107.65265, F3 = 737.86223, F4 = 12194.217;
+
+  /** IEC 61672 のA特性を s=jω で評価したもの。1kHz を 0dB に正規化する */
+  function exactDb(freqHz: number): number {
+    const ratio = (f: number): number => {
+      const f2 = f * f;
+      return (F4 * F4 * f2 * f2)
+        / ((f2 + F1 * F1) * Math.sqrt((f2 + F2 * F2) * (f2 + F3 * F3)) * (f2 + F4 * F4));
+    };
+    return 20 * Math.log10(ratio(freqHz) / ratio(1000));
+  }
+
+  const LOW = [10, 20, 31.5, 63, 125, 250, 500, 1000, 2000, 3150];
+
+  for (const sampleRate of [44100, 48000]) {
+    for (const freq of LOW) {
+      it(`fs=${sampleRate} / ${freq}Hz が厳密値と 0.02dB 以内`, () => {
+        expect(Math.abs(aWeightingGainDb(freq, sampleRate) - exactDb(freq)))
+          .toBeLessThanOrEqual(0.02);
+      });
+    }
+  }
+});
+
+/**
+ * ナイキストに近い側は双一次変換の周波数歪みで規格から大きく外れる。
+ *
+ * **相対比較には効かないが「規格どおり」ではない。** 規格値を許容差で包むと
+ * 差が大きすぎて意味のあるテストにならないので、設計の実測値のほうを固定して、
+ * 意図しない変化だけを捕まえる。プリワープをかければ縮む差である。
+ */
+describe('A特性 — 高域のずれ（規格ではなく設計値を固定する）', () => {
+  const DESIGN: [sampleRate: number, freq: number, standard: number, design: number][] = [
+    [44100, 12500, -4.25,  -7.62],
+    [44100, 16000, -6.71, -15.24],
+    [44100, 20000, -9.35, -33.89],
+    [48000, 12500, -4.25,  -6.92],
+    [48000, 16000, -6.71, -13.14],
+    [48000, 20000, -9.35, -25.19],
+  ];
+
+  for (const [sampleRate, freq, standard, design] of DESIGN) {
+    it(`fs=${sampleRate} / ${freq}Hz は規格 ${standard}dB に対し ${design}dB`, () => {
+      expect(aWeightingGainDb(freq, sampleRate)).toBeCloseTo(design, 1);
+    });
+  }
+});
+
 describe('AWeightingFilter — 実波形での利得', () => {
   /** 立ち上がりの過渡を捨ててから実効値を測る */
   function steadyDb(input: Float32Array, filter: AWeightingFilter): number {

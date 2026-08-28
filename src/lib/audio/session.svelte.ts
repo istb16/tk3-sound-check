@@ -58,6 +58,16 @@ export interface MonitorStartContext {
    * 違う機材なら、中断前に取った基準値はもう比較に使えない。
    */
   previousDeviceLabel: string;
+  /**
+   * 中断（`stalled`）からの再開か。
+   *
+   * `previousDeviceLabel` が空かどうかで代用しない——**マイク名が取れない環境では
+   * 再開でも空文字になる**ので、「再開ではない」と「再開だが機材を確かめられない」が
+   * 同じ見た目になる。機能側はその2つを別々に扱う必要がある。
+   */
+  resumed: boolean;
+  /** 端末側のAGCを切れなかったか。切れていないとレベル比較が成立しない */
+  autoGainControl: boolean;
 }
 
 export interface MonitorSessionOptions {
@@ -107,6 +117,11 @@ export class MonitorSession {
   deviceLabel = $state('');
   /** 中断前に開いていたマイク名。`stalled` の間だけ残る */
   interruptedDeviceLabel = $state('');
+  /**
+   * 端末側のAGCを切れなかったか。制約を出しただけで通ったことにしない——
+   * Android にはプラットフォーム層のAGCを無効化できない機種がある。
+   */
+  autoGainControl = $state(false);
 
   private readonly opts: MonitorSessionOptions;
   private monitor: Monitor | null = null;
@@ -115,6 +130,11 @@ export class MonitorSession {
   private disposed = false;
   /** 起動ごとに増やす。古い起動から届くチャンクと Wake Lock を捨てる */
   private token = 0;
+  /**
+   * 中断からの再開待ちか。`interruptedDeviceLabel` と寿命を揃えるが、
+   * あちらは空文字になりうるので真偽は別に持つ。
+   */
+  private interrupted = false;
   private lastChunkAt = 0;
   private stallTimer: ReturnType<typeof setInterval> | null = null;
   private wakeLock: WakeLockLike | null = null;
@@ -148,10 +168,14 @@ export class MonitorSession {
         sampleRate: m.sampleRate,
         deviceLabel: m.deviceLabel,
         previousDeviceLabel: this.interruptedDeviceLabel,
+        resumed: this.interrupted,
+        autoGainControl: m.autoGainControl,
       });
       this.started = true;
       this.deviceLabel = m.deviceLabel;
+      this.autoGainControl = m.autoGainControl;
       this.interruptedDeviceLabel = '';
+      this.interrupted = false;
       this.state = 'listening';
       this.beginStallWatch();
       void this.acquireWakeLock(token);
@@ -171,6 +195,7 @@ export class MonitorSession {
   /** 利用者が止めた。何も残さない */
   stop(): void {
     this.interruptedDeviceLabel = '';
+    this.interrupted = false;
     this.teardown('user');
     if (this.state !== 'error') this.state = 'idle';
   }
@@ -192,6 +217,7 @@ export class MonitorSession {
     const label = this.deviceLabel;
     this.teardown('stalled');
     this.interruptedDeviceLabel = label;
+    this.interrupted = true;
     this.state = 'stalled';
   }
 
@@ -201,6 +227,7 @@ export class MonitorSession {
     this.monitor = null;
     this.started = false;
     this.deviceLabel = '';
+    this.autoGainControl = false;
     this.endStallWatch();
     this.releaseWakeLock();
     this.opts.onStop(reason);

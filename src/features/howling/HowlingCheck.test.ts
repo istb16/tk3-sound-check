@@ -34,7 +34,7 @@ function mountApp(lang: 'ja' | 'en' = 'ja'): void {
 function mockMonitorOk(deviceLabel = 'テスト用マイク'): void {
   vi.mocked(startMonitor).mockImplementation(async (onChunk) => {
     feed = onChunk;
-    return { stop: stopSpy, sampleRate: SR, deviceLabel };
+    return { stop: stopSpy, sampleRate: SR, deviceLabel, autoGainControl: false };
   });
 }
 

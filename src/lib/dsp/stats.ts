@@ -157,3 +157,20 @@ export function anyAbove(
   }
   return false;
 }
+
+/**
+ * `data[offset, offset+length)` の絶対値の最大。
+ *
+ * `anyAbove` を閾値ごとに何度も走らせる代わりに使う。呼び出し側が
+ * 「割れている」「限界に近い」「波高はいくつか」を**同じ一度の走査**から
+ * 導けるようにするためで、閾値を増やしても走査は増えない。
+ */
+export function maxAbs(data: Float32Array, offset: number, length: number): number {
+  const end = Math.min(offset + length, data.length);
+  let m = 0;
+  for (let i = offset; i < end; i++) {
+    const v = data[i] < 0 ? -data[i] : data[i];
+    if (v > m) m = v;
+  }
+  return m;
+}
