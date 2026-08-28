@@ -62,6 +62,13 @@ export type QualityText = {
   verdictLimitedBy: (axis: string) => string;
   /** スコアは良好だが、測定できなかった軸があるため断定できない場合 */
   verdictUnconfirmed: (axis: string) => string;
+  /**
+   * 推定誤差が判定の境界を跨いでいるとき。
+   *
+   * 「測定できなかった」(verdictUnconfirmed) とは別物なので流用しない。
+   * こちらは測れてはいるが、誤差の幅が判定を分けるだけの細さを持たない状態。
+   */
+  verdictNearBoundary: (axis: string) => string;
   factsLabel: string;
   factSnr: (db: number) => string;
   /**
@@ -167,6 +174,9 @@ export const T: Record<Lang, QualityText> = {
     verdictUnconfirmed: (axis) =>
       `他の項目は良好ですが、「${axis}」を測定できなかったため、` +
       'この環境が会議に十分かどうかは確認できていません。',
+    verdictNearBoundary: (axis) =>
+      `「${axis}」の測定値が段階の境目に近く、推定誤差の範囲に入っています。` +
+      'どちらとも言えないので、良いほうには寄せていません。',
     factsLabel: '実測値',
     factSnr:       (db) => `背景ノイズ: 声より ${db.toFixed(0)}dB 小さい`,
     factRt60:      (sec) => `残響時間: 約 ${sec.toFixed(1)} 秒`,
@@ -266,6 +276,9 @@ export const T: Record<Lang, QualityText> = {
     verdictUnconfirmed: (axis) =>
       `Everything else looks good, but ${axis} could not be measured, ` +
       'so we cannot confirm this environment is good enough for meetings.',
+    verdictNearBoundary: (axis) =>
+      `The ${axis} measurement sits close to the boundary between grades, inside the ` +
+      'estimation error. We cannot call it either way, so we have not rounded up.',
     factsLabel: 'Measurements',
     factSnr:       (db) => `Background noise: ${db.toFixed(0)} dB below speech`,
     factRt60:      (sec) => `Reverberation time: about ${sec.toFixed(1)} s`,

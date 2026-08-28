@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { analyzeAudio, AXIS_MAX } from './AudioAnalyzer.ts';
+import { analyzeAudio, AXIS_MAX, AXIS_RATIO_UNCERTAINTY } from './AudioAnalyzer.ts';
 
 // 合成 AudioBuffer を作るヘルパー
 function makeBuffer(
@@ -324,13 +324,79 @@ describe('analyzeAudio — 判定（このまま会議していいか）', () =>
     }
   });
 
-  it('unconfirmed のときは足を引っ張っている軸として測定不能な軸を挙げる', async () => {
+  it('測定不能で断定しないときは、その軸を足を引っ張っている軸として挙げる', async () => {
     const r = await analyzeAudio(cleanSpeechBuffer());
-    if (r.verdict.unconfirmed) {
+    if (r.verdict.unconfirmed === 'unmeasured') {
       expect(r.verdict.level).toBe('usable');
       expect(r.verdict.limitingAxis).not.toBeNull();
       expect(r.unreliable).toContain(r.verdict.limitingAxis);
     }
+  });
+});
+
+// ==========================================================================
+// 判定の断定を止める条件
+// ==========================================================================
+//
+// 判定は3値なので、問うべきは「点数の誤差が何点か」ではなく
+// 「同じ部屋を測り直して同じ答えが出るか」である。実測では出なかった
+// （真のRT60 0.7秒を固定して振ると good / usable / poor に3つに割れた）。
+// 各軸に実測MAEから決めた不確かさを持たせ、境界の誤差圏内では断定しない。
+describe('analyzeAudio — 境界に近いときは断定しない', () => {
+  const AXES = Object.keys(AXIS_MAX) as Array<keyof typeof AXIS_MAX>;
+  const GOOD_RATIO = 0.55;
+  const USABLE_RATIO = 0.35;
+  const ratiosOf = (r: Awaited<ReturnType<typeof analyzeAudio>>) =>
+    AXES.map((axis) => ({ axis, ratio: r[axis] / AXIS_MAX[axis] }));
+
+  const buffers = () => [
+    cleanSpeechBuffer(), highFreqBuffer(), mudBuffer(), clippedBuffer(),
+    pureNoiseBuffer(), quietBuffer(), tiltedSpeechBuffer(-12), bandLimitedSpeechBuffer(4000),
+  ];
+
+  it('「十分」と断定するのは全部の軸が境界から誤差ぶん離れているときだけ', async () => {
+    // 最弱の軸だけを見てはいけない。軸が同点で並ぶと、どちらが「最弱」に
+    // 選ばれるかで不確かさ（周波数0.03 / 残響0.14）が変わってしまう。
+    for (const buf of buffers()) {
+      const r = await analyzeAudio(buf);
+      if (r.verdict.level !== 'good') continue;
+      for (const { axis, ratio } of ratiosOf(r)) {
+        expect(ratio - GOOD_RATIO, `${axis} が境界に近すぎる`)
+          .toBeGreaterThanOrEqual(AXIS_RATIO_UNCERTAINTY[axis]);
+      }
+      expect(r.verdict.unconfirmed).toBe(false);
+    }
+  });
+
+  it('境界の誤差圏内なら near-boundary を立てる', async () => {
+    for (const buf of buffers()) {
+      const r = await analyzeAudio(buf);
+      if (r.verdict.unconfirmed !== 'near-boundary') continue;
+      const near = ratiosOf(r).some(({ axis, ratio }) =>
+        Math.abs(ratio - GOOD_RATIO) < AXIS_RATIO_UNCERTAINTY[axis]
+        || Math.abs(ratio - USABLE_RATIO) < AXIS_RATIO_UNCERTAINTY[axis]);
+      expect(near, 'どの軸も境界から離れているのに near-boundary が立っている').toBe(true);
+    }
+  });
+
+  it('下側の境界では判定そのものは動かさない', async () => {
+    // 上側は good → usable に落とす（測れていないものを褒めない）。
+    // 下側で poor → usable に上げるのは良い側に振る操作なので、しない。
+    // 一貫した原則は「境界では良い側に振らない」。
+    for (const buf of buffers()) {
+      const r = await analyzeAudio(buf);
+      const worst = Math.min(...ratiosOf(r).map((x) => x.ratio));
+      if (worst >= GOOD_RATIO) continue;
+      expect(r.verdict.level).toBe(worst >= USABLE_RATIO ? 'usable' : 'poor');
+    }
+  });
+
+  it('残響の不確かさは判定帯の幅の半分以上ある（細かく読めないことの記録）', () => {
+    // 残響軸は 0.2秒で満点・0.9秒で0点なので、確定値のRT60の MAE 0.093秒 は
+    // 達成率 0.13 に相当する。判定の境界の間隔は 0.55-0.35 = 0.20 しかない。
+    // **この不等式が成り立つ限り、残響が限定要因の録音は境界付近で断定できない。**
+    // 推定が良くなって成り立たなくなったら、この行を消してよい。
+    expect(AXIS_RATIO_UNCERTAINTY.reverb).toBeGreaterThanOrEqual((GOOD_RATIO - USABLE_RATIO) / 2);
   });
 
   it('残響が測定不能なら残響スコアは満点の半分を超えない', async () => {

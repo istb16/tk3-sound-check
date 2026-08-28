@@ -26,7 +26,9 @@ import {
   estimateClipping, estimateLevel, estimateReverb, estimateSnr, estimateSpectralSlope,
 } from '../src/features/quality/estimators.ts';
 import { detectProvenance } from '../src/features/quality/provenance.ts';
-import { analyzeSamples, AXIS_MAX } from '../src/features/quality/AudioAnalyzer.ts';
+import {
+  analyzeSamples, AXIS_MAX, AXIS_RATIO_PER_UNIT, AXIS_RATIO_UNCERTAINTY,
+} from '../src/features/quality/AudioAnalyzer.ts';
 import { scoreMos } from './mos-oracle.ts';
 
 const args = parseArgs(process.argv.slice(2));
@@ -60,6 +62,14 @@ interface Row {
    * 割ったかどうかがここに出る。
    */
   noiseFrames: number | null;
+  /**
+   * 近似の落差が ISO 3382 の T20 相当（20dB）に届いた減衰イベント数。
+   *
+   * 実装は落差10dBから×6に外挿しているので、規格の手順（T20は20dBを×3）より
+   * 曲率と雑音の影響が2倍拡大される。**「確定値」の条件に落差を足すべきかは
+   * この列で誤差を層別して決める。**
+   */
+  decayEventsT20: number | null;
   /**
    * 推定したRT60[秒]と、条件が持つRT60の真値。
    *
@@ -300,6 +310,7 @@ function evaluate(item: ManifestItem, samples: Float32Array, mos: number | null)
     },
     decayEvents: reverbEst.events,
     noiseFrames: snrEst.noiseFrames,
+    decayEventsT20: reverbEst.perEventDropDb.filter((d) => d >= T20_DROP_DB).length,
     rt60Estimate: reverbEst.rt60Sec,
     rt60Truth: item.truth.rt60Sec ?? null,
     bandwidthHz: prov.bandwidthHz,
@@ -920,6 +931,138 @@ function pauseStats(rows: Row[]): PauseStat[] {
   return out;
 }
 
+/** ISO 3382 の T20 に相当する落差[dB]（−5〜−25dB） */
+const T20_DROP_DB = 20;
+
+// ==========================================================================
+// 判定の不確かさの定数と実測の突き合わせ
+// ==========================================================================
+
+/**
+ * `AXIS_RATIO_UNCERTAINTY` が実測MAEより楽観になっていないかの検算。
+ *
+ * あの定数は「境界からこの距離までは断定しない」という安全距離で、
+ * validation の実測MAEから換算して決めている。**推定器を変えたときに
+ * 定数を更新し忘れると、黙って断定しすぎるようになる。** それを機械で捕まえる。
+ *
+ * 換算に使う係数は AudioAnalyzer が公開している（採点の境界を動かしたら
+ * 係数も一緒に動く。数値をこちら側に写すと二重管理になる）。
+ */
+interface UncertaintyCheck {
+  axis: string;
+  /** 換算の元にした実測 */
+  basis: string;
+  measuredMae: number;
+  measuredRatio: number;
+  constant: number;
+  /** 定数が実測より楽観なら true（= 断定しすぎる） */
+  optimistic: boolean;
+}
+
+function uncertaintyChecks(rows: Row[]): UncertaintyCheck[] {
+  const out: UncertaintyCheck[] = [];
+
+  const mae = (list: Row[]): number | null => {
+    const e = list
+      .filter((r) => r.estimate !== null && r.truthValue !== null)
+      .map((r) => Math.abs((r.estimate as number) - (r.truthValue as number)));
+    return e.length ? e.reduce((a, b) => a + b, 0) / e.length : null;
+  };
+
+  // 残響は確定値の集合で測る。参考値の行は unreliable 経由で別に断定を止めるので、
+  // 定数の根拠に混ぜると二重に安全側へ寄る。
+  const reverbConfident = rows.filter(
+    (r) => ['rt60', 'rt60band', 'rt60rep'].includes(r.conditionType)
+      && !r.unreliable.includes('reverb'));
+  const reverbMae = mae(reverbConfident);
+  if (reverbMae !== null) {
+    const ratio = reverbMae * AXIS_RATIO_PER_UNIT.reverbPerSec;
+    out.push({
+      axis: 'reverb',
+      basis: `確定値のRT60 MAE (n=${reverbConfident.length})`,
+      measuredMae: round(reverbMae, 3),
+      measuredRatio: round(ratio, 3),
+      constant: AXIS_RATIO_UNCERTAINTY.reverb,
+      optimistic: ratio > AXIS_RATIO_UNCERTAINTY.reverb,
+    });
+  }
+
+  // ノイズは定常＋多人数の話し声。衝撃性ノイズは provenance の申告で扱うので
+  // 除く（含めると定数が 0.2 を超え、ノイズ軸で何も断定できなくなる）。
+  const noiseRows = rows.filter((r) => ['snr', 'snrbabble'].includes(r.conditionType));
+  const noiseMae = mae(noiseRows);
+  if (noiseMae !== null) {
+    const ratio = noiseMae * AXIS_RATIO_PER_UNIT.noisePerDb;
+    out.push({
+      axis: 'noise',
+      basis: `SNR MAE（定常＋話し声, n=${noiseRows.length}）`,
+      measuredMae: round(noiseMae, 3),
+      measuredRatio: round(ratio, 3),
+      constant: AXIS_RATIO_UNCERTAINTY.noise,
+      optimistic: ratio > AXIS_RATIO_UNCERTAINTY.noise,
+    });
+  }
+
+  return out;
+}
+
+// ==========================================================================
+// 減衰の落差ごとのRT60誤差
+// ==========================================================================
+
+/**
+ * 「T20相当の落差に届いたイベント数」で層別したRT60誤差。
+ *
+ * 現在の `confident`（参考値かどうか）の条件はイベント数だけで、落差は見ていない。
+ * ISO 3382 の T20 は −5〜−25dB の20dBを×3に外挿するが、この実装は10dBを×6に
+ * 外挿しているので、曲率と雑音の影響が2倍に拡大される。
+ *
+ * **落差を条件に足すべきかは、この表が支持するかどうかで決める。** 深い落差を
+ * 要求すると測定できる条件が減るというトレードオフがあるので、
+ * 誤差が下がるだけでは足りない（測れる件数も見る）。
+ */
+interface DropStratum {
+  label: string;
+  n: number;
+  measured: number;
+  bias: number | null;
+  mae: number | null;
+  maxAbs: number | null;
+  /** 現在の実装が確定値として出した件数 */
+  confidentNow: number;
+}
+
+function dropStrata(rows: Row[]): DropStratum[] {
+  const list = rows.filter(
+    (r) => ['rt60', 'rt60band', 'rt60rep'].includes(r.conditionType) && r.rt60Truth !== null);
+  if (list.length === 0) return [];
+
+  const buckets: Array<{ label: string; test: (n: number) => boolean }> = [
+    { label: '0件', test: (n) => n === 0 },
+    { label: '1件', test: (n) => n === 1 },
+    { label: '2〜3件', test: (n) => n >= 2 && n <= 3 },
+    { label: '4件以上', test: (n) => n >= 4 },
+  ];
+
+  const out: DropStratum[] = [];
+  for (const b of buckets) {
+    const group = list.filter((r) => b.test(r.decayEventsT20 ?? 0));
+    if (group.length === 0) continue;
+    const ok = group.filter((r) => r.rt60Estimate !== null);
+    const errs = ok.map((r) => (r.rt60Estimate as number) - (r.rt60Truth as number));
+    out.push({
+      label: b.label,
+      n: group.length,
+      measured: ok.length,
+      bias: errs.length ? round(errs.reduce((a, x) => a + x, 0) / errs.length, 3) : null,
+      mae: errs.length ? round(errs.reduce((a, x) => a + Math.abs(x), 0) / errs.length, 3) : null,
+      maxAbs: errs.length ? round(Math.max(...errs.map(Math.abs)), 3) : null,
+      confidentNow: group.filter((r) => !r.unreliable.includes('reverb')).length,
+    });
+  }
+  return out;
+}
+
 // ==========================================================================
 // 衝撃性ノイズの検出
 // ==========================================================================
@@ -1250,8 +1393,27 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
   }
   L.push('');
 
+  if (report.uncertaintyChecks.length > 0) {
+    L.push('## 3. 判定の不確かさの定数と実測の突き合わせ');
+    L.push('');
+    L.push('判定は3値なので、境界の近くで断定しないための安全距離を軸ごとに持っている');
+    L.push('（AudioAnalyzer の `AXIS_RATIO_UNCERTAINTY`）。その値は実測MAEから換算して');
+    L.push('決めているので、**推定器を変えて定数を更新し忘れると黙って断定しすぎる**。');
+    L.push('ここで機械的に突き合わせる。');
+    L.push('');
+    L.push('| 軸 | 換算の元 | 実測MAE | 達成率に換算 | 定数 | 判定 |');
+    L.push('|---|---|---:|---:|---:|---|');
+    for (const c of report.uncertaintyChecks) {
+      L.push(
+        `| ${c.axis} | ${c.basis} | ${c.measuredMae} | ${c.measuredRatio} | ${c.constant} | ` +
+        `${c.optimistic ? '**定数が実測より楽観（断定しすぎる）**' : '実測を覆っている'} |`,
+      );
+    }
+    L.push('');
+  }
+
   if (report.mos.available) {
-    L.push('## 3. MOSオラクルとの順位相関');
+    L.push('## 4. MOSオラクルとの順位相関');
     L.push('');
     L.push('学習済みモデル(DNSMOS)の評価順と、自分の総合スコアの順が一致しているか。');
     L.push('係数を調整する方向を得るための指標。1に近いほど良い。');
@@ -1292,7 +1454,7 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
 
   if (report.weighting) {
     const w = report.weighting;
-    L.push('## 4. 軸の配点の検証（複合条件）');
+    L.push('## 5. 軸の配点の検証（複合条件）');
     L.push('');
     L.push('単独条件では配点を検証できない——「ノイズが強い録音」と「残響が長い録音」の');
     L.push('どちらを低く評価すべきかという比較を含まないため。2つ以上の劣化を同時に');
@@ -1354,7 +1516,7 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
   }
 
   if (report.drrCapability.length > 0) {
-    L.push('## 5. マイク位置ごとの残響の測定能力');
+    L.push('## 6. マイク位置ごとの残響の測定能力');
     L.push('');
     L.push('RT60を固定して直接音対残響比(DRR)だけを振った条件。DRRはマイク位置に相当し、');
     L.push('了解度にはRT60よりこちらが効く。近接マイクなら同じ部屋でも残響はほとんど乗らない。');
@@ -1373,7 +1535,7 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
   }
 
   if (report.bandProfiles.length > 0) {
-    L.push('## 6. 帯域ごとにRT60が違う部屋での系統誤差');
+    L.push('## 7. 帯域ごとにRT60が違う部屋での系統誤差');
     L.push('');
     L.push('検証基盤の既定のインパルス応答は**スペクトルが平坦**な指数減衰で、全帯域が同じ');
     L.push('速さで減衰する。実室はそうならない——空気吸収と吸音材の効きが周波数で違うので、');
@@ -1396,8 +1558,29 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
     L.push('');
   }
 
+  if (report.dropStrata.length > 0) {
+    L.push('## 8. 減衰の落差ごとのRT60誤差');
+    L.push('');
+    L.push('ISO 3382 の T20 は減衰曲線の −5〜−25dB（20dB）を×3に外挿する。この実装は');
+    L.push('−8〜−18dB（10dB）を**×6**に外挿しているので、曲率と雑音の影響が規格の手順より');
+    L.push('2倍拡大される。「確定値」の条件は現在イベント数だけで、落差を見ていない。');
+    L.push('');
+    L.push('落差が20dBに届いたイベントの数で層別する。**落差を条件に足すべきかは');
+    L.push('この表が支持するかで決める**——誤差が下がるだけでは足りず、測れる件数も見る。');
+    L.push('');
+    L.push('| T20相当のイベント数 | 件数 | 測定できた | バイアス[秒] | MAE[秒] | 最大誤差[秒] | 現在の確定値 |');
+    L.push('|---|---:|---:|---:|---:|---:|---:|');
+    for (const d of report.dropStrata) {
+      L.push(
+        `| ${d.label} | ${d.n} | ${d.measured} | ${d.bias ?? 'n/a'} | ${d.mae ?? 'n/a'} | ` +
+        `${d.maxAbs ?? 'n/a'} | ${d.confidentNow} |`,
+      );
+    }
+    L.push('');
+  }
+
   if (report.pauses.length > 0) {
-    L.push('## 7. 間（無音区間）の量とSNRの測定能力');
+    L.push('## 9. 間（無音区間）の量とSNRの測定能力');
     L.push('');
     L.push('READMEは「話者の喋り方（声量のムラ、間の取り方）は評価しない。環境の評価では');
     L.push('ないため」と宣言している。SNRを固定して間だけを間引いた条件で、その宣言が');
@@ -1420,7 +1603,7 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
 
   if (report.impulseDetection !== null) {
     const d = report.impulseDetection;
-    L.push('## 8. 衝撃性ノイズの検出');
+    L.push('## 10. 衝撃性ノイズの検出');
     L.push('');
     L.push('ノイズ軸は打鍵音のような衝撃音に無反応なので（節2の `snrimpulse` が `blind`）、');
     L.push('**スコアで表現できない事実を加工痕跡のフラグとして申告する**。スコアと判定は');
@@ -1445,7 +1628,7 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
   }
 
   if (report.reproducibility.length > 0) {
-    L.push('## 9. 判定の再現性（真値を固定して乱数だけ振る）');
+    L.push('## 11. 判定の再現性（真値を固定して乱数だけ振る）');
     L.push('');
     L.push('誤差表は「真値をずらしたときにどれだけ当たるか」を測る。しかしこの道具の出力は');
     L.push('3値の判定なので、利用者にとって意味があるのは**同じ部屋を測り直して同じ答えが');
@@ -1469,7 +1652,7 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
   }
 
   if (report.verdicts.some((v) => v.n > 0)) {
-    L.push('## 10. 判定の分離（複合条件）');
+    L.push('## 12. 判定の分離（複合条件）');
     L.push('');
     L.push('判定は**最弱の軸**で決まるので、複数の軸が同時に下がる複合条件でこそ意味を持つ。');
     L.push('「良好」の群と「不可」の群でMOSの分布が重なっているなら、閾値は意味をなしていない。');
@@ -1486,7 +1669,7 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
   }
 
   if (report.advice.some((a) => a.positives + a.negatives > 0)) {
-    L.push('## 11. 助言の的中と空振り');
+    L.push('## 13. 助言の的中と空振り');
     L.push('');
     L.push('注入した物理量から「この助言が出るべきか」の真値が作れる。**空振りは見落としより重い**——');
     L.push('出すべき助言を落とすより、直さなくてよいものを直せと言うほうが道具への信頼を損なう。');
@@ -1513,7 +1696,7 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
     }
   }
 
-  L.push('## 12. 劣化なし基準の挙動');
+  L.push('## 14. 劣化なし基準の挙動');
   L.push('');
   L.push('| id | 総合 | ノイズ | 残響 | 周波数 | 音量 | 音割れ | 帯域上限[Hz] | 検出フラグ | 参考値扱いの軸 |');
   L.push('|---|---:|---:|---:|---:|---:|---:|---:|---|---|');
@@ -1593,6 +1776,8 @@ function buildReport(rows: Row[], sources: string[], mosNote: string, mosAvailab
     bandProfiles: bandProfileStats(rows),
     pauses: pauseStats(rows),
     impulseDetection: impulseDetection(rows),
+    dropStrata: dropStrata(rows),
+    uncertaintyChecks: uncertaintyChecks(rows),
     reproducibility: reproducibility(rows),
     verdicts: verdictStats(rows),
     advice: adviceStats(rows),

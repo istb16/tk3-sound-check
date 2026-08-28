@@ -148,21 +148,19 @@ export function estimateSnr(
     usableForNoise = markUsableForNoise(active, guardFrames);
   }
 
-  // ガードを 0 まで縮めても下限に届かないことがある——間を置かずに喋る話者、
-  // あるいは残響が測れずガードが最初から 0 の録音。
+  // ガードを 0 まで縮めても MIN_NOISE_FRAMES に届かないことがある。**そのときは
+  // 少数のフレームでも使う。** 下のパーセンタイル代替に落としてはいけない。
   //
-  // **下限の判定がガードの縮小ループの中にしか無いのは欠陥だった。** while の条件が
-  // `guardFrames > 0` なので、ガードが無い経路では無音1フレームでもそのまま
-  // ノイズパワーの推定に使われる。少数フレームの推定は楽観方向に外れる
-  // （静かな瞬間を引きやすい）ので、**黙って「そこまで悪くない」と言う経路**になる。
+  // 一度そう直して、実測で戻した。ガードが 0 の経路でも下限を効かせて代替に
+  // 落とすようにしたところ、届かなかったのは残響が最も強い4条件だけ
+  // （RT60 1.5秒 と DRR -10dB）で、そこでノイズ軸が 15→5 点に落ちた。
+  // 残響の尾がパーセンタイルの分母に入るためで、**このファイルが避けようとしている
+  // 残響→ノイズの二重減点そのもの**である。結合の指標も悪化した
+  // （rt60→noise の相関 -0.801→-0.828、効果量 2.6→4.2点）。
   //
-  // 下限に届かないときは、少数フレームを使うより下のパーセンタイル代替に落とす。
-  // そちらは実測で較正してある（NOISE_FLOOR_FALLBACK_PERCENTILE の注記）。
-  //
-  // **この行は現在の検証セットでは一度も発動しない。** 間を間引いた条件(pauses)でも
-  // 無音と判定されるフレームは100件以上残る。公開コーパスは発話を連結して素材に
-  // しているので、そもそも間が多い。守りとして置くが、**実測で確かめた修正ではない。**
-  if (countTrue(usableForNoise) < MIN_NOISE_FRAMES) usableForNoise = usableForNoise.map(() => false);
+  // パーセンタイル代替が較正されているのは「SNRが極端に低くて2群に分離できない」
+  // 領域に対してで、「静かだが残響が長い部屋」ではない。尺度が違うものを
+  // 流用してはいけないという、このリポジトリが何度も踏んだ形の誤りだった。
 
   let activePower = 0, activeCount = 0;
   let noisePower = 0, noiseCount = 0;
@@ -470,6 +468,8 @@ const DECAY_FLOOR_PERCENTILE = 0.02;
 const DECAY_MIN_FRAMES = 8;
 /** 直線近似に必要な最小の落差[dB] */
 const DECAY_MIN_DROP_DB = 10;
+/** ISO 3382 の T20 に相当する落差[dB]（減衰曲線の −5〜−25dB） */
+const T20_DROP_DB = 20;
 /** 直線近似の決定係数の下限 */
 const DECAY_MIN_R2 = 0.9;
 /** 物理的にありえない推定値を捨てる範囲[秒] */
@@ -482,6 +482,31 @@ const RT60_MAX_SEC = 5;
  * 精度を優先し、代わりに2件でも値は返して「低信頼」として扱う。
  */
 const DECAY_MIN_EVENTS = 2;
+/**
+ * 確定値と呼ぶために必要な「T20相当の落差に届いたイベント」の数[件]。
+ *
+ * ISO 3382 の T20 は減衰曲線の −5〜−25dB（20dB）を×3に外挿する。この実装は
+ * −8〜−18dB（10dB）を**×6**に外挿しているので、曲率と雑音の影響が規格の手順より
+ * 2倍拡大される。イベント数だけを条件にしていたときは、浅い落差から外挿した
+ * 推定値まで確定値として出していた。
+ *
+ * 実測（rt60 / rt60band / rt60rep の全200件、確定値の集合で比較）:
+ *
+ *              件数   バイアス    MAE     最大誤差
+ *   イベント数のみ  162   -0.040   0.114    0.608
+ *   ＋20dB 1件以上  108   -0.008   0.093    0.437   ← 採用
+ *   ＋20dB 2件以上   47   +0.008   0.081    0.360
+ *
+ * 1件を要求するとバイアスがほぼ消え（-0.040 → -0.008）、最大誤差も28%減る。
+ * 2件に上げても MAE の改善は 0.012秒しかないのに確定値が半分になるので、
+ * **1件で止める**。条件を3つに分けた内訳でもすべて改善する方向に動いた
+ * （rt60 0.123→0.086 / rt60band 0.138→0.117 / rt60rep 0.104→0.090）。
+ *
+ * 確定値が 162→108 件に減るぶんは参考値として開示される。**測れていないものを
+ * 黙って部分点にしない**という方針では、これは損失ではない。
+ */
+const DECAY_CONFIDENT_T20_EVENTS = 1;
+
 /**
  * これ以上のイベント数があれば推定値を信頼できるとみなす。
  *
@@ -523,6 +548,16 @@ export interface ReverbEstimate {
   events: number;
   /** イベントごとの推定値[秒]（ばらつきの確認用） */
   perEventRt60: number[];
+  /**
+   * イベントごとに近似に使えた落差[dB]。`perEventRt60` と同じ順序。
+   *
+   * ISO 3382 の T20 は −5〜−25dB（20dB）を×3、T30 は −5〜−35dB を×2 に外挿する。
+   * この実装は落差 DECAY_MIN_DROP_DB（10dB）から×6 に外挿しているので、
+   * 曲率と雑音の影響が規格の手順より大きく拡大される。**どの落差まで届いた
+   * イベントを「確定値」と呼ぶべきかは掃引して決める。** 検証基盤がこの値で
+   * 誤差を層別できるように外へ出す。
+   */
+  perEventDropDb: number[];
 }
 
 export function estimateReverb(data: Float32Array, sampleRate: number): ReverbEstimate {
@@ -535,12 +570,13 @@ export function estimateReverb(data: Float32Array, sampleRate: number): ReverbEs
     raw.push(dbfs(rms(data, i, frameLen)));
   }
   if (raw.length < DECAY_MIN_FRAMES * 4) {
-    return { rt60Sec: null, confident: false, events: 0, perEventRt60: [] };
+    return { rt60Sec: null, confident: false, events: 0, perEventRt60: [], perEventDropDb: [] };
   }
 
   const levels  = movingAverage(raw, DECAY_SMOOTH_FRAMES);
   const floorDb = percentile(levels, DECAY_FLOOR_PERCENTILE) + DECAY_FLOOR_MARGIN_DB;
   const perEventRt60: number[] = [];
+  const perEventDropDb: number[] = [];
 
   let i = 1;
   while (i < levels.length) {
@@ -568,11 +604,15 @@ export function estimateReverb(data: Float32Array, sampleRate: number): ReverbEs
     while (fitEnd < runEnd && levels[fitEnd] > floorDb) fitEnd++;
 
     const n = fitEnd - start;
-    if (n >= DECAY_MIN_FRAMES && levels[start] - levels[fitEnd - 1] >= DECAY_MIN_DROP_DB) {
+    const dropDb = n > 0 ? levels[start] - levels[fitEnd - 1] : 0;
+    if (n >= DECAY_MIN_FRAMES && dropDb >= DECAY_MIN_DROP_DB) {
       const fit = linearFit(levels, start, fitEnd, hopSec);
       if (fit.slope < 0 && fit.r2 >= DECAY_MIN_R2) {
         const rt60 = -60 / fit.slope;
-        if (rt60 >= RT60_MIN_SEC && rt60 <= RT60_MAX_SEC) perEventRt60.push(rt60);
+        if (rt60 >= RT60_MIN_SEC && rt60 <= RT60_MAX_SEC) {
+          perEventRt60.push(rt60);
+          perEventDropDb.push(dropDb);
+        }
       }
     }
 
@@ -580,13 +620,21 @@ export function estimateReverb(data: Float32Array, sampleRate: number): ReverbEs
   }
 
   if (perEventRt60.length < DECAY_MIN_EVENTS) {
-    return { rt60Sec: null, confident: false, events: perEventRt60.length, perEventRt60 };
+    return {
+      rt60Sec: null, confident: false, events: perEventRt60.length,
+      perEventRt60, perEventDropDb,
+    };
   }
+  const t20Events = perEventDropDb.filter((d) => d >= T20_DROP_DB).length;
   return {
     rt60Sec: percentile(perEventRt60, RT60_PERCENTILE),
-    confident: perEventRt60.length >= DECAY_CONFIDENT_EVENTS,
+    // イベント数と落差の両方を要求する。数だけでは、浅い落差から×6に外挿した
+    // 推定値まで確定値として出てしまう。
+    confident: perEventRt60.length >= DECAY_CONFIDENT_EVENTS
+      && t20Events >= DECAY_CONFIDENT_T20_EVENTS,
     events: perEventRt60.length,
     perEventRt60,
+    perEventDropDb,
   };
 }
 

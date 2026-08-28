@@ -35,9 +35,11 @@
   <p class="v-main">{t.verdicts[verdict.level]}</p>
   {#if verdict.limitingAxis !== null}
     <p class="v-limit">
-      {verdict.unconfirmed
+      {verdict.unconfirmed === 'unmeasured'
         ? t.verdictUnconfirmed(limitingName)
-        : t.verdictLimitedBy(limitingName)}
+        : verdict.unconfirmed === 'near-boundary'
+          ? t.verdictNearBoundary(limitingName)
+          : t.verdictLimitedBy(limitingName)}
     </p>
   {/if}
 

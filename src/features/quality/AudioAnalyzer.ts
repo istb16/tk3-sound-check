@@ -75,16 +75,27 @@ export const AXIS_MAX: Record<ScoreAxis, number> = {
 /** 会議の録音環境として使えるかの判定 */
 export type VerdictLevel = 'good' | 'usable' | 'poor';
 
+/**
+ * 判定を断定できない理由。`false` なら断定している。
+ *
+ *   'unmeasured'    測定できなかった軸がある（中間点で埋めているので断定できない）
+ *   'near-boundary' 推定誤差が判定境界を跨いでいる（測れてはいるが決められない）
+ *
+ * 真偽値ではなく理由を持つ。UIの文面が「測定できなかった」と「境界に近い」で
+ * 別物になるため。`verdict.unconfirmed ? …` の分岐はそのまま動く。
+ */
+export type VerdictUnconfirmed = false | 'unmeasured' | 'near-boundary';
+
 export interface Verdict {
   level: VerdictLevel;
   /** 最も足を引っ張っている軸。すべて良好かつ測定も揃っていれば null */
   limitingAxis: ScoreAxis | null;
   /**
-   * スコア自体は良好だが、測定できなかった軸があるため「十分」と断定できない状態。
+   * スコア自体は良好だが断定できない状態。理由は VerdictUnconfirmed を参照。
    * 測定不能な軸に中間点を与えているので、そのまま good を出すと
    * 「測れなかった部屋」が「実測した悪い部屋」より高評価になってしまう。
    */
-  unconfirmed: boolean;
+  unconfirmed: VerdictUnconfirmed;
 }
 
 /** 判定の根拠になった実測値。総合点より前にこれを見せる */
@@ -193,6 +204,45 @@ const VERDICT_GOOD_RATIO   = 0.55;
 const VERDICT_USABLE_RATIO = 0.35;
 
 /**
+ * 各軸の達成率の不確かさ。**validation/report.md の実測値から換算した値。**
+ *
+ * 判定は3値なので、問うべきは「点数の誤差が何点か」ではなく
+ * 「同じ部屋を測り直して同じ答えが出るか」である。実測すると出ない——真のRT60を
+ * 0.7秒に固定して話者と応答の実現だけを振ると、判定が good / usable / poor に
+ * 3つに割れた（report.md の「判定の再現性」）。原因は算数で出る:
+ * 残響軸は 0.2秒で満点・0.9秒で0点の直線なので、RT60の誤差 0.093秒は
+ * 達成率 0.133 に相当する。いっぽう判定の境界の間隔は 0.55-0.35 = 0.20 しかない。
+ * **誤差が判定帯の幅に近ければ、判定は測定ではなく抽選になる。**
+ *
+ * 換算の根拠（いずれも report.md の実測）:
+ *   reverb    確定値のRT60 MAE 0.093秒 ÷ (0.9-0.2)秒 = 0.132 → 切り上げて 0.14
+ *             参考値の行はすでに unreliable 経由で断定を止めるので、確定値の値を使う
+ *   noise     SNR MAE 1.5dB ÷ 満点 45dB = 0.033（定常ノイズと多人数の話し声）
+ *   frequency 帯域上限 MAE 6Hz（ほぼ0点）＋ 傾斜 MAE 0.75dB/oct ≒ 0.6点 ÷ 25点
+ *   volume    P.56 Method B との差 0.87dB × 1.25点/dB ÷ 15点 = 0.073
+ *   clip      44.1kHzへのリサンプルでクリップ率が最大38%目減りする分
+ *
+ * **MAE は信頼区間ではない。** 「典型的な誤差」を境界からの安全距離として使って
+ * いるだけで、この幅を外れる録音は残る。それでも、幅を持たせずに断定するより
+ * 実測に合っている。
+ *
+ * **既知の穴が2つある。** 間の少ない発話ではSNRの誤差が 4.7dB（達成率0.10）まで
+ * 開くが、これは合成的な間引きで作った条件なので実際の早口話者を代表するか
+ * 分からない。打鍵音のような衝撃性ノイズでは 9.4dB 開くが、そちらは
+ * provenance の申告で別に扱う。どちらもこの定数には含めていない。
+ *
+ * 推定器を変えたらこの表を測り直すこと。validate.ts が実測MAEと突き合わせて
+ * 「定数が実測より楽観」なら警告する。
+ */
+export const AXIS_RATIO_UNCERTAINTY: Record<ScoreAxis, number> = {
+  reverb:    0.14,
+  noise:     0.04,
+  frequency: 0.03,
+  volume:    0.08,
+  clip:      0.08,
+};
+
+/**
  * 「このまま会議していいのか」を判定する。
  *
  * 総合点の合計ではなく **最も低い軸** で決める。録音環境は最も弱い要因で
@@ -208,18 +258,48 @@ function judge(scores: Record<ScoreAxis, number>, unreliable: ScoreAxis[]): Verd
     if (ratio < worstRatio) { worstRatio = ratio; worstAxis = axis; }
   }
 
+  const uncertainty = worstAxis === null ? 0 : AXIS_RATIO_UNCERTAINTY[worstAxis];
+
   if (worstRatio >= VERDICT_GOOD_RATIO) {
     // 測定できなかった軸があるなら「十分」と断定しない。
     // 測定不能な軸には中間点を与えているため、そのまま good を出すと
     // 「測れなかった部屋」が「実測した悪い部屋」より高評価になる。
     if (unreliable.length > 0) {
-      return { level: 'usable', limitingAxis: unreliable[0], unconfirmed: true };
+      return { level: 'usable', limitingAxis: unreliable[0], unconfirmed: 'unmeasured' };
+    }
+    // 「十分」と言うには**全部の軸**が境界から誤差ぶん離れている必要がある。
+    //
+    // 最弱の軸だけを見てはいけない。軸が同点で並ぶことは普通にあり（実測では
+    // クリーンな16kHz素材で周波数と残響がどちらも達成率0.60）、そのとき
+    // どちらが「最弱」に選ばれるかは Object.keys の順で決まる。周波数の
+    // 不確かさは0.03、残響は0.14なので、**列挙順が判定の断定/非断定を
+    // 決めてしまう**。実際に同じ素材で s0 が good、s1 が near-boundary に割れた。
+    const nearGood = (Object.keys(AXIS_MAX) as ScoreAxis[]).filter(
+      (axis) => scores[axis] / AXIS_MAX[axis] - VERDICT_GOOD_RATIO < AXIS_RATIO_UNCERTAINTY[axis],
+    );
+    if (nearGood.length > 0) {
+      return { level: 'usable', limitingAxis: nearGood[0], unconfirmed: 'near-boundary' };
     }
     return { level: 'good', limitingAxis: null, unconfirmed: false };
   }
 
   const level: VerdictLevel = worstRatio >= VERDICT_USABLE_RATIO ? 'usable' : 'poor';
-  return { level, limitingAxis: worstAxis, unconfirmed: false };
+
+  // 下側の境界でも、誤差の範囲内なら断定しない。**ただし level は動かさない。**
+  //
+  // 上側では good → usable に落とす（測れていないものを褒めない）。下側で
+  // poor → usable に上げるのは逆向きの操作で、良い側に振ることになる。
+  // 一貫した原則は「境界では良い側に振らない」なので、下側は level を残して
+  // 断定していないことだけを開示する。
+  const nearBoundary =
+    VERDICT_GOOD_RATIO - worstRatio < uncertainty
+    || Math.abs(worstRatio - VERDICT_USABLE_RATIO) < uncertainty;
+
+  return {
+    level,
+    limitingAxis: worstAxis,
+    unconfirmed: nearBoundary ? 'near-boundary' : false,
+  };
 }
 
 // ==========================================================================
@@ -438,23 +518,27 @@ const ADVISE_MUFFLED_DB_OCT = -14;
 //
 // 測定不能な場合（喋り続けていて自由減衰が無い、デッドすぎて発話自体の減衰と
 // 分離できない）は中間値を返し、その軸を unreliable に入れる。満点は与えない。
+/**
+ * 残響軸で満点・0点とするRT60[秒]。**満点は音響処理をした部屋か近接マイクを意味する。**
+ *
+ * 以前は 0.4／1.2秒だった。品質の尺度としては上が詰まっており、0.13秒の録音と
+ * 0.25秒の録音が同じ満点になっていた。
+ *
+ * 根拠: ANSI S12.60 は小さな教室に RT60 0.6秒以下を求め、ISO 9921 は 0.5秒を
+ * 超えると明瞭度が落ちるとする。0.2秒は処理された部屋か近接マイク、0.9秒は
+ * 硬い面ばかりの部屋で発話が明らかに濁る水準。
+ *
+ * 注意: 確定値のRT60でも推定誤差は MAE 0.093秒あり、0.2〜0.9秒という幅の13%に
+ * 相当する。**この軸の点数を細かく読んではいけない。** 判定が境界に近いときに
+ * 断定しないのは AXIS_RATIO_UNCERTAINTY がこの幅を持っているため。
+ */
+const REVERB_GOOD_SEC = 0.2;
+const REVERB_BAD_SEC  = 0.9;
+
 function calcReverbScore(rt60Sec: number | null, advice: AdviceItem[]): number {
   const MAX = AXIS_MAX.reverb;
-  /**
-   * 満点・0点とするRT60[秒]。**満点は音響処理をした部屋か近接マイクを意味する。**
-   *
-   * 以前は 0.4／1.2秒だった。品質の尺度としては上が詰まっており、0.13秒の録音と
-   * 0.25秒の録音が同じ満点になっていた。
-   *
-   * 根拠: ANSI S12.60 は小さな教室に RT60 0.6秒以下を求め、ISO 9921 は 0.5秒を
-   * 超えると明瞭度が落ちるとする。0.2秒は処理された部屋か近接マイク、0.9秒は
-   * 硬い面ばかりの部屋で発話が明らかに濁る水準。
-   *
-   * 注意: RT60の推定誤差は MAE 0.141秒あり、0.2〜0.9秒という幅の20%に相当する。
-   * 4点ぶんの揺れが出るので、この軸の点数を細かく読んではいけない。
-   */
-  const GOOD_SEC = 0.2;
-  const BAD_SEC  = 0.9;
+  const GOOD_SEC = REVERB_GOOD_SEC;
+  const BAD_SEC  = REVERB_BAD_SEC;
 
   if (rt60Sec === null) {
     advice.push({ code: 'reverb-unmeasurable' });
@@ -546,6 +630,21 @@ function calcClipScore(data: Float32Array, advice: AdviceItem[]): number {
  *   使えるの閾値 0.35 → SNR 15.8dB（ANSI/ASA S12.60 が求める信号対雑音比 +15dB）
  */
 const FULL_MARKS_SNR_DB = 45;
+
+/**
+ * 物理量の誤差を達成率の誤差へ換算する係数。
+ *
+ * `AXIS_RATIO_UNCERTAINTY` は validation/report.md の実測MAEから決めているので、
+ * 検証側がその換算を再現して「定数が実測より楽観になっていないか」を確かめられる
+ * ようにする。**採点の境界を動かしたらこの係数も一緒に動く**ので、
+ * 数値を検証側に写さず、ここから公開する。
+ */
+export const AXIS_RATIO_PER_UNIT = {
+  /** RT60 1秒あたりに動く達成率 */
+  reverbPerSec: 1 / (REVERB_BAD_SEC - REVERB_GOOD_SEC),
+  /** SNR 1dBあたりに動く達成率 */
+  noisePerDb: 1 / FULL_MARKS_SNR_DB,
+} as const;
 function calcNoiseScore(
   data: Float32Array,
   sampleRate: number,
