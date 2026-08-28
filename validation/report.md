@@ -3,9 +3,9 @@
 `npm run validate` の出力。人間のラベル付けは使っていない。
 注入した既知の物理量を推定器が復元できるかを測っている。
 
-- 生成日時: 2026-08-28T03:31:19.945Z
+- 生成日時: 2026-08-28T03:40:13.072Z
 - 素材: corpus:cmu-arctic-files-awb(3本)@16000Hz, corpus:cmu-arctic-files-awb(3本)@48000Hz, corpus:cmu-arctic-files-bdl(4本)@16000Hz, corpus:cmu-arctic-files-bdl(4本)@48000Hz, corpus:cmu-arctic-files-ksp(3本)@16000Hz, corpus:cmu-arctic-files-ksp(3本)@48000Hz, corpus:cmu-arctic-files-slt(3本)@16000Hz, corpus:cmu-arctic-files-slt(3本)@48000Hz, corpus:wideband(1本)@16000Hz, corpus:wideband(1本)@48000Hz
-- 件数: 903
+- 件数: 941
 - MOSオラクル: 無効 (--mos が指定されていない)
 
 ## 1. 推定誤差
@@ -15,12 +15,13 @@
 | clip | クリップ率(有音基準) | 40 | 0 | 0 | 0 | s0-clip0_0002 (真値 0.0004 → 推定 0.0004) |
 | cutoff | 帯域上限[Hz] | 33 | -6.061 | 6.061 | 100 | s2-lp4000 (真値 4000 → 推定 3900) |
 | level | 有効音声レベル[dBFS] | 80 | 0 | 0 | 0 | s0-levelm70 (真値 -70 → 推定 -70) |
+| pauses | SNR[dB] (間が少ない発話) | 40 | -4.077 | 4.668 | 8.147 | s2-pauses0_1 (真値 18.9871 → 推定 10.8404) |
 | rt60 | RT60[秒] | 55 | -0.11 | 0.173 | 0.891 | s9-rt60-1_5 (真値 1.5 → 推定 0.6089) |
-| rt60band | RT60[秒] (帯域依存) | 36 | 0.152 | 0.186 | 0.726 | s0-rt60band-ceiling (真値 0.4 → 推定 1.1261) |
-| rt60rep | RT60[秒] (再現性) | 100 | -0.058 | 0.117 | 0.286 | s5-rt60rep-0_7-4 (真値 0.7 → 推定 0.9862) |
+| rt60band | RT60[秒] (帯域依存) | 36 | 0.175 | 0.21 | 0.726 | s0-rt60band-ceiling (真値 0.4 → 推定 1.1261) |
+| rt60rep | RT60[秒] (再現性) | 100 | -0.064 | 0.108 | 0.288 | s6-rt60rep-0_7-3 (真値 0.7 → 推定 0.4121) |
 | snr | SNR[dB] | 160 | 0.304 | 1.595 | 5.375 | s2-snr20-white (真値 19.2794 → 推定 13.9045) |
-| snrbabble | SNR[dB] (多人数の話し声) | 50 | 0.429 | 1.466 | 3.491 | s2-babble20 (真値 19.2794 → 推定 22.7706) |
-| snrimpulse | SNR[dB] (衝撃性ノイズ) | 50 | 9.86 | 9.86 | 18.508 | s6-click8-15 (真値 14.8416 → 推定 33.3497) |
+| snrbabble | SNR[dB] (多人数の話し声) | 50 | 0.601 | 1.428 | 3.94 | s2-babble20 (真値 19.2794 → 推定 15.3391) |
+| snrimpulse | SNR[dB] (衝撃性ノイズ) | 48 | 9.351 | 9.351 | 18.356 | s7-click8-15 (真値 14.7924 → 推定 33.148) |
 | tilt | 1kHz以上の傾斜[dB/oct] | 40 | -0.26 | 0.748 | 2.991 | s1-tiltm12 (真値 -22.4837 → 推定 -19.4922) |
 
 ### 素材ごとの内訳
@@ -61,6 +62,16 @@
 | level / corpus:cmu-arctic-files-slt(3本)@48000Hz | 8 | 0 | 0 | 0 |
 | level / corpus:wideband(1本)@16000Hz | 8 | 0 | 0 | 0 |
 | level / corpus:wideband(1本)@48000Hz | 8 | 0 | 0 | 0 |
+| pauses / corpus:cmu-arctic-files-awb(3本)@16000Hz | 4 | 0.423 | 2.287 | 3.729 |
+| pauses / corpus:cmu-arctic-files-awb(3本)@48000Hz | 4 | 0.094 | 1.526 | 2.626 |
+| pauses / corpus:cmu-arctic-files-bdl(4本)@16000Hz | 4 | -7.652 | 7.652 | 8.147 |
+| pauses / corpus:cmu-arctic-files-bdl(4本)@48000Hz | 4 | -7.273 | 7.273 | 7.81 |
+| pauses / corpus:cmu-arctic-files-ksp(3本)@16000Hz | 4 | -4.829 | 5.521 | 8.14 |
+| pauses / corpus:cmu-arctic-files-ksp(3本)@48000Hz | 4 | -4.785 | 5.671 | 7.967 |
+| pauses / corpus:cmu-arctic-files-slt(3本)@16000Hz | 4 | -5.623 | 5.623 | 6.108 |
+| pauses / corpus:cmu-arctic-files-slt(3本)@48000Hz | 4 | -4.903 | 4.903 | 5.444 |
+| pauses / corpus:wideband(1本)@16000Hz | 4 | -3.125 | 3.125 | 3.451 |
+| pauses / corpus:wideband(1本)@48000Hz | 4 | -3.094 | 3.094 | 3.616 |
 | rt60 / corpus:cmu-arctic-files-awb(3本)@16000Hz | 6 | 0.002 | 0.188 | 0.451 |
 | rt60 / corpus:cmu-arctic-files-awb(3本)@48000Hz | 5 | 0.053 | 0.172 | 0.36 |
 | rt60 / corpus:cmu-arctic-files-bdl(4本)@16000Hz | 5 | -0.095 | 0.112 | 0.316 |
@@ -72,25 +83,25 @@
 | rt60 / corpus:wideband(1本)@16000Hz | 6 | -0.275 | 0.297 | 0.866 |
 | rt60 / corpus:wideband(1本)@48000Hz | 6 | -0.256 | 0.276 | 0.891 |
 | rt60band / corpus:cmu-arctic-files-awb(3本)@16000Hz | 4 | 0.319 | 0.319 | 0.726 |
-| rt60band / corpus:cmu-arctic-files-awb(3本)@48000Hz | 4 | 0.252 | 0.252 | 0.645 |
-| rt60band / corpus:cmu-arctic-files-bdl(4本)@16000Hz | 2 | -0.03 | 0.03 | 0.055 |
-| rt60band / corpus:cmu-arctic-files-bdl(4本)@48000Hz | 3 | 0.069 | 0.132 | 0.303 |
-| rt60band / corpus:cmu-arctic-files-ksp(3本)@16000Hz | 4 | 0.286 | 0.286 | 0.534 |
-| rt60band / corpus:cmu-arctic-files-ksp(3本)@48000Hz | 4 | 0.238 | 0.27 | 0.54 |
-| rt60band / corpus:cmu-arctic-files-slt(3本)@16000Hz | 4 | -0.011 | 0.058 | 0.131 |
-| rt60band / corpus:cmu-arctic-files-slt(3本)@48000Hz | 4 | 0.075 | 0.082 | 0.217 |
-| rt60band / corpus:wideband(1本)@16000Hz | 4 | 0.11 | 0.157 | 0.368 |
-| rt60band / corpus:wideband(1本)@48000Hz | 3 | 0.088 | 0.178 | 0.387 |
-| rt60rep / corpus:cmu-arctic-files-awb(3本)@16000Hz | 10 | 0.088 | 0.088 | 0.168 |
-| rt60rep / corpus:cmu-arctic-files-awb(3本)@48000Hz | 10 | 0.06 | 0.082 | 0.267 |
-| rt60rep / corpus:cmu-arctic-files-bdl(4本)@16000Hz | 10 | -0.149 | 0.149 | 0.273 |
-| rt60rep / corpus:cmu-arctic-files-bdl(4本)@48000Hz | 10 | -0.135 | 0.135 | 0.224 |
-| rt60rep / corpus:cmu-arctic-files-ksp(3本)@16000Hz | 10 | -0.074 | 0.157 | 0.266 |
-| rt60rep / corpus:cmu-arctic-files-ksp(3本)@48000Hz | 10 | 0.082 | 0.111 | 0.286 |
-| rt60rep / corpus:cmu-arctic-files-slt(3本)@16000Hz | 10 | -0.102 | 0.102 | 0.179 |
-| rt60rep / corpus:cmu-arctic-files-slt(3本)@48000Hz | 10 | -0.098 | 0.102 | 0.224 |
-| rt60rep / corpus:wideband(1本)@16000Hz | 10 | -0.123 | 0.123 | 0.253 |
-| rt60rep / corpus:wideband(1本)@48000Hz | 10 | -0.127 | 0.127 | 0.27 |
+| rt60band / corpus:cmu-arctic-files-awb(3本)@48000Hz | 4 | 0.278 | 0.278 | 0.608 |
+| rt60band / corpus:cmu-arctic-files-bdl(4本)@16000Hz | 3 | 0.115 | 0.159 | 0.379 |
+| rt60band / corpus:cmu-arctic-files-bdl(4本)@48000Hz | 3 | 0.157 | 0.243 | 0.485 |
+| rt60band / corpus:cmu-arctic-files-ksp(3本)@16000Hz | 4 | 0.275 | 0.275 | 0.525 |
+| rt60band / corpus:cmu-arctic-files-ksp(3本)@48000Hz | 4 | 0.253 | 0.253 | 0.497 |
+| rt60band / corpus:cmu-arctic-files-slt(3本)@16000Hz | 4 | 0.122 | 0.183 | 0.583 |
+| rt60band / corpus:cmu-arctic-files-slt(3本)@48000Hz | 4 | 0.147 | 0.186 | 0.302 |
+| rt60band / corpus:wideband(1本)@16000Hz | 3 | 0.035 | 0.039 | 0.11 |
+| rt60band / corpus:wideband(1本)@48000Hz | 3 | -0.062 | 0.087 | 0.216 |
+| rt60rep / corpus:cmu-arctic-files-awb(3本)@16000Hz | 10 | 0.035 | 0.095 | 0.214 |
+| rt60rep / corpus:cmu-arctic-files-awb(3本)@48000Hz | 10 | 0.076 | 0.076 | 0.199 |
+| rt60rep / corpus:cmu-arctic-files-bdl(4本)@16000Hz | 10 | -0.136 | 0.136 | 0.263 |
+| rt60rep / corpus:cmu-arctic-files-bdl(4本)@48000Hz | 10 | -0.127 | 0.127 | 0.258 |
+| rt60rep / corpus:cmu-arctic-files-ksp(3本)@16000Hz | 10 | 0.004 | 0.067 | 0.233 |
+| rt60rep / corpus:cmu-arctic-files-ksp(3本)@48000Hz | 10 | -0.021 | 0.092 | 0.213 |
+| rt60rep / corpus:cmu-arctic-files-slt(3本)@16000Hz | 10 | -0.149 | 0.149 | 0.288 |
+| rt60rep / corpus:cmu-arctic-files-slt(3本)@48000Hz | 10 | -0.055 | 0.067 | 0.145 |
+| rt60rep / corpus:wideband(1本)@16000Hz | 10 | -0.139 | 0.139 | 0.271 |
+| rt60rep / corpus:wideband(1本)@48000Hz | 10 | -0.128 | 0.128 | 0.243 |
 | snr / corpus:cmu-arctic-files-awb(3本)@16000Hz | 16 | 1.509 | 1.728 | 3.417 |
 | snr / corpus:cmu-arctic-files-awb(3本)@48000Hz | 16 | 1.613 | 1.833 | 3.455 |
 | snr / corpus:cmu-arctic-files-bdl(4本)@16000Hz | 16 | -0.63 | 1.74 | 5.375 |
@@ -101,26 +112,26 @@
 | snr / corpus:cmu-arctic-files-slt(3本)@48000Hz | 16 | 0.394 | 1.58 | 4.245 |
 | snr / corpus:wideband(1本)@16000Hz | 16 | 1.17 | 1.52 | 3.961 |
 | snr / corpus:wideband(1本)@48000Hz | 16 | 1.244 | 1.475 | 4.383 |
-| snrbabble / corpus:cmu-arctic-files-awb(3本)@16000Hz | 5 | 0.886 | 1.124 | 2.281 |
-| snrbabble / corpus:cmu-arctic-files-awb(3本)@48000Hz | 5 | 1.897 | 1.897 | 2.573 |
-| snrbabble / corpus:cmu-arctic-files-bdl(4本)@16000Hz | 5 | 0.321 | 1.74 | 3.491 |
-| snrbabble / corpus:cmu-arctic-files-bdl(4本)@48000Hz | 5 | -0.386 | 2.129 | 3.486 |
-| snrbabble / corpus:cmu-arctic-files-ksp(3本)@16000Hz | 5 | -0.469 | 1.545 | 3.002 |
-| snrbabble / corpus:cmu-arctic-files-ksp(3本)@48000Hz | 5 | -0.556 | 1.242 | 2.775 |
-| snrbabble / corpus:cmu-arctic-files-slt(3本)@16000Hz | 5 | 0.625 | 1.339 | 2.424 |
-| snrbabble / corpus:cmu-arctic-files-slt(3本)@48000Hz | 5 | -0.023 | 1.381 | 2.781 |
-| snrbabble / corpus:wideband(1本)@16000Hz | 5 | 1.118 | 1.326 | 2.69 |
-| snrbabble / corpus:wideband(1本)@48000Hz | 5 | 0.875 | 0.933 | 2.535 |
-| snrimpulse / corpus:cmu-arctic-files-awb(3本)@16000Hz | 4 | 8.02 | 8.02 | 11.826 |
-| snrimpulse / corpus:cmu-arctic-files-awb(3本)@48000Hz | 4 | 7.85 | 7.85 | 10.7 |
-| snrimpulse / corpus:cmu-arctic-files-bdl(4本)@16000Hz | 5 | 8.898 | 8.898 | 13.869 |
-| snrimpulse / corpus:cmu-arctic-files-bdl(4本)@48000Hz | 5 | 9.847 | 9.847 | 14.223 |
-| snrimpulse / corpus:cmu-arctic-files-ksp(3本)@16000Hz | 5 | 8.092 | 8.092 | 12.564 |
-| snrimpulse / corpus:cmu-arctic-files-ksp(3本)@48000Hz | 5 | 9.013 | 9.013 | 12.694 |
-| snrimpulse / corpus:cmu-arctic-files-slt(3本)@16000Hz | 5 | 12.235 | 12.235 | 18.508 |
-| snrimpulse / corpus:cmu-arctic-files-slt(3本)@48000Hz | 5 | 12.141 | 12.141 | 14.248 |
-| snrimpulse / corpus:wideband(1本)@16000Hz | 6 | 10.83 | 10.83 | 14.158 |
-| snrimpulse / corpus:wideband(1本)@48000Hz | 6 | 10.565 | 10.565 | 15.855 |
+| snrbabble / corpus:cmu-arctic-files-awb(3本)@16000Hz | 5 | 1.555 | 1.555 | 2.613 |
+| snrbabble / corpus:cmu-arctic-files-awb(3本)@48000Hz | 5 | 1.899 | 1.899 | 2.566 |
+| snrbabble / corpus:cmu-arctic-files-bdl(4本)@16000Hz | 5 | -0.773 | 1.864 | 3.94 |
+| snrbabble / corpus:cmu-arctic-files-bdl(4本)@48000Hz | 5 | -0.065 | 1.931 | 2.432 |
+| snrbabble / corpus:cmu-arctic-files-ksp(3本)@16000Hz | 5 | 0.262 | 0.908 | 1.703 |
+| snrbabble / corpus:cmu-arctic-files-ksp(3本)@48000Hz | 5 | 0.282 | 1.236 | 2.21 |
+| snrbabble / corpus:cmu-arctic-files-slt(3本)@16000Hz | 5 | 0.01 | 1.536 | 2.656 |
+| snrbabble / corpus:cmu-arctic-files-slt(3本)@48000Hz | 5 | 0.452 | 0.889 | 1.676 |
+| snrbabble / corpus:wideband(1本)@16000Hz | 5 | 0.901 | 0.98 | 2.509 |
+| snrbabble / corpus:wideband(1本)@48000Hz | 5 | 1.483 | 1.483 | 2.679 |
+| snrimpulse / corpus:cmu-arctic-files-awb(3本)@16000Hz | 5 | 9.423 | 9.423 | 15.266 |
+| snrimpulse / corpus:cmu-arctic-files-awb(3本)@48000Hz | 3 | 7.501 | 7.501 | 9.473 |
+| snrimpulse / corpus:cmu-arctic-files-bdl(4本)@16000Hz | 5 | 9.324 | 9.324 | 13.657 |
+| snrimpulse / corpus:cmu-arctic-files-bdl(4本)@48000Hz | 4 | 6.886 | 6.886 | 9.256 |
+| snrimpulse / corpus:cmu-arctic-files-ksp(3本)@16000Hz | 5 | 7.077 | 7.077 | 11.793 |
+| snrimpulse / corpus:cmu-arctic-files-ksp(3本)@48000Hz | 4 | 7.399 | 7.399 | 9.41 |
+| snrimpulse / corpus:cmu-arctic-files-slt(3本)@16000Hz | 5 | 10.833 | 10.833 | 14.594 |
+| snrimpulse / corpus:cmu-arctic-files-slt(3本)@48000Hz | 5 | 13.362 | 13.362 | 18.356 |
+| snrimpulse / corpus:wideband(1本)@16000Hz | 6 | 9.741 | 9.741 | 13.474 |
+| snrimpulse / corpus:wideband(1本)@48000Hz | 6 | 10.113 | 10.113 | 15.231 |
 | tilt / corpus:cmu-arctic-files-awb(3本)@16000Hz | 4 | 0.298 | 0.308 | 1.047 |
 | tilt / corpus:cmu-arctic-files-awb(3本)@48000Hz | 4 | 0.988 | 0.988 | 2.991 |
 | tilt / corpus:cmu-arctic-files-bdl(4本)@16000Hz | 4 | -0.273 | 0.273 | 0.709 |
@@ -149,12 +160,12 @@
 | clip | clip | - | -0.949 | 14 / 15点 | 想定どおり |
 | cutoff | frequency | + | 1 | 15 / 25点 | 想定どおり |
 | rt60 | reverb | - | -0.955 | 13.4 / 20点 | 想定どおり |
-| rt60 | noise | 0 (無相関) | -0.801 | 2.6 / 25点 | **反応してはいけない条件に反応している（別要因の誤計上）** |
+| rt60 | noise | 0 (無相関) | -0.828 | 4.2 / 25点 | **反応してはいけない条件に反応している（別要因の誤計上）** |
 | tilt | frequency | + | 0.979 | 19 / 25点 | 想定どおり |
 | level | volume | + | 0.771 | 15 / 15点 | 想定どおり |
 | drr | reverb | + | 0.881 | 19 / 20点 | 想定どおり |
-| snrbabble | noise | + | 0.995 | 11 / 25点 | 想定どおり |
-| snrimpulse | noise | + | 0.107 | 4 / 25点 | **まったく反応していない（測っていない）** |
+| snrbabble | noise | + | 1 | 10 / 25点 | 想定どおり |
+| snrimpulse | noise | + | -0.108 | 4 / 25点 | **まったく反応していない（測っていない）** |
 
 ## 5. マイク位置ごとの残響の測定能力
 
@@ -185,12 +196,29 @@ RT60を固定して直接音対残響比(DRR)だけを振った条件。DRRは�
 
 | プロファイル | 低 / 中 / 高 [秒] | 件数 | 測定できた | バイアス[秒] | MAE[秒] | 最大誤差[秒] | 平坦との差[秒] | 確定値 |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| flat | 0.5 / 0.5 / 0.5 | 10 | 10 | -0.045 | 0.07 | 0.134 | 0 | 10 |
-| ceiling | 0.9 / 0.4 / 0.25 | 10 | 9 | 0.405 | 0.405 | 0.726 | 0.45 | 2 |
-| meeting | 0.7 / 0.5 / 0.35 | 10 | 10 | 0.134 | 0.139 | 0.346 | 0.179 | 10 |
-| hard | 1.2 / 0.9 / 0.6 | 10 | 7 | 0.136 | 0.136 | 0.235 | 0.182 | 0 |
+| flat | 0.5 / 0.5 / 0.5 | 10 | 10 | 0 | 0.074 | 0.183 | 0 | 10 |
+| ceiling | 0.9 / 0.4 / 0.25 | 10 | 9 | 0.44 | 0.441 | 0.726 | 0.44 | 2 |
+| meeting | 0.7 / 0.5 / 0.35 | 10 | 10 | 0.165 | 0.165 | 0.346 | 0.166 | 9 |
+| hard | 1.2 / 0.9 / 0.6 | 10 | 7 | 0.101 | 0.171 | 0.302 | 0.102 | 1 |
 
-## 7. 判定の再現性（真値を固定して乱数だけ振る）
+## 7. 間（無音区間）の量とSNRの測定能力
+
+READMEは「話者の喋り方（声量のムラ、間の取り方）は評価しない。環境の評価では
+ないため」と宣言している。SNRを固定して間だけを間引いた条件で、その宣言が
+ノイズ軸について成り立っているかを見る。**誤差が動いたら、それは環境ではなく
+喋り方への依存である。**
+
+`無音フレーム` はノイズフロアの推定に使えたフレーム数。0 の行は下限を割って
+パーセンタイル代替に落ちている。
+
+| 残した無音 | 実際の無音率 | 件数 | バイアス[dB] | MAE[dB] | 最大誤差[dB] | 無音フレーム | 代替に落ちた |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0.5 | 0.145 | 10 | -3.597 | 4.112 | 6.63 | 111.3 | 0 |
+| 0.25 | 0.079 | 10 | -4.673 | 4.757 | 7.729 | 101.8 | 0 |
+| 0.1 | 0.034 | 10 | -5.597 | 5.597 | 8.147 | 105 | 0 |
+| 0.03 | 0.011 | 10 | -2.441 | 4.204 | 8.121 | 115.2 | 0 |
+
+## 8. 判定の再現性（真値を固定して乱数だけ振る）
 
 誤差表は「真値をずらしたときにどれだけ当たるか」を測る。しかしこの道具の出力は
 3値の判定なので、利用者にとって意味があるのは**同じ部屋を測り直して同じ答えが
@@ -202,10 +230,10 @@ RT60を固定して直接音対残響比(DRR)だけを振った条件。DRRは�
 
 | 真のRT60[秒] | 件数 | 測定できた | 推定値の範囲[秒] | 残響軸 | good | usable | poor | 断定せず | 残響の助言 |
 |---:|---:|---:|---|---|---:|---:|---:|---:|---:|
-| 0.5 | 50 | 50 | 0.298 – 0.767 | 4–17 / 20 | 35 | 13 | 2 | 1 | 8 |
-| 0.7 | 50 | 50 | 0.427 – 0.986 | 0–14 / 20 | 19 | 16 | 15 | 2 | 22 |
+| 0.5 | 50 | 50 | 0.386 – 0.699 | 6–15 / 20 | 38 | 10 | 2 | 0 | 4 |
+| 0.7 | 50 | 50 | 0.412 – 0.933 | 0–14 / 20 | 18 | 19 | 13 | 2 | 18 |
 
-## 8. 判定の分離（複合条件）
+## 9. 判定の分離（複合条件）
 
 判定は**最弱の軸**で決まるので、複数の軸が同時に下がる複合条件でこそ意味を持つ。
 「良好」の群と「不可」の群でMOSの分布が重なっているなら、閾値は意味をなしていない。
@@ -216,7 +244,7 @@ RT60を固定して直接音対残響比(DRR)だけを振った条件。DRRは�
 | usable | 19 | n/a | n/a | n/a | 0 |
 | poor | 158 | n/a | n/a | n/a | 0 |
 
-## 9. 助言の的中と空振り
+## 10. 助言の的中と空振り
 
 注入した物理量から「この助言が出るべきか」の真値が作れる。**空振りは見落としより重い**——
 出すべき助言を落とすより、直さなくてよいものを直せと言うほうが道具への信頼を損なう。
@@ -225,7 +253,7 @@ RT60を固定して直接音対残響比(DRR)だけを振った条件。DRRは�
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | bandwidth-narrow | 帯域上限 < 7000Hz | 30 | 3 | 30 | 0 | 0 | 1 | 1 |
 | noise-high | SNR < 15dB（定常ノイズ） | 80 | 90 | 72 | 3 | 8 | 0.96 | 0.9 |
-| noise-high | SNR < 15dB（非定常: 話し声・打鍵音） | 40 | 60 | 27 | 0 | 13 | 1 | 0.675 |
+| noise-high | SNR < 15dB（非定常: 話し声・打鍵音） | 39 | 59 | 26 | 0 | 13 | 1 | 0.667 |
 | reverb-strong | RT60 > 0.6秒 | 30 | 40 | 16 | 0 | 14 | 1 | 0.533 |
 | clipping | クリップした標本が1つ以上 | 40 | 10 | 40 | 0 | 0 | 1 | 1 |
 | muffled | 1kHz以上の傾斜 < -14dB/oct | 20 | 30 | 20 | 3 | 0 | 0.87 | 1 |
@@ -236,9 +264,9 @@ RT60を固定して直接音対残響比(DRR)だけを振った条件。DRRは�
 - noise-high 見落とし: s0-snr15-pink 真値 14.616
 - noise-high 見落とし: s0-snr15-white 真値 14.616
 - noise-high 見落とし: s1-snr15-pink 真値 14.612
+- noise-high 見落とし: s0-babble15 真値 14.616
+- noise-high 見落とし: s0-click8-15 真値 14.616
 - noise-high 見落とし: s1-babble15 真値 14.612
-- noise-high 見落とし: s2-click8-15 真値 14.754
-- noise-high 見落とし: s3-click8-15 真値 14.771
 - reverb-strong 見落とし: s1-rt60-1 真値 1
 - reverb-strong 見落とし: s2-rt60-0_7 真値 0.7
 - reverb-strong 見落とし: s2-rt60-1_5 真値 1.5
@@ -246,7 +274,7 @@ RT60を固定して直接音対残響比(DRR)だけを振った条件。DRRは�
 - muffled 空振り: s5-tiltm9 真値 -13.169
 - muffled 空振り: s7-tiltm6 真値 -13.679
 
-## 10. 劣化なし基準の挙動
+## 11. 劣化なし基準の挙動
 
 | id | 総合 | ノイズ | 残響 | 周波数 | 音量 | 音割れ | 帯域上限[Hz] | 検出フラグ | 参考値扱いの軸 |
 |---|---:|---:|---:|---:|---:|---:|---:|---|---|

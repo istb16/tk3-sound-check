@@ -33,6 +33,7 @@ import {
   applyTilt,
   applyReverb,
   normalizeSpeechLevel,
+  reducePauses,
   type BandRt60Profile,
 } from './lib/degrade.ts';
 import { CORPUS_DIR, GENERATED_DIR, MANIFEST, numArg, parseArgs } from './lib/paths.ts';
@@ -177,6 +178,22 @@ const IMPULSE_PEAK_LIMIT = 0.98;
  */
 const RT60_REPEAT_SEC_LIST = [0.5, 0.7];
 const RT60_REPEAT_COUNT = 5;
+
+/**
+ * 残す無音フレームの割合。間の少ない発話を作る条件。
+ *
+ * 狙いは2つ。
+ *
+ * 1. README の「話者の喋り方は評価しない」という宣言の検証。ノイズ軸はSNRを
+ *    有音／無音の分離から推定するので、間の量に依存していないかは振ってみないと
+ *    分からない。SNRは固定するので、誤差が動いたらそれは喋り方への依存である。
+ * 2. ノイズフロアの推定に使える無音フレーム数の下限（推定器の MIN_NOISE_FRAMES）を
+ *    実際に踏ませる。公開コーパスは発話を連結して素材にしているので間が多く、
+ *    **この下限に当たる録音が検証セットに1件も無かった。**
+ */
+const PAUSE_KEEP_RATIO_LIST = [0.5, 0.25, 0.1, 0.03];
+/** 間を振るときの注入SNR[dB]。判定の境界より上に置き、間だけを変数にする */
+const PAUSE_SNR_DB = 20;
 
 /**
  * 複合条件（--mixed）。2つ以上の劣化を同時に掛ける。
@@ -366,6 +383,28 @@ function buildCorpusSources(wavs: string[]): Source[] {
   return sources;
 }
 
+/**
+ * 後から足した条件の乱数種。**走行カウンタにしてはいけない。**
+ *
+ * 既存の `seedCounter` は素材をまたいで連続しているので、どこに条件を足しても
+ * 2番目以降の素材の乱数がずれる。実際に一度ずらして既存252件の真値が動いた。
+ * さらに、追加条件を走行カウンタで採ると**追加条件どうしが互いの乱数を動かす**
+ * （条件を1つ増やしたら他の3条件の数値が変わった）。
+ *
+ * 素材番号と「どの条件の何番目か」から決めれば、条件を足しても既存の行も
+ * 他の追加条件も動かない。SEED_SLOT_* は条件ごとの区画で、衝突しないよう
+ * 素材あたりの間隔（1009）より小さく取る。
+ */
+function addedSeed(sourceIndex: number, slot: number): number {
+  return SEED * 700001 + sourceIndex * 1009 + slot;
+}
+
+const SEED_SLOT_RT60BAND = 0;
+const SEED_SLOT_BABBLE   = 100;
+const SEED_SLOT_IMPULSE  = 200;
+const SEED_SLOT_RT60REP  = 300;
+const SEED_SLOT_PAUSES   = 400;
+
 function trim(samples: Float32Array, sampleRate: number): Float32Array {
   const want = Math.floor(DURATION_SEC * sampleRate);
   return samples.length <= want ? samples : samples.subarray(0, want).slice();
@@ -377,18 +416,6 @@ function main(): void {
   const sources = loadSources();
   const items: ManifestItem[] = [];
   let seedCounter = SEED * 100003;
-  /**
-   * 後から足した条件のための乱数カウンタ。**`seedCounter` と混ぜてはいけない。**
-   *
-   * `seedCounter` は素材をまたいで連続しているので、どこに条件を足しても
-   * （末尾であっても）2番目以降の素材の乱数がずれる。実際に一度ずらしてしまい、
-   * 既存252件の真値が動いた。既存行の数値を動かさずに条件を増やせるよう、
-   * 追加分は独立した種空間から取る。
-   *
-   * 次に条件を足すときも、既存のループの seed 消費数を変えないこと。
-   * 変えると「何を直したせいで数値が動いたのか」が読めなくなる。
-   */
-  let addedSeedCounter = SEED * 700001;
 
   for (const [si, src] of sources.entries()) {
     const clean = trim(src.samples, src.sampleRate);
@@ -548,8 +575,8 @@ function main(): void {
     // ======================================================================
 
     // ---- 帯域ごとにRT60が違う残響（実室の周波数依存） ----
-    for (const { name, profile } of RT60_BAND_PROFILES) {
-      const r = applyBandedReverb(clean, sr, profile, addedSeedCounter++);
+    for (const [pi, { name, profile }] of RT60_BAND_PROFILES.entries()) {
+      const r = applyBandedReverb(clean, sr, profile, addedSeed(si, SEED_SLOT_RT60BAND + pi));
       emit(`${tag}-rt60band-${name}`, r.out,
         {
           type: 'rt60band',
@@ -575,8 +602,8 @@ function main(): void {
     if (others.length === 0) {
       console.log(`  ${src.name}: 同じレートの他素材が無いため babble 条件を飛ばします`);
     } else {
-      for (const snr of BABBLE_SNR_LIST) {
-        const r = addBabbleNoise(clean, sr, snr, others, BABBLE_VOICES, addedSeedCounter++);
+      for (const [bi, snr] of BABBLE_SNR_LIST.entries()) {
+        const r = addBabbleNoise(clean, sr, snr, others, BABBLE_VOICES, addedSeed(si, SEED_SLOT_BABBLE + bi));
         emit(`${tag}-babble${snr}`, r.out,
           { type: 'snrbabble', params: { targetSnrDb: snr, voices: r.voices } },
           {
@@ -590,9 +617,10 @@ function main(): void {
     }
 
     // ---- 衝撃性ノイズ（打鍵音） ----
-    for (const perSec of IMPULSE_PER_SEC_LIST) {
-      for (const snr of IMPULSE_SNR_LIST) {
-        const r = addImpulsiveNoise(clean, sr, snr, perSec, addedSeedCounter++);
+    for (const [pi, perSec] of IMPULSE_PER_SEC_LIST.entries()) {
+      for (const [ii, snr] of IMPULSE_SNR_LIST.entries()) {
+        const r = addImpulsiveNoise(clean, sr, snr, perSec,
+          addedSeed(si, SEED_SLOT_IMPULSE + pi * IMPULSE_SNR_LIST.length + ii));
         // 波高率が高いので、低いSNRでは素材のピークに足すと1.0を超える。
         // 音割れという別の劣化が混ざるので生成しない（帯域制限で中身の無い
         // カットオフを飛ばしているのと同じ判断）。
@@ -611,13 +639,38 @@ function main(): void {
     }
 
     // ---- 判定の再現性（真値を固定して乱数だけ振る） ----
-    for (const rt60 of RT60_REPEAT_SEC_LIST) {
+    for (const [ri, rt60] of RT60_REPEAT_SEC_LIST.entries()) {
       for (let rep = 0; rep < RT60_REPEAT_COUNT; rep++) {
-        const r = applyReverb(clean, sr, rt60, addedSeedCounter++);
+        const r = applyReverb(clean, sr, rt60,
+          addedSeed(si, SEED_SLOT_RT60REP + ri * RT60_REPEAT_COUNT + rep));
         emit(`${tag}-rt60rep-${String(rt60).replace('.', '_')}-${rep}`, r.out,
           { type: 'rt60rep', params: { rt60Sec: rt60, rep } },
           { rt60Sec: r.trueRt60Sec, drrDb: r.trueDrrDb });
       }
+    }
+
+    // ---- 間（無音区間）の量を振る ----
+    for (const [ki, keep] of PAUSE_KEEP_RATIO_LIST.entries()) {
+      const squeezed = reducePauses(clean, sr, keep);
+      const r = addNoise(squeezed.out, sr, PAUSE_SNR_DB,
+        addedSeed(si, SEED_SLOT_PAUSES + ki), 'pink', contentHz);
+      emit(`${tag}-pauses${String(keep).replace('.', '_')}`, r.out,
+        {
+          type: 'pauses',
+          params: {
+            keepRatio: keep,
+            targetSnrDb: PAUSE_SNR_DB,
+            silenceRatio: Number(squeezed.silenceRatio.toFixed(4)),
+          },
+        },
+        {
+          snrDb: r.trueSnrDb,
+          requestedSnrDb: r.requestedSnrDb,
+          silenceRatio: squeezed.silenceRatio,
+          activeSpeechRms: r.activeSpeechRms,
+          noiseRms: r.noiseRms,
+          sourceNoiseRms: r.sourceNoiseRms,
+        });
     }
   }
 

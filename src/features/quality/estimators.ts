@@ -148,6 +148,22 @@ export function estimateSnr(
     usableForNoise = markUsableForNoise(active, guardFrames);
   }
 
+  // ガードを 0 まで縮めても下限に届かないことがある——間を置かずに喋る話者、
+  // あるいは残響が測れずガードが最初から 0 の録音。
+  //
+  // **下限の判定がガードの縮小ループの中にしか無いのは欠陥だった。** while の条件が
+  // `guardFrames > 0` なので、ガードが無い経路では無音1フレームでもそのまま
+  // ノイズパワーの推定に使われる。少数フレームの推定は楽観方向に外れる
+  // （静かな瞬間を引きやすい）ので、**黙って「そこまで悪くない」と言う経路**になる。
+  //
+  // 下限に届かないときは、少数フレームを使うより下のパーセンタイル代替に落とす。
+  // そちらは実測で較正してある（NOISE_FLOOR_FALLBACK_PERCENTILE の注記）。
+  //
+  // **この行は現在の検証セットでは一度も発動しない。** 間を間引いた条件(pauses)でも
+  // 無音と判定されるフレームは100件以上残る。公開コーパスは発話を連結して素材に
+  // しているので、そもそも間が多い。守りとして置くが、**実測で確かめた修正ではない。**
+  if (countTrue(usableForNoise) < MIN_NOISE_FRAMES) usableForNoise = usableForNoise.map(() => false);
+
   let activePower = 0, activeCount = 0;
   let noisePower = 0, noiseCount = 0;
   for (let i = 0; i < frames.length; i++) {
@@ -256,6 +272,12 @@ function splitActive(frames: number[]): boolean[] {
     hi - lo >= VAD_MIN_GAP_DB &&
     stdev(lower) <= VAD_MAX_NOISE_STDEV_DB;
 
+  // 「分離できたか」を信頼性の指標として外に出すことを試み、棄却した。
+  // 検証セットで測ると**クリーンな素材の100%が「分離できず」**になる（劣化なし・
+  // 残響・帯域制限・レベルの条件はいずれも 100%、定常ノイズでも 39%）。
+  // 静かな録音では無音区間のばらつきが大きく、2群の間隔もこの閾値に届かないため。
+  // これを参考値の根拠にすると、ほとんどの録音に「参考値」バッジが付く。
+  // **空振りは見落としより重い**ので採らない。下の固定閾値は例外処理ではなく主経路である。
   if (separated) return levels.map((v) => v >= mid);
 
   // 二峰に分かれない = 無音区間が無い。固定閾値に戻す。

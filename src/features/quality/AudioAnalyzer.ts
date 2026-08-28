@@ -178,7 +178,13 @@ export function analyzeSamples(channelData: Float32Array, sampleRate: number): A
  *
  * ノイズ軸で換算すると公表基準と重なる（満点 SNR 45dB）。
  *   0.55 → SNR 24.8dB … 会議音声の指針が「良好」とする20dBより厳しい
- *   0.35 → SNR 15.8dB … ISO 9921 が STI 0.75「良好」とする +15dB 相当
+ *   0.35 → SNR 15.8dB … ANSI/ASA S12.60 が中核学習空間に求める信号対雑音比 +15dB
+ *
+ * **以前ここには「ISO 9921 が STI 0.75『良好』とする +15dB 相当」と書いてあったが、
+ * これは誤りだった。** ISO 9921 の等級では STI 0.75 は「良好」の代表値ではなく
+ * good と excellent の境界で、excellent(>0.75) は室内音響では例外的な水準とされる。
+ * さらに STI ≈ (SNR+15)/30 という標準的な近似では STI 0.75 は SNR ≈ +7.5dB にあたる。
+ * 15.8dB という値そのものは S12.60 の +15dB と重なるので、根拠を差し替えれば済む。
  *
  * **この2つの値そのものは未検証。** 実録音に対する是非の判断（この録音を会議の
  * 記録として受け入れるか）を集めれば実測で決められるが、まだ集めていない。
@@ -537,7 +543,7 @@ function calcClipScore(data: Float32Array, advice: AdviceItem[]): number {
  * 45dBの根拠: 放送の音声は概ね50〜60dB、音響処理をした自宅スタジオで45dB程度。
  * 45dBを満点に置くと、判定の閾値が公表基準とうまく重なる。
  *   良好の閾値 0.55 → SNR 24.8dB（会議音声の指針が「良好」とする20dBより厳しい）
- *   使えるの閾値 0.35 → SNR 15.8dB（ISO 9921 が STI 0.75「良好」とする+15dB相当）
+ *   使えるの閾値 0.35 → SNR 15.8dB（ANSI/ASA S12.60 が求める信号対雑音比 +15dB）
  */
 const FULL_MARKS_SNR_DB = 45;
 function calcNoiseScore(

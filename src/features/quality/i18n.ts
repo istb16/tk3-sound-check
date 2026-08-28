@@ -57,6 +57,11 @@ export type QualityText = {
   verdictUnconfirmed: (axis: string) => string;
   factsLabel: string;
   factSnr: (db: number) => string;
+  /**
+   * 残響時間の表示。**小数1桁より細かく出してはいけない。**
+   * 推定誤差は確定値でも MAE 0.05秒、参考値を含めると 0.17秒あり、
+   * 2桁で出すと持っていない精度を主張することになる（実際に2桁で出していた）。
+   */
   factRt60: (sec: number) => string;
   factRt60Unknown: string;
   factBandwidth: (hz: number) => string;
@@ -153,7 +158,7 @@ export const T: Record<Lang, QualityText> = {
       'この環境が会議に十分かどうかは確認できていません。',
     factsLabel: '実測値',
     factSnr:       (db) => `背景ノイズ: 声より ${db.toFixed(0)}dB 小さい`,
-    factRt60:      (sec) => `残響時間: 約 ${sec.toFixed(2)} 秒`,
+    factRt60:      (sec) => `残響時間: 約 ${sec.toFixed(1)} 秒`,
     factRt60Unknown: '残響時間: 測定できませんでした',
     factBandwidth: (hz) => `帯域上限: 約 ${(Math.round(hz / 100) / 10).toFixed(1)} kHz`,
     factLevel:     (dbfs) => `発話レベル: ${dbfs.toFixed(1)} dBFS`,
@@ -247,7 +252,7 @@ export const T: Record<Lang, QualityText> = {
       'so we cannot confirm this environment is good enough for meetings.',
     factsLabel: 'Measurements',
     factSnr:       (db) => `Background noise: ${db.toFixed(0)} dB below speech`,
-    factRt60:      (sec) => `Reverberation time: about ${sec.toFixed(2)} s`,
+    factRt60:      (sec) => `Reverberation time: about ${sec.toFixed(1)} s`,
     factRt60Unknown: 'Reverberation time: could not be measured',
     factBandwidth: (hz) => `Bandwidth: about ${(Math.round(hz / 100) / 10).toFixed(1)} kHz`,
     factLevel:     (dbfs) => `Speech level: ${dbfs.toFixed(1)} dBFS`,

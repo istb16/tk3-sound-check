@@ -54,6 +54,13 @@ interface Row {
   /** 残響推定に使えた減衰イベント数（rt60条件の診断用） */
   decayEvents: number | null;
   /**
+   * ノイズフロアの推定に使えた無音フレーム数。
+   *
+   * 0 なら推定器はパーセンタイル代替に落ちている。間の少ない発話で下限を
+   * 割ったかどうかがここに出る。
+   */
+  noiseFrames: number | null;
+  /**
    * 推定したRT60[秒]と、条件が持つRT60の真値。
    *
    * drr条件（マイク位置を振る条件）では単調性の軸に DRR を使うので、RT60の誤差が
@@ -173,6 +180,9 @@ function evaluate(item: ManifestItem, samples: Float32Array, mos: number | null)
   const scores = analyzeSamples(samples, sr);
   const prov = detectProvenance(samples, sr);
   const reverbEst = estimateReverb(samples, sr);
+  // ノイズフロアの推定に使えた無音フレーム数を診断値として持ち出すため、
+  // 条件ごとの switch の外で1回だけ呼ぶ。引数は case 'snr' と同じ。
+  const snrEst = estimateSnr(samples, sr, reverbEst.rt60Sec);
 
   let truthValue: number | null = null;
   let estimate: number | null = null;
@@ -187,7 +197,7 @@ function evaluate(item: ManifestItem, samples: Float32Array, mos: number | null)
   switch (item.condition.type) {
     case 'snr': {
       truthValue = item.truth.snrDb;
-      estimate = estimateSnr(samples, sr, reverbEst.rt60Sec).snrDb;
+      estimate = snrEst.snrDb;
       errorLabel = 'SNR[dB]';
       break;
     }
@@ -250,14 +260,22 @@ function evaluate(item: ManifestItem, samples: Float32Array, mos: number | null)
     }
     case 'snrbabble': {
       truthValue = item.truth.snrDb;
-      estimate = estimateSnr(samples, sr, reverbEst.rt60Sec).snrDb;
+      estimate = snrEst.snrDb;
       errorLabel = 'SNR[dB] (多人数の話し声)';
       break;
     }
     case 'snrimpulse': {
       truthValue = item.truth.snrDb;
-      estimate = estimateSnr(samples, sr, reverbEst.rt60Sec).snrDb;
+      estimate = snrEst.snrDb;
       errorLabel = 'SNR[dB] (衝撃性ノイズ)';
+      break;
+    }
+    case 'pauses': {
+      // SNRは固定し、間（無音区間）の量だけを変えた条件。誤差が動いたら、
+      // それは環境ではなく喋り方への依存である。
+      truthValue = item.truth.snrDb;
+      estimate = snrEst.snrDb;
+      errorLabel = 'SNR[dB] (間が少ない発話)';
       break;
     }
     default:
@@ -281,6 +299,7 @@ function evaluate(item: ManifestItem, samples: Float32Array, mos: number | null)
       noise: scores.noise,
     },
     decayEvents: reverbEst.events,
+    noiseFrames: snrEst.noiseFrames,
     rt60Estimate: reverbEst.rt60Sec,
     rt60Truth: item.truth.rt60Sec ?? null,
     bandwidthHz: prov.bandwidthHz,
@@ -845,6 +864,63 @@ function bandProfileStats(rows: Row[]): BandProfileStat[] {
 }
 
 // ==========================================================================
+// 間（無音区間）の量とSNRの測定能力
+// ==========================================================================
+
+/**
+ * 間の量ごとのSNR誤差。
+ *
+ * README は「話者の喋り方（声量のムラ、間の取り方）は評価しない。環境の評価では
+ * ないため」と宣言している。SNRを固定して間だけを変えたときに誤差が動くなら、
+ * **その宣言はノイズ軸については成り立っていない。**
+ *
+ * `無音フレーム` の列も併記する。0 になっている行は推定器がパーセンタイル代替に
+ * 落ちている（=下限を割った）ことを意味する。
+ */
+interface PauseStat {
+  keepRatio: number;
+  /** 実際に残った無音フレームの割合 */
+  silenceRatio: number;
+  n: number;
+  bias: number | null;
+  mae: number | null;
+  maxAbs: number | null;
+  /** ノイズフロアの推定に使えた無音フレーム数の平均 */
+  noiseFrames: number;
+  /** パーセンタイル代替に落ちた件数 */
+  fellBack: number;
+}
+
+function pauseStats(rows: Row[]): PauseStat[] {
+  const list = rows.filter((r) => r.conditionType === 'pauses');
+  if (list.length === 0) return [];
+
+  const byKeep = new Map<number, Row[]>();
+  for (const r of list) {
+    const k = Number(r.params.keepRatio);
+    byKeep.set(k, [...(byKeep.get(k) ?? []), r]);
+  }
+
+  const out: PauseStat[] = [];
+  for (const [keepRatio, group] of [...byKeep].sort((a, b) => b[0] - a[0])) {
+    const ok = group.filter((r) => r.estimate !== null && r.truthValue !== null);
+    const errs = ok.map((r) => (r.estimate as number) - (r.truthValue as number));
+    out.push({
+      keepRatio,
+      silenceRatio: round(
+        group.reduce((a, r) => a + Number(r.params.silenceRatio ?? 0), 0) / group.length, 3),
+      n: group.length,
+      bias: errs.length ? round(errs.reduce((a, b) => a + b, 0) / errs.length, 3) : null,
+      mae: errs.length ? round(errs.reduce((a, b) => a + Math.abs(b), 0) / errs.length, 3) : null,
+      maxAbs: errs.length ? round(Math.max(...errs.map(Math.abs)), 3) : null,
+      noiseFrames: round(group.reduce((a, r) => a + (r.noiseFrames ?? 0), 0) / group.length, 1),
+      fellBack: group.filter((r) => (r.noiseFrames ?? 0) === 0).length,
+    });
+  }
+  return out;
+}
+
+// ==========================================================================
 // 判定の再現性
 // ==========================================================================
 
@@ -1269,8 +1345,30 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
     L.push('');
   }
 
+  if (report.pauses.length > 0) {
+    L.push('## 7. 間（無音区間）の量とSNRの測定能力');
+    L.push('');
+    L.push('READMEは「話者の喋り方（声量のムラ、間の取り方）は評価しない。環境の評価では');
+    L.push('ないため」と宣言している。SNRを固定して間だけを間引いた条件で、その宣言が');
+    L.push('ノイズ軸について成り立っているかを見る。**誤差が動いたら、それは環境ではなく');
+    L.push('喋り方への依存である。**');
+    L.push('');
+    L.push('`無音フレーム` はノイズフロアの推定に使えたフレーム数。0 の行は下限を割って');
+    L.push('パーセンタイル代替に落ちている。');
+    L.push('');
+    L.push('| 残した無音 | 実際の無音率 | 件数 | バイアス[dB] | MAE[dB] | 最大誤差[dB] | 無音フレーム | 代替に落ちた |');
+    L.push('|---:|---:|---:|---:|---:|---:|---:|---:|');
+    for (const p of report.pauses) {
+      L.push(
+        `| ${p.keepRatio} | ${p.silenceRatio} | ${p.n} | ${p.bias ?? 'n/a'} | ` +
+        `${p.mae ?? 'n/a'} | ${p.maxAbs ?? 'n/a'} | ${p.noiseFrames} | ${p.fellBack} |`,
+      );
+    }
+    L.push('');
+  }
+
   if (report.reproducibility.length > 0) {
-    L.push('## 7. 判定の再現性（真値を固定して乱数だけ振る）');
+    L.push('## 8. 判定の再現性（真値を固定して乱数だけ振る）');
     L.push('');
     L.push('誤差表は「真値をずらしたときにどれだけ当たるか」を測る。しかしこの道具の出力は');
     L.push('3値の判定なので、利用者にとって意味があるのは**同じ部屋を測り直して同じ答えが');
@@ -1294,7 +1392,7 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
   }
 
   if (report.verdicts.some((v) => v.n > 0)) {
-    L.push('## 8. 判定の分離（複合条件）');
+    L.push('## 9. 判定の分離（複合条件）');
     L.push('');
     L.push('判定は**最弱の軸**で決まるので、複数の軸が同時に下がる複合条件でこそ意味を持つ。');
     L.push('「良好」の群と「不可」の群でMOSの分布が重なっているなら、閾値は意味をなしていない。');
@@ -1311,7 +1409,7 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
   }
 
   if (report.advice.some((a) => a.positives + a.negatives > 0)) {
-    L.push('## 9. 助言の的中と空振り');
+    L.push('## 10. 助言の的中と空振り');
     L.push('');
     L.push('注入した物理量から「この助言が出るべきか」の真値が作れる。**空振りは見落としより重い**——');
     L.push('出すべき助言を落とすより、直さなくてよいものを直せと言うほうが道具への信頼を損なう。');
@@ -1338,7 +1436,7 @@ function renderMarkdown(report: ReturnType<typeof buildReport>): string {
     }
   }
 
-  L.push('## 10. 劣化なし基準の挙動');
+  L.push('## 11. 劣化なし基準の挙動');
   L.push('');
   L.push('| id | 総合 | ノイズ | 残響 | 周波数 | 音量 | 音割れ | 帯域上限[Hz] | 検出フラグ | 参考値扱いの軸 |');
   L.push('|---|---:|---:|---:|---:|---:|---:|---:|---|---|');
@@ -1416,6 +1514,7 @@ function buildReport(rows: Row[], sources: string[], mosNote: string, mosAvailab
     weighting: weighting(rows),
     drrCapability: drrCapability(rows),
     bandProfiles: bandProfileStats(rows),
+    pauses: pauseStats(rows),
     reproducibility: reproducibility(rows),
     verdicts: verdictStats(rows),
     advice: adviceStats(rows),

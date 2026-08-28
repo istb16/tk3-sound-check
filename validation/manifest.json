@@ -2122,6 +2122,29 @@
         "activeSpeechRms": 0.13031526408317123,
         "noiseRms": 0.013031526408317123,
         "sourceNoiseRms": 0.006925975673003411,
+        "peak": 0.949955403804779
+      }
+    },
+    {
+      "id": "s0-click8-15",
+      "file": "fixtures/generated/s0-click8-15.wav",
+      "source": "corpus:cmu-arctic-files-awb(3本)@16000Hz",
+      "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
+      "sampleRate": 16000,
+      "samples": 160000,
+      "condition": {
+        "type": "snrimpulse",
+        "params": {
+          "targetSnrDb": 15,
+          "clicksPerSec": 8
+        }
+      },
+      "truth": {
+        "snrDb": 14.61614182102277,
+        "requestedSnrDb": 15,
+        "activeSpeechRms": 0.13031526408317123,
+        "noiseRms": 0.023173695093288815,
+        "sourceNoiseRms": 0.006925975673003411,
         "peak": 0.949999988079071
       }
     },
@@ -2141,7 +2164,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999988585781
+        "drrDb": 10.00000002057182
       }
     },
     {
@@ -2160,7 +2183,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000012093542
+        "drrDb": 9.999999999703528
       }
     },
     {
@@ -2179,7 +2202,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999992211391
+        "drrDb": 10.000000017124854
       }
     },
     {
@@ -2198,7 +2221,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000003120718
+        "drrDb": 10.00000001863598
       }
     },
     {
@@ -2217,7 +2240,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000001408079
+        "drrDb": 10.00000001723761
       }
     },
     {
@@ -2236,7 +2259,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.99999999622464
+        "drrDb": 9.99999999989775
       }
     },
     {
@@ -2255,7 +2278,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.00000002006785
+        "drrDb": 9.999999996820172
       }
     },
     {
@@ -2274,7 +2297,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000017454326
+        "drrDb": 10.000000011476025
       }
     },
     {
@@ -2293,7 +2316,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.99999998657506
+        "drrDb": 9.999999996435081
       }
     },
     {
@@ -2312,7 +2335,103 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999996620545
+        "drrDb": 9.999999996061222
+      }
+    },
+    {
+      "id": "s0-pauses0_5",
+      "file": "fixtures/generated/s0-pauses0_5.wav",
+      "source": "corpus:cmu-arctic-files-awb(3本)@16000Hz",
+      "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
+      "sampleRate": 16000,
+      "samples": 131200,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.5,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.2195
+        }
+      },
+      "truth": {
+        "snrDb": 18.865902527357044,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.21951219512195122,
+        "activeSpeechRms": 0.13112731512404163,
+        "noiseRms": 0.013112731512404163,
+        "sourceNoiseRms": 0.007116951008425278
+      }
+    },
+    {
+      "id": "s0-pauses0_25",
+      "file": "fixtures/generated/s0-pauses0_25.wav",
+      "source": "corpus:cmu-arctic-files-awb(3本)@16000Hz",
+      "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
+      "sampleRate": 16000,
+      "samples": 116800,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.25,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.1233
+        }
+      },
+      "truth": {
+        "snrDb": 18.748918832240115,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.1232876712328767,
+        "activeSpeechRms": 0.13112731512404163,
+        "noiseRms": 0.013112731512404163,
+        "sourceNoiseRms": 0.007526513153436611
+      }
+    },
+    {
+      "id": "s0-pauses0_1",
+      "file": "fixtures/generated/s0-pauses0_1.wav",
+      "source": "corpus:cmu-arctic-files-awb(3本)@16000Hz",
+      "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
+      "sampleRate": 16000,
+      "samples": 108160,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.1,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0533
+        }
+      },
+      "truth": {
+        "snrDb": 18.4234397541116,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.05325443786982249,
+        "activeSpeechRms": 0.13112731512404163,
+        "noiseRms": 0.013112731512404163,
+        "sourceNoiseRms": 0.008613144159716249
+      }
+    },
+    {
+      "id": "s0-pauses0_03",
+      "file": "fixtures/generated/s0-pauses0_03.wav",
+      "source": "corpus:cmu-arctic-files-awb(3本)@16000Hz",
+      "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
+      "sampleRate": 16000,
+      "samples": 104320,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.03,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0184
+        }
+      },
+      "truth": {
+        "snrDb": 9.813037401602854,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.018404907975460124,
+        "activeSpeechRms": 0.13112731512404163,
+        "noiseRms": 0.013112731512404163,
+        "sourceNoiseRms": 0.03833662030822
       }
     },
     {
@@ -3275,7 +3394,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.5,
         "highRt60Sec": 0.5,
-        "drrDb": 9.899418862252503
+        "drrDb": 9.749475929939162
       }
     },
     {
@@ -3298,7 +3417,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.7,
         "highRt60Sec": 0.35,
-        "drrDb": 9.862228359608931
+        "drrDb": 9.68677253244633
       }
     },
     {
@@ -3321,7 +3440,7 @@
         "rt60Sec": 0.9,
         "lowRt60Sec": 1.2,
         "highRt60Sec": 0.6,
-        "drrDb": 9.94643429401988
+        "drrDb": 9.73006910483263
       }
     },
     {
@@ -3344,7 +3463,7 @@
         "rt60Sec": 0.4,
         "lowRt60Sec": 0.9,
         "highRt60Sec": 0.25,
-        "drrDb": 9.793524396313856
+        "drrDb": 9.493282099752697
       }
     },
     {
@@ -3500,7 +3619,7 @@
         "activeSpeechRms": 0.12926410815033018,
         "noiseRms": 0.012926410815033018,
         "sourceNoiseRms": 0.006908375934618995,
-        "peak": 0.949999988079071
+        "peak": 0.9528778791427612
       }
     },
     {
@@ -3527,29 +3646,6 @@
       }
     },
     {
-      "id": "s1-click8-20",
-      "file": "fixtures/generated/s1-click8-20.wav",
-      "source": "corpus:cmu-arctic-files-awb(3本)@48000Hz",
-      "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
-      "sampleRate": 48000,
-      "samples": 480000,
-      "condition": {
-        "type": "snrimpulse",
-        "params": {
-          "targetSnrDb": 20,
-          "clicksPerSec": 8
-        }
-      },
-      "truth": {
-        "snrDb": 18.8964350754702,
-        "requestedSnrDb": 20,
-        "activeSpeechRms": 0.12926410815033018,
-        "noiseRms": 0.012926410815033018,
-        "sourceNoiseRms": 0.006908375934618995,
-        "peak": 0.9697321057319641
-      }
-    },
-    {
       "id": "s1-rt60rep-0_5-0",
       "file": "fixtures/generated/s1-rt60rep-0_5-0.wav",
       "source": "corpus:cmu-arctic-files-awb(3本)@48000Hz",
@@ -3565,7 +3661,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999990104502
+        "drrDb": 10.000000014510096
       }
     },
     {
@@ -3584,7 +3680,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999998578035
+        "drrDb": 9.99999999526006
       }
     },
     {
@@ -3603,7 +3699,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.00000001031562
+        "drrDb": 10.000000010357734
       }
     },
     {
@@ -3622,7 +3718,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999991030585
+        "drrDb": 10.00000000497554
       }
     },
     {
@@ -3641,7 +3737,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000002666079
+        "drrDb": 9.999999997380238
       }
     },
     {
@@ -3660,7 +3756,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000004073026
+        "drrDb": 9.999999996464693
       }
     },
     {
@@ -3679,7 +3775,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.99999999225775
+        "drrDb": 10.000000001163249
       }
     },
     {
@@ -3698,7 +3794,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999992629935
+        "drrDb": 9.99999999004802
       }
     },
     {
@@ -3717,7 +3813,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999991647403
+        "drrDb": 10.000000008827172
       }
     },
     {
@@ -3736,7 +3832,103 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999996628219
+        "drrDb": 9.999999987817791
+      }
+    },
+    {
+      "id": "s1-pauses0_5",
+      "file": "fixtures/generated/s1-pauses0_5.wav",
+      "source": "corpus:cmu-arctic-files-awb(3本)@48000Hz",
+      "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
+      "sampleRate": 48000,
+      "samples": 393600,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.5,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.2195
+        }
+      },
+      "truth": {
+        "snrDb": 18.85463469768802,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.21951219512195122,
+        "activeSpeechRms": 0.13006945586881782,
+        "noiseRms": 0.013006945586881782,
+        "sourceNoiseRms": 0.007099205088995256
+      }
+    },
+    {
+      "id": "s1-pauses0_25",
+      "file": "fixtures/generated/s1-pauses0_25.wav",
+      "source": "corpus:cmu-arctic-files-awb(3本)@48000Hz",
+      "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
+      "sampleRate": 48000,
+      "samples": 350400,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.25,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.1233
+        }
+      },
+      "truth": {
+        "snrDb": 18.73513038975232,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.1232876712328767,
+        "activeSpeechRms": 0.13006945586881782,
+        "noiseRms": 0.013006945586881782,
+        "sourceNoiseRms": 0.007512912925607028
+      }
+    },
+    {
+      "id": "s1-pauses0_1",
+      "file": "fixtures/generated/s1-pauses0_1.wav",
+      "source": "corpus:cmu-arctic-files-awb(3本)@48000Hz",
+      "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
+      "sampleRate": 48000,
+      "samples": 324480,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.1,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0533
+        }
+      },
+      "truth": {
+        "snrDb": 18.40676795792033,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.05325443786982249,
+        "activeSpeechRms": 0.13006945586881782,
+        "noiseRms": 0.013006945586881782,
+        "sourceNoiseRms": 0.00859722620213758
+      }
+    },
+    {
+      "id": "s1-pauses0_03",
+      "file": "fixtures/generated/s1-pauses0_03.wav",
+      "source": "corpus:cmu-arctic-files-awb(3本)@48000Hz",
+      "sourceSha256": "ba93120634c78ac810d795aa662357f100b35d60fa27cf687595a19c6a085c4d",
+      "sampleRate": 48000,
+      "samples": 312960,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.03,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0184
+        }
+      },
+      "truth": {
+        "snrDb": 9.70252623767665,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.018404907975460124,
+        "activeSpeechRms": 0.13006945586881782,
+        "noiseRms": 0.013006945586881782,
+        "sourceNoiseRms": 0.038518585823562906
       }
     },
     {
@@ -5527,7 +5719,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.5,
         "highRt60Sec": 0.5,
-        "drrDb": 9.812100329007501
+        "drrDb": 9.922336204919924
       }
     },
     {
@@ -5550,7 +5742,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.7,
         "highRt60Sec": 0.35,
-        "drrDb": 9.898744988786321
+        "drrDb": 9.798751491606687
       }
     },
     {
@@ -5573,7 +5765,7 @@
         "rt60Sec": 0.9,
         "lowRt60Sec": 1.2,
         "highRt60Sec": 0.6,
-        "drrDb": 9.65435999381502
+        "drrDb": 9.940937475092754
       }
     },
     {
@@ -5596,7 +5788,7 @@
         "rt60Sec": 0.4,
         "lowRt60Sec": 0.9,
         "highRt60Sec": 0.25,
-        "drrDb": 9.652612404090275
+        "drrDb": 9.870580909015914
       }
     },
     {
@@ -5756,6 +5948,29 @@
       }
     },
     {
+      "id": "s2-click2-15",
+      "file": "fixtures/generated/s2-click2-15.wav",
+      "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
+      "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
+      "sampleRate": 16000,
+      "samples": 160000,
+      "condition": {
+        "type": "snrimpulse",
+        "params": {
+          "targetSnrDb": 15,
+          "clicksPerSec": 2
+        }
+      },
+      "truth": {
+        "snrDb": 14.753939489743978,
+        "requestedSnrDb": 15,
+        "activeSpeechRms": 0.12741579086202243,
+        "noiseRms": 0.022658087740376,
+        "sourceNoiseRms": 0.005381266269018705,
+        "peak": 0.9122691750526428
+      }
+    },
+    {
       "id": "s2-click8-25",
       "file": "fixtures/generated/s2-click8-25.wav",
       "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
@@ -5802,29 +6017,6 @@
       }
     },
     {
-      "id": "s2-click8-15",
-      "file": "fixtures/generated/s2-click8-15.wav",
-      "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
-      "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
-      "sampleRate": 16000,
-      "samples": 160000,
-      "condition": {
-        "type": "snrimpulse",
-        "params": {
-          "targetSnrDb": 15,
-          "clicksPerSec": 8
-        }
-      },
-      "truth": {
-        "snrDb": 14.753939489743978,
-        "requestedSnrDb": 15,
-        "activeSpeechRms": 0.12741579086202243,
-        "noiseRms": 0.022658087740376,
-        "sourceNoiseRms": 0.005381266269018705,
-        "peak": 0.9219256043434143
-      }
-    },
-    {
       "id": "s2-rt60rep-0_5-0",
       "file": "fixtures/generated/s2-rt60rep-0_5-0.wav",
       "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
@@ -5840,7 +6032,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.00000001948673
+        "drrDb": 10.000000016402913
       }
     },
     {
@@ -5859,7 +6051,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999987338835
+        "drrDb": 9.999999982302757
       }
     },
     {
@@ -5878,7 +6070,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000009742372
+        "drrDb": 10.000000018109368
       }
     },
     {
@@ -5897,7 +6089,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000020105013
+        "drrDb": 9.99999999442841
       }
     },
     {
@@ -5916,7 +6108,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000010782227
+        "drrDb": 10.000000005694172
       }
     },
     {
@@ -5935,7 +6127,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000010896677
+        "drrDb": 10.0000000027931
       }
     },
     {
@@ -5954,7 +6146,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000012166586
+        "drrDb": 9.999999970936997
       }
     },
     {
@@ -5973,7 +6165,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.00000000391523
+        "drrDb": 10.000000007718759
       }
     },
     {
@@ -5992,7 +6184,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000004879752
+        "drrDb": 9.99999998738949
       }
     },
     {
@@ -6011,7 +6203,103 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000004054815
+        "drrDb": 9.999999994636607
+      }
+    },
+    {
+      "id": "s2-pauses0_5",
+      "file": "fixtures/generated/s2-pauses0_5.wav",
+      "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
+      "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
+      "sampleRate": 16000,
+      "samples": 147520,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.5,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0846
+        }
+      },
+      "truth": {
+        "snrDb": 19.325907644591712,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.08459869848156182,
+        "activeSpeechRms": 0.12741579086202243,
+        "noiseRms": 0.012741579086202243,
+        "sourceNoiseRms": 0.005190864050186379
+      }
+    },
+    {
+      "id": "s2-pauses0_25",
+      "file": "fixtures/generated/s2-pauses0_25.wav",
+      "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
+      "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
+      "sampleRate": 16000,
+      "samples": 141440,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.25,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0452
+        }
+      },
+      "truth": {
+        "snrDb": 19.526125294968438,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.04524886877828054,
+        "activeSpeechRms": 0.12741579086202243,
+        "noiseRms": 0.012741579086202243,
+        "sourceNoiseRms": 0.004302382578569287
+      }
+    },
+    {
+      "id": "s2-pauses0_1",
+      "file": "fixtures/generated/s2-pauses0_1.wav",
+      "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
+      "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
+      "sampleRate": 16000,
+      "samples": 137600,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.1,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0186
+        }
+      },
+      "truth": {
+        "snrDb": 18.987082411828137,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.018604651162790697,
+        "activeSpeechRms": 0.12756558706046148,
+        "noiseRms": 0.012756558706046148,
+        "sourceNoiseRms": 0.0064970862008165665
+      }
+    },
+    {
+      "id": "s2-pauses0_03",
+      "file": "fixtures/generated/s2-pauses0_03.wav",
+      "source": "corpus:cmu-arctic-files-bdl(4本)@16000Hz",
+      "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
+      "sampleRate": 16000,
+      "samples": 136000,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.03,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0071
+        }
+      },
+      "truth": {
+        "snrDb": 18.86236415199095,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.007058823529411765,
+        "activeSpeechRms": 0.12756558706046148,
+        "noiseRms": 0.012756558706046148,
+        "sourceNoiseRms": 0.006935868086817547
       }
     },
     {
@@ -6974,7 +7262,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.5,
         "highRt60Sec": 0.5,
-        "drrDb": 9.202979466842441
+        "drrDb": 9.97302568927788
       }
     },
     {
@@ -6997,7 +7285,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.7,
         "highRt60Sec": 0.35,
-        "drrDb": 9.730599939121788
+        "drrDb": 9.966632490403889
       }
     },
     {
@@ -7020,7 +7308,7 @@
         "rt60Sec": 0.9,
         "lowRt60Sec": 1.2,
         "highRt60Sec": 0.6,
-        "drrDb": 9.86453503128055
+        "drrDb": 9.683501429981526
       }
     },
     {
@@ -7043,7 +7331,7 @@
         "rt60Sec": 0.4,
         "lowRt60Sec": 0.9,
         "highRt60Sec": 0.25,
-        "drrDb": 9.748207158833402
+        "drrDb": 9.753514467371108
       }
     },
     {
@@ -7199,7 +7487,7 @@
         "activeSpeechRms": 0.12743681182042244,
         "noiseRms": 0.012743681182042244,
         "sourceNoiseRms": 0.005193199604105236,
-        "peak": 0.9244073033332825
+        "peak": 0.895078182220459
       }
     },
     {
@@ -7249,29 +7537,6 @@
       }
     },
     {
-      "id": "s3-click8-15",
-      "file": "fixtures/generated/s3-click8-15.wav",
-      "source": "corpus:cmu-arctic-files-bdl(4本)@48000Hz",
-      "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
-      "sampleRate": 48000,
-      "samples": 480000,
-      "condition": {
-        "type": "snrimpulse",
-        "params": {
-          "targetSnrDb": 15,
-          "clicksPerSec": 8
-        }
-      },
-      "truth": {
-        "snrDb": 14.77050048312522,
-        "requestedSnrDb": 15,
-        "activeSpeechRms": 0.12743681182042244,
-        "noiseRms": 0.0226618258541262,
-        "sourceNoiseRms": 0.005193199604105236,
-        "peak": 0.9130766987800598
-      }
-    },
-    {
       "id": "s3-rt60rep-0_5-0",
       "file": "fixtures/generated/s3-rt60rep-0_5-0.wav",
       "source": "corpus:cmu-arctic-files-bdl(4本)@48000Hz",
@@ -7287,7 +7552,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999995177873
+        "drrDb": 10.000000006806173
       }
     },
     {
@@ -7306,7 +7571,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000006795933
+        "drrDb": 9.999999990888313
       }
     },
     {
@@ -7325,7 +7590,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999992547181
+        "drrDb": 10.000000003688905
       }
     },
     {
@@ -7344,7 +7609,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999998581846
+        "drrDb": 9.999999996651688
       }
     },
     {
@@ -7363,7 +7628,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.99999999972485
+        "drrDb": 10.000000000995728
       }
     },
     {
@@ -7382,7 +7647,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999997791264
+        "drrDb": 10.000000007836968
       }
     },
     {
@@ -7401,7 +7666,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.9999999986206
+        "drrDb": 9.999999993465313
       }
     },
     {
@@ -7420,7 +7685,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000001448356
+        "drrDb": 9.999999988598653
       }
     },
     {
@@ -7439,7 +7704,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999993712763
+        "drrDb": 10.000000000955541
       }
     },
     {
@@ -7458,7 +7723,103 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999993069958
+        "drrDb": 10.000000001614978
+      }
+    },
+    {
+      "id": "s3-pauses0_5",
+      "file": "fixtures/generated/s3-pauses0_5.wav",
+      "source": "corpus:cmu-arctic-files-bdl(4本)@48000Hz",
+      "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
+      "sampleRate": 48000,
+      "samples": 441600,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.5,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0891
+        }
+      },
+      "truth": {
+        "snrDb": 19.238038740713822,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.0891304347826087,
+        "activeSpeechRms": 0.12773921016163384,
+        "noiseRms": 0.012773921016163384,
+        "sourceNoiseRms": 0.005561006057213726
+      }
+    },
+    {
+      "id": "s3-pauses0_25",
+      "file": "fixtures/generated/s3-pauses0_25.wav",
+      "source": "corpus:cmu-arctic-files-bdl(4本)@48000Hz",
+      "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
+      "sampleRate": 48000,
+      "samples": 422400,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.25,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0477
+        }
+      },
+      "truth": {
+        "snrDb": 19.079285114708405,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.04772727272727273,
+        "activeSpeechRms": 0.12773921016163384,
+        "noiseRms": 0.012773921016163384,
+        "sourceNoiseRms": 0.0061695177000075695
+      }
+    },
+    {
+      "id": "s3-pauses0_1",
+      "file": "fixtures/generated/s3-pauses0_1.wav",
+      "source": "corpus:cmu-arctic-files-bdl(4本)@48000Hz",
+      "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
+      "sampleRate": 48000,
+      "samples": 410880,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.1,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.021
+        }
+      },
+      "truth": {
+        "snrDb": 19.063186340747084,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.02102803738317757,
+        "activeSpeechRms": 0.12773921016163384,
+        "noiseRms": 0.012773921016163384,
+        "sourceNoiseRms": 0.006229055439730074
+      }
+    },
+    {
+      "id": "s3-pauses0_03",
+      "file": "fixtures/generated/s3-pauses0_03.wav",
+      "source": "corpus:cmu-arctic-files-bdl(4本)@48000Hz",
+      "sourceSha256": "a43415b6546e7a4fc22bd099a1bfd5551f8deb7066f4ef2cfd1952919844ba78",
+      "sampleRate": 48000,
+      "samples": 405120,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.03,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0071
+        }
+      },
+      "truth": {
+        "snrDb": 18.612098486235084,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.0071090047393364926,
+        "activeSpeechRms": 0.12773921016163384,
+        "noiseRms": 0.012773921016163384,
+        "sourceNoiseRms": 0.00778508662082128
       }
     },
     {
@@ -9249,7 +9610,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.5,
         "highRt60Sec": 0.5,
-        "drrDb": 9.342859241612993
+        "drrDb": 9.97734364710582
       }
     },
     {
@@ -9272,7 +9633,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.7,
         "highRt60Sec": 0.35,
-        "drrDb": 9.718069037314102
+        "drrDb": 9.470382627732455
       }
     },
     {
@@ -9295,7 +9656,7 @@
         "rt60Sec": 0.9,
         "lowRt60Sec": 1.2,
         "highRt60Sec": 0.6,
-        "drrDb": 9.379522775088166
+        "drrDb": 9.782990908288255
       }
     },
     {
@@ -9318,7 +9679,7 @@
         "rt60Sec": 0.4,
         "lowRt60Sec": 0.9,
         "highRt60Sec": 0.25,
-        "drrDb": 9.961847258475586
+        "drrDb": 9.900534733978198
       }
     },
     {
@@ -9451,7 +9812,7 @@
         "activeSpeechRms": 0.1445187429380695,
         "noiseRms": 0.00812688614186374,
         "sourceNoiseRms": 0.006223003587289326,
-        "peak": 0.8371522426605225
+        "peak": 0.7797406315803528
       }
     },
     {
@@ -9474,7 +9835,7 @@
         "activeSpeechRms": 0.1445187429380695,
         "noiseRms": 0.01445187429380695,
         "sourceNoiseRms": 0.006223003587289326,
-        "peak": 0.8402668833732605
+        "peak": 0.7797406315803528
       }
     },
     {
@@ -9520,7 +9881,7 @@
         "activeSpeechRms": 0.1445187429380695,
         "noiseRms": 0.01445187429380695,
         "sourceNoiseRms": 0.006223003587289326,
-        "peak": 0.7797406315803528
+        "peak": 0.8234303593635559
       }
     },
     {
@@ -9543,7 +9904,7 @@
         "activeSpeechRms": 0.1445187429380695,
         "noiseRms": 0.025699470493147695,
         "sourceNoiseRms": 0.006223003587289326,
-        "peak": 0.8867738842964172
+        "peak": 0.9059873819351196
       }
     },
     {
@@ -9562,7 +9923,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999976622892
+        "drrDb": 10.000000001253182
       }
     },
     {
@@ -9581,7 +9942,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999987577349
+        "drrDb": 9.999999995498527
       }
     },
     {
@@ -9600,7 +9961,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999984854645
+        "drrDb": 9.999999999810443
       }
     },
     {
@@ -9619,7 +9980,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999981202944
+        "drrDb": 9.999999993679925
       }
     },
     {
@@ -9638,7 +9999,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999981972593
+        "drrDb": 10.000000012378191
       }
     },
     {
@@ -9657,7 +10018,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000005283349
+        "drrDb": 10.000000001824699
       }
     },
     {
@@ -9676,7 +10037,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000015208393
+        "drrDb": 9.999999996898985
       }
     },
     {
@@ -9695,7 +10056,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000013623463
+        "drrDb": 9.999999992812493
       }
     },
     {
@@ -9714,7 +10075,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000000326049
+        "drrDb": 10.000000015743977
       }
     },
     {
@@ -9733,7 +10094,103 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000005348216
+        "drrDb": 9.999999983709035
+      }
+    },
+    {
+      "id": "s4-pauses0_5",
+      "file": "fixtures/generated/s4-pauses0_5.wav",
+      "source": "corpus:cmu-arctic-files-ksp(3本)@16000Hz",
+      "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
+      "sampleRate": 16000,
+      "samples": 139840,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.5,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.1465
+        }
+      },
+      "truth": {
+        "snrDb": 19.11452689605245,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.14645308924485126,
+        "activeSpeechRms": 0.1449034145993499,
+        "noiseRms": 0.014490341459934991,
+        "sourceNoiseRms": 0.006849211626118035
+      }
+    },
+    {
+      "id": "s4-pauses0_25",
+      "file": "fixtures/generated/s4-pauses0_25.wav",
+      "source": "corpus:cmu-arctic-files-ksp(3本)@16000Hz",
+      "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
+      "sampleRate": 16000,
+      "samples": 129600,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.25,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.079
+        }
+      },
+      "truth": {
+        "snrDb": 19.004452358087438,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.07901234567901234,
+        "activeSpeechRms": 0.1449034145993499,
+        "noiseRms": 0.014490341459934991,
+        "sourceNoiseRms": 0.0073091609167217665
+      }
+    },
+    {
+      "id": "s4-pauses0_1",
+      "file": "fixtures/generated/s4-pauses0_1.wav",
+      "source": "corpus:cmu-arctic-files-ksp(3本)@16000Hz",
+      "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
+      "sampleRate": 16000,
+      "samples": 123520,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.1,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0337
+        }
+      },
+      "truth": {
+        "snrDb": 19.054581595032882,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.03367875647668394,
+        "activeSpeechRms": 0.1449034145993499,
+        "noiseRms": 0.014490341459934991,
+        "sourceNoiseRms": 0.007101982740278983
+      }
+    },
+    {
+      "id": "s4-pauses0_03",
+      "file": "fixtures/generated/s4-pauses0_03.wav",
+      "source": "corpus:cmu-arctic-files-ksp(3本)@16000Hz",
+      "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
+      "sampleRate": 16000,
+      "samples": 120640,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.03,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0106
+        }
+      },
+      "truth": {
+        "snrDb": 8.49702480214918,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.010610079575596816,
+        "activeSpeechRms": 0.1449034145993499,
+        "noiseRms": 0.014490341459934991,
+        "sourceNoiseRms": 0.04915696364915708
       }
     },
     {
@@ -10696,7 +11153,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.5,
         "highRt60Sec": 0.5,
-        "drrDb": 9.746275151431956
+        "drrDb": 9.741699609900582
       }
     },
     {
@@ -10719,7 +11176,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.7,
         "highRt60Sec": 0.35,
-        "drrDb": 9.902649006411439
+        "drrDb": 9.791753606673657
       }
     },
     {
@@ -10742,7 +11199,7 @@
         "rt60Sec": 0.9,
         "lowRt60Sec": 1.2,
         "highRt60Sec": 0.6,
-        "drrDb": 9.824281227290612
+        "drrDb": 9.878025988005025
       }
     },
     {
@@ -10765,7 +11222,7 @@
         "rt60Sec": 0.4,
         "lowRt60Sec": 0.9,
         "highRt60Sec": 0.25,
-        "drrDb": 9.52975358451919
+        "drrDb": 9.725418681743617
       }
     },
     {
@@ -10921,7 +11378,7 @@
         "activeSpeechRms": 0.1444441904351579,
         "noiseRms": 0.014444419043515792,
         "sourceNoiseRms": 0.0061078290251746275,
-        "peak": 0.873081624507904
+        "peak": 0.9695996046066284
       }
     },
     {
@@ -10967,30 +11424,7 @@
         "activeSpeechRms": 0.1444441904351579,
         "noiseRms": 0.014444419043515792,
         "sourceNoiseRms": 0.0061078290251746275,
-        "peak": 0.7937092781066895
-      }
-    },
-    {
-      "id": "s5-click8-15",
-      "file": "fixtures/generated/s5-click8-15.wav",
-      "source": "corpus:cmu-arctic-files-ksp(3本)@48000Hz",
-      "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
-      "sampleRate": 48000,
-      "samples": 480000,
-      "condition": {
-        "type": "snrimpulse",
-        "params": {
-          "targetSnrDb": 15,
-          "clicksPerSec": 8
-        }
-      },
-      "truth": {
-        "snrDb": 14.753358801886014,
-        "requestedSnrDb": 15,
-        "activeSpeechRms": 0.1444441904351579,
-        "noiseRms": 0.02568621297505824,
-        "sourceNoiseRms": 0.0061078290251746275,
-        "peak": 0.9700717926025391
+        "peak": 0.8867223858833313
       }
     },
     {
@@ -11009,7 +11443,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000007594236
+        "drrDb": 9.999999997683735
       }
     },
     {
@@ -11028,7 +11462,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.00000000931487
+        "drrDb": 10.000000004141796
       }
     },
     {
@@ -11047,7 +11481,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000000536089
+        "drrDb": 10.00000000874378
       }
     },
     {
@@ -11066,7 +11500,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000008152037
+        "drrDb": 10.000000000875067
       }
     },
     {
@@ -11085,7 +11519,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.0000000057587
+        "drrDb": 9.999999998717836
       }
     },
     {
@@ -11104,7 +11538,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.99999999806929
+        "drrDb": 9.999999993143234
       }
     },
     {
@@ -11123,7 +11557,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999996873061
+        "drrDb": 10.000000000849385
       }
     },
     {
@@ -11142,7 +11576,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999994570457
+        "drrDb": 10.000000004990962
       }
     },
     {
@@ -11161,7 +11595,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000005097645
+        "drrDb": 9.99999999323815
       }
     },
     {
@@ -11180,7 +11614,103 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.99999999518906
+        "drrDb": 10.000000006010392
+      }
+    },
+    {
+      "id": "s5-pauses0_5",
+      "file": "fixtures/generated/s5-pauses0_5.wav",
+      "source": "corpus:cmu-arctic-files-ksp(3本)@48000Hz",
+      "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
+      "sampleRate": 48000,
+      "samples": 418560,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.5,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.1491
+        }
+      },
+      "truth": {
+        "snrDb": 19.289792589296233,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.14908256880733944,
+        "activeSpeechRms": 0.14463708134518993,
+        "noiseRms": 0.014463708134518994,
+        "sourceNoiseRms": 0.006060868557491896
+      }
+    },
+    {
+      "id": "s5-pauses0_25",
+      "file": "fixtures/generated/s5-pauses0_25.wav",
+      "source": "corpus:cmu-arctic-files-ksp(3本)@48000Hz",
+      "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
+      "sampleRate": 48000,
+      "samples": 387840,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.25,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0817
+        }
+      },
+      "truth": {
+        "snrDb": 19.34144891212794,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.08168316831683169,
+        "activeSpeechRms": 0.14463708134518993,
+        "noiseRms": 0.014463708134518994,
+        "sourceNoiseRms": 0.005818909149959241
+      }
+    },
+    {
+      "id": "s5-pauses0_1",
+      "file": "fixtures/generated/s5-pauses0_1.wav",
+      "source": "corpus:cmu-arctic-files-ksp(3本)@48000Hz",
+      "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
+      "sampleRate": 48000,
+      "samples": 368640,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.1,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0339
+        }
+      },
+      "truth": {
+        "snrDb": 18.824181281432114,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.033854166666666664,
+        "activeSpeechRms": 0.14463708134518993,
+        "noiseRms": 0.014463708134518994,
+        "sourceNoiseRms": 0.008012864375075606
+      }
+    },
+    {
+      "id": "s5-pauses0_03",
+      "file": "fixtures/generated/s5-pauses0_03.wav",
+      "source": "corpus:cmu-arctic-files-ksp(3本)@48000Hz",
+      "sourceSha256": "3bcdcaffe34f42f7891eb4e0f71d170d61950bbc0539ba46a837825d0591b335",
+      "sampleRate": 48000,
+      "samples": 360000,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.03,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0107
+        }
+      },
+      "truth": {
+        "snrDb": 8.54905796695847,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.010666666666666666,
+        "activeSpeechRms": 0.14463708134518993,
+        "noiseRms": 0.014463708134518994,
+        "sourceNoiseRms": 0.048787165283930414
       }
     },
     {
@@ -12971,7 +13501,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.5,
         "highRt60Sec": 0.5,
-        "drrDb": 9.814785248460428
+        "drrDb": 9.970097173600475
       }
     },
     {
@@ -12994,7 +13524,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.7,
         "highRt60Sec": 0.35,
-        "drrDb": 9.745187136547978
+        "drrDb": 9.830210313179373
       }
     },
     {
@@ -13017,7 +13547,7 @@
         "rt60Sec": 0.9,
         "lowRt60Sec": 1.2,
         "highRt60Sec": 0.6,
-        "drrDb": 9.636787227749256
+        "drrDb": 9.83474466171863
       }
     },
     {
@@ -13040,7 +13570,7 @@
         "rt60Sec": 0.4,
         "lowRt60Sec": 0.9,
         "highRt60Sec": 0.25,
-        "drrDb": 9.68236604105208
+        "drrDb": 9.481427308473604
       }
     },
     {
@@ -13173,7 +13703,7 @@
         "activeSpeechRms": 0.14304292422360695,
         "noiseRms": 0.008043894756700582,
         "sourceNoiseRms": 0.0048242401328016755,
-        "peak": 0.678276777267456
+        "peak": 0.6843806505203247
       }
     },
     {
@@ -13196,7 +13726,7 @@
         "activeSpeechRms": 0.14304292422360695,
         "noiseRms": 0.014304292422360695,
         "sourceNoiseRms": 0.0048242401328016755,
-        "peak": 0.8809945583343506
+        "peak": 0.7785472869873047
       }
     },
     {
@@ -13219,7 +13749,7 @@
         "activeSpeechRms": 0.14304292422360695,
         "noiseRms": 0.008043894756700582,
         "sourceNoiseRms": 0.0048242401328016755,
-        "peak": 0.7654774785041809
+        "peak": 0.678276777267456
       }
     },
     {
@@ -13242,7 +13772,7 @@
         "activeSpeechRms": 0.14304292422360695,
         "noiseRms": 0.014304292422360695,
         "sourceNoiseRms": 0.0048242401328016755,
-        "peak": 0.7987115979194641
+        "peak": 0.678276777267456
       }
     },
     {
@@ -13265,7 +13795,7 @@
         "activeSpeechRms": 0.14304292422360695,
         "noiseRms": 0.02543702868985981,
         "sourceNoiseRms": 0.0048242401328016755,
-        "peak": 0.8564361929893494
+        "peak": 0.8548730611801147
       }
     },
     {
@@ -13284,7 +13814,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000005836396
+        "drrDb": 9.999999989769197
       }
     },
     {
@@ -13303,7 +13833,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999996483126
+        "drrDb": 9.999999974104842
       }
     },
     {
@@ -13322,7 +13852,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999987548987
+        "drrDb": 9.999999994230256
       }
     },
     {
@@ -13341,7 +13871,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000003497282
+        "drrDb": 10.000000002405947
       }
     },
     {
@@ -13360,7 +13890,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000013028203
+        "drrDb": 10.000000001377295
       }
     },
     {
@@ -13379,7 +13909,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999990889144
+        "drrDb": 10.000000019885658
       }
     },
     {
@@ -13398,7 +13928,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999983160938
+        "drrDb": 10.00000001822535
       }
     },
     {
@@ -13417,7 +13947,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000003316021
+        "drrDb": 9.999999993644536
       }
     },
     {
@@ -13436,7 +13966,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999987336647
+        "drrDb": 10.000000010132226
       }
     },
     {
@@ -13455,7 +13985,103 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000007137144
+        "drrDb": 9.999999995342886
+      }
+    },
+    {
+      "id": "s6-pauses0_5",
+      "file": "fixtures/generated/s6-pauses0_5.wav",
+      "source": "corpus:cmu-arctic-files-slt(3本)@16000Hz",
+      "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
+      "sampleRate": 16000,
+      "samples": 142400,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.5,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.1236
+        }
+      },
+      "truth": {
+        "snrDb": 19.349659456734546,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.12359550561797752,
+        "activeSpeechRms": 0.14359154442464775,
+        "noiseRms": 0.014359154442464776,
+        "sourceNoiseRms": 0.005738003039224151
+      }
+    },
+    {
+      "id": "s6-pauses0_25",
+      "file": "fixtures/generated/s6-pauses0_25.wav",
+      "source": "corpus:cmu-arctic-files-slt(3本)@16000Hz",
+      "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
+      "sampleRate": 16000,
+      "samples": 133760,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.25,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.067
+        }
+      },
+      "truth": {
+        "snrDb": 18.991732684993085,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.06698564593301436,
+        "activeSpeechRms": 0.14414638493701626,
+        "noiseRms": 0.014414638493701625,
+        "sourceNoiseRms": 0.007322709010650608
+      }
+    },
+    {
+      "id": "s6-pauses0_1",
+      "file": "fixtures/generated/s6-pauses0_1.wav",
+      "source": "corpus:cmu-arctic-files-slt(3本)@16000Hz",
+      "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
+      "sampleRate": 16000,
+      "samples": 128320,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.1,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0274
+        }
+      },
+      "truth": {
+        "snrDb": 18.57741917680235,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.02743142144638404,
+        "activeSpeechRms": 0.14414638493701626,
+        "noiseRms": 0.014414638493701625,
+        "sourceNoiseRms": 0.008912348213839474
+      }
+    },
+    {
+      "id": "s6-pauses0_03",
+      "file": "fixtures/generated/s6-pauses0_03.wav",
+      "source": "corpus:cmu-arctic-files-slt(3本)@16000Hz",
+      "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
+      "sampleRate": 16000,
+      "samples": 126080,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.03,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0102
+        }
+      },
+      "truth": {
+        "snrDb": 18.097741004798337,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.01015228426395939,
+        "activeSpeechRms": 0.14414638493701626,
+        "noiseRms": 0.014414638493701625,
+        "sourceNoiseRms": 0.010604661987760852
       }
     },
     {
@@ -14418,7 +15044,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.5,
         "highRt60Sec": 0.5,
-        "drrDb": 9.920190253427162
+        "drrDb": 8.950025229449341
       }
     },
     {
@@ -14441,7 +15067,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.7,
         "highRt60Sec": 0.35,
-        "drrDb": 9.98196487493382
+        "drrDb": 9.200532917466315
       }
     },
     {
@@ -14464,7 +15090,7 @@
         "rt60Sec": 0.9,
         "lowRt60Sec": 1.2,
         "highRt60Sec": 0.6,
-        "drrDb": 9.841254490466852
+        "drrDb": 9.551116708517842
       }
     },
     {
@@ -14487,7 +15113,7 @@
         "rt60Sec": 0.4,
         "lowRt60Sec": 0.9,
         "highRt60Sec": 0.25,
-        "drrDb": 9.933879574701951
+        "drrDb": 9.297538469972325
       }
     },
     {
@@ -14643,7 +15269,7 @@
         "activeSpeechRms": 0.14258030553801546,
         "noiseRms": 0.014258030553801546,
         "sourceNoiseRms": 0.005520058868120366,
-        "peak": 0.9669453501701355
+        "peak": 0.9361059665679932
       }
     },
     {
@@ -14666,7 +15292,7 @@
         "activeSpeechRms": 0.14258030553801546,
         "noiseRms": 0.008017879796229248,
         "sourceNoiseRms": 0.005520058868120366,
-        "peak": 0.6710799336433411
+        "peak": 0.6734586954116821
       }
     },
     {
@@ -14689,7 +15315,7 @@
         "activeSpeechRms": 0.14258030553801546,
         "noiseRms": 0.014258030553801546,
         "sourceNoiseRms": 0.005520058868120366,
-        "peak": 0.7981922626495361
+        "peak": 0.6710799336433411
       }
     },
     {
@@ -14712,7 +15338,7 @@
         "activeSpeechRms": 0.14258030553801546,
         "noiseRms": 0.025354762161531146,
         "sourceNoiseRms": 0.005520058868120366,
-        "peak": 0.8874150514602661
+        "peak": 0.8264694809913635
       }
     },
     {
@@ -14731,7 +15357,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999992034558
+        "drrDb": 10.0000000015368
       }
     },
     {
@@ -14750,7 +15376,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.9999999918461
+        "drrDb": 10.000000001049962
       }
     },
     {
@@ -14769,7 +15395,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000003419995
+        "drrDb": 9.999999992486405
       }
     },
     {
@@ -14788,7 +15414,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.00000000013021
+        "drrDb": 10.000000011745474
       }
     },
     {
@@ -14807,7 +15433,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000006074302
+        "drrDb": 10.00000000434384
       }
     },
     {
@@ -14826,7 +15452,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999998908342
+        "drrDb": 10.00000000725729
       }
     },
     {
@@ -14845,7 +15471,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999996874449
+        "drrDb": 9.999999997917943
       }
     },
     {
@@ -14864,7 +15490,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000002571154
+        "drrDb": 9.999999987771403
       }
     },
     {
@@ -14883,7 +15509,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999997471997
+        "drrDb": 9.99999999229964
       }
     },
     {
@@ -14902,7 +15528,103 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.99999999953231
+        "drrDb": 9.999999990888202
+      }
+    },
+    {
+      "id": "s7-pauses0_5",
+      "file": "fixtures/generated/s7-pauses0_5.wav",
+      "source": "corpus:cmu-arctic-files-slt(3本)@48000Hz",
+      "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
+      "sampleRate": 48000,
+      "samples": 422400,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.5,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.1386
+        }
+      },
+      "truth": {
+        "snrDb": 19.246174564984337,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.13863636363636364,
+        "activeSpeechRms": 0.14352225005689148,
+        "noiseRms": 0.014352225005689149,
+        "sourceNoiseRms": 0.006211733315531878
+      }
+    },
+    {
+      "id": "s7-pauses0_25",
+      "file": "fixtures/generated/s7-pauses0_25.wav",
+      "source": "corpus:cmu-arctic-files-slt(3本)@48000Hz",
+      "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
+      "sampleRate": 48000,
+      "samples": 393600,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.25,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0756
+        }
+      },
+      "truth": {
+        "snrDb": 19.031019905861093,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.07560975609756097,
+        "activeSpeechRms": 0.14371283198642806,
+        "noiseRms": 0.014371283198642806,
+        "sourceNoiseRms": 0.00714065580194495
+      }
+    },
+    {
+      "id": "s7-pauses0_1",
+      "file": "fixtures/generated/s7-pauses0_1.wav",
+      "source": "corpus:cmu-arctic-files-slt(3本)@48000Hz",
+      "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
+      "sampleRate": 48000,
+      "samples": 376320,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.1,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0332
+        }
+      },
+      "truth": {
+        "snrDb": 18.670450394317292,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.03316326530612245,
+        "activeSpeechRms": 0.14390416370226408,
+        "noiseRms": 0.014390416370226408,
+        "sourceNoiseRms": 0.008554411662439502
+      }
+    },
+    {
+      "id": "s7-pauses0_03",
+      "file": "fixtures/generated/s7-pauses0_03.wav",
+      "source": "corpus:cmu-arctic-files-slt(3本)@48000Hz",
+      "sourceSha256": "546d780644c5b0ce86deb3218f0761343a2fb903565890366ff7adca24000428",
+      "sampleRate": 48000,
+      "samples": 367680,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.03,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0104
+        }
+      },
+      "truth": {
+        "snrDb": 17.959945395885125,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.010443864229765013,
+        "activeSpeechRms": 0.14390416370226408,
+        "noiseRms": 0.014390416370226408,
+        "sourceNoiseRms": 0.011054785058769173
       }
     },
     {
@@ -16693,7 +17415,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.5,
         "highRt60Sec": 0.5,
-        "drrDb": 9.910322000175059
+        "drrDb": 9.77934018639042
       }
     },
     {
@@ -16716,7 +17438,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.7,
         "highRt60Sec": 0.35,
-        "drrDb": 9.884166585882852
+        "drrDb": 10.012912890272148
       }
     },
     {
@@ -16739,7 +17461,7 @@
         "rt60Sec": 0.9,
         "lowRt60Sec": 1.2,
         "highRt60Sec": 0.6,
-        "drrDb": 9.146093276145361
+        "drrDb": 9.666040532252326
       }
     },
     {
@@ -16762,7 +17484,7 @@
         "rt60Sec": 0.4,
         "lowRt60Sec": 0.9,
         "highRt60Sec": 0.25,
-        "drrDb": 9.904959786419758
+        "drrDb": 9.610062938872861
       }
     },
     {
@@ -16987,7 +17709,7 @@
         "activeSpeechRms": 0.09928178786946903,
         "noiseRms": 0.009928178786946903,
         "sourceNoiseRms": 0.004692842931122531,
-        "peak": 0.949999988079071
+        "peak": 0.9574236273765564
       }
     },
     {
@@ -17029,7 +17751,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000003063647
+        "drrDb": 10.000000008510145
       }
     },
     {
@@ -17048,7 +17770,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000005201397
+        "drrDb": 10.00000001994885
       }
     },
     {
@@ -17067,7 +17789,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000029790465
+        "drrDb": 10.000000005593579
       }
     },
     {
@@ -17086,7 +17808,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000001272653
+        "drrDb": 9.999999998063673
       }
     },
     {
@@ -17105,7 +17827,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999989068538
+        "drrDb": 9.999999983876876
       }
     },
     {
@@ -17124,7 +17846,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999997273829
+        "drrDb": 10.00000000144337
       }
     },
     {
@@ -17143,7 +17865,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.00000001105822
+        "drrDb": 10.000000001103416
       }
     },
     {
@@ -17162,7 +17884,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999982847193
+        "drrDb": 9.999999984915245
       }
     },
     {
@@ -17181,7 +17903,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999997224572
+        "drrDb": 9.999999997383384
       }
     },
     {
@@ -17200,7 +17922,103 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999993897665
+        "drrDb": 10.000000017148931
+      }
+    },
+    {
+      "id": "s8-pauses0_5",
+      "file": "fixtures/generated/s8-pauses0_5.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 140160,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.5,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.1416
+        }
+      },
+      "truth": {
+        "snrDb": 18.69985746240627,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.1415525114155251,
+        "activeSpeechRms": 0.10061298528146369,
+        "noiseRms": 0.010061298528146368,
+        "sourceNoiseRms": 0.005904205327319342
+      }
+    },
+    {
+      "id": "s8-pauses0_25",
+      "file": "fixtures/generated/s8-pauses0_25.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 130240,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.25,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0762
+        }
+      },
+      "truth": {
+        "snrDb": 18.050021973815774,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.07616707616707617,
+        "activeSpeechRms": 0.10157592661177016,
+        "noiseRms": 0.010157592661177016,
+        "sourceNoiseRms": 0.007587665321421069
+      }
+    },
+    {
+      "id": "s8-pauses0_1",
+      "file": "fixtures/generated/s8-pauses0_1.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 124480,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.1,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0334
+        }
+      },
+      "truth": {
+        "snrDb": 17.216534763957256,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.033419023136246784,
+        "activeSpeechRms": 0.10213807574875225,
+        "noiseRms": 0.010213807574875226,
+        "sourceNoiseRms": 0.009589494424325813
+      }
+    },
+    {
+      "id": "s8-pauses0_03",
+      "file": "fixtures/generated/s8-pauses0_03.wav",
+      "source": "corpus:wideband(1本)@16000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 16000,
+      "samples": 121600,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.03,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0105
+        }
+      },
+      "truth": {
+        "snrDb": 16.560095854949804,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.010526315789473684,
+        "activeSpeechRms": 0.10299722798383118,
+        "noiseRms": 0.010299722798383117,
+        "sourceNoiseRms": 0.011197182133773277
       }
     },
     {
@@ -18214,7 +19032,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.5,
         "highRt60Sec": 0.5,
-        "drrDb": 9.951750472224814
+        "drrDb": 9.539162834651073
       }
     },
     {
@@ -18237,7 +19055,7 @@
         "rt60Sec": 0.5,
         "lowRt60Sec": 0.7,
         "highRt60Sec": 0.35,
-        "drrDb": 9.96017947643795
+        "drrDb": 9.391787748228683
       }
     },
     {
@@ -18260,7 +19078,7 @@
         "rt60Sec": 0.9,
         "lowRt60Sec": 1.2,
         "highRt60Sec": 0.6,
-        "drrDb": 9.8699664267483
+        "drrDb": 9.806866839798639
       }
     },
     {
@@ -18283,7 +19101,7 @@
         "rt60Sec": 0.4,
         "lowRt60Sec": 0.9,
         "highRt60Sec": 0.25,
-        "drrDb": 9.503512561265163
+        "drrDb": 9.827493383815696
       }
     },
     {
@@ -18416,7 +19234,7 @@
         "activeSpeechRms": 0.09878719916963807,
         "noiseRms": 0.005555212449289722,
         "sourceNoiseRms": 0.004602783474707535,
-        "peak": 0.949999988079071
+        "peak": 0.9520153999328613
       }
     },
     {
@@ -18550,7 +19368,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000003877773
+        "drrDb": 10.00000001608917
       }
     },
     {
@@ -18569,7 +19387,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000008561704
+        "drrDb": 9.999999998344832
       }
     },
     {
@@ -18588,7 +19406,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.00000000474098
+        "drrDb": 9.999999991095015
       }
     },
     {
@@ -18607,7 +19425,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 9.999999993206698
+        "drrDb": 9.999999999452122
       }
     },
     {
@@ -18626,7 +19444,7 @@
       },
       "truth": {
         "rt60Sec": 0.5,
-        "drrDb": 10.000000004575472
+        "drrDb": 10.000000001113495
       }
     },
     {
@@ -18645,7 +19463,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000001728328
+        "drrDb": 9.999999995181906
       }
     },
     {
@@ -18664,7 +19482,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999997278142
+        "drrDb": 9.99999999596941
       }
     },
     {
@@ -18683,7 +19501,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 9.999999998039936
+        "drrDb": 9.999999994264341
       }
     },
     {
@@ -18702,7 +19520,7 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000000602498
+        "drrDb": 10.000000007226754
       }
     },
     {
@@ -18721,7 +19539,103 @@
       },
       "truth": {
         "rt60Sec": 0.7,
-        "drrDb": 10.000000001679808
+        "drrDb": 9.999999997545046
+      }
+    },
+    {
+      "id": "s9-pauses0_5",
+      "file": "fixtures/generated/s9-pauses0_5.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 421440,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.5,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.139
+        }
+      },
+      "truth": {
+        "snrDb": 18.688748206394155,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.13895216400911162,
+        "activeSpeechRms": 0.10023936108191787,
+        "noiseRms": 0.010023936108191788,
+        "sourceNoiseRms": 0.005911225064742414
+      }
+    },
+    {
+      "id": "s9-pauses0_25",
+      "file": "fixtures/generated/s9-pauses0_25.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 392640,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.25,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0758
+        }
+      },
+      "truth": {
+        "snrDb": 18.037766842035566,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.07579462102689487,
+        "activeSpeechRms": 0.10105757260015442,
+        "noiseRms": 0.010105757260015443,
+        "sourceNoiseRms": 0.007578207932440795
+      }
+    },
+    {
+      "id": "s9-pauses0_1",
+      "file": "fixtures/generated/s9-pauses0_1.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 375360,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.1,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0332
+        }
+      },
+      "truth": {
+        "snrDb": 17.273849315675896,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.03324808184143223,
+        "activeSpeechRms": 0.10161390091123763,
+        "noiseRms": 0.010161390091123764,
+        "sourceNoiseRms": 0.009408337583778618
+      }
+    },
+    {
+      "id": "s9-pauses0_03",
+      "file": "fixtures/generated/s9-pauses0_03.wav",
+      "source": "corpus:wideband(1本)@48000Hz",
+      "sourceSha256": "19358cb6786141668e2b8b9bbeef9b0d6b8a4c37a6b29b1539494ee0c9c155f0",
+      "sampleRate": 48000,
+      "samples": 366720,
+      "condition": {
+        "type": "pauses",
+        "params": {
+          "keepRatio": 0.03,
+          "targetSnrDb": 20,
+          "silenceRatio": 0.0105
+        }
+      },
+      "truth": {
+        "snrDb": 16.802204071061016,
+        "requestedSnrDb": 20,
+        "silenceRatio": 0.010471204188481676,
+        "activeSpeechRms": 0.10161390091123763,
+        "noiseRms": 0.010161390091123764,
+        "sourceNoiseRms": 0.010491240244445324
       }
     }
   ]

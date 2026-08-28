@@ -745,3 +745,75 @@ export function addImpulsiveNoise(
 
   return { ...mixed, clicksPerSec, peak };
 }
+
+// ==========================================================================
+// 間（無音区間）を減らした発話
+// ==========================================================================
+
+export interface PauseResult {
+  out: Float32Array;
+  /** 残すよう指定した無音フレームの割合 */
+  requestedKeepRatio: number;
+  /** 実際に残った無音フレームの割合（全フレームに対する比） */
+  silenceRatio: number;
+}
+
+/**
+ * 無音フレームを間引いて「間の少ない発話」を作る。
+ *
+ * README は「話者の喋り方（声量のムラ、間の取り方）は評価しない。環境の評価では
+ * ないため」と宣言している。ノイズ軸はSNRを有音／無音の分離から推定するので、
+ * **その宣言が成り立っているかは間の量を振ってみないと分からない。**
+ *
+ * 同時に、ノイズフロアの推定に使える無音フレーム数の下限（MIN_NOISE_FRAMES）を
+ * 実際に踏ませるための条件でもある。公開コーパスは発話を連結して素材にしているので
+ * 間が多く、この下限に当たる録音が検証セットに1件も無かった。
+ *
+ * 有音／無音の分離は推定器と同じ `separateActiveFrames` を使う。別の定義で切ると、
+ * 「間を減らした」つもりが推定器から見ると減っていない、という食い違いが起きる。
+ */
+export function reducePauses(
+  clean: Float32Array,
+  sampleRate: number,
+  keepRatio: number,
+): PauseResult {
+  const frameSize = Math.max(1, Math.floor(sampleRate * FRAME_SEC));
+  const frames: number[] = [];
+  for (let i = 0; i + frameSize <= clean.length; i += frameSize) {
+    let s = 0;
+    for (let j = i; j < i + frameSize; j++) s += clean[j] * clean[j];
+    frames.push(Math.sqrt(s / frameSize));
+  }
+  if (frames.length === 0) {
+    return { out: clean, requestedKeepRatio: keepRatio, silenceRatio: 0 };
+  }
+
+  const active = separateActiveFrames(frames);
+  // keepRatio の逆数ごとに1つだけ無音を残す。ランダムに落とすと素材ごとに
+  // 残る量がばらつき、条件間の比較ができなくなる。
+  const stride = Math.max(1, Math.round(1 / Math.max(keepRatio, 1e-6)));
+
+  const kept: number[] = [];
+  let silenceSeen = 0;
+  let silenceKept = 0;
+  for (let f = 0; f < frames.length; f++) {
+    if (!active[f]) {
+      const drop = silenceSeen % stride !== 0;
+      silenceSeen++;
+      if (drop) continue;
+      silenceKept++;
+    }
+    kept.push(f);
+  }
+
+  const out = new Float32Array(kept.length * frameSize);
+  for (let k = 0; k < kept.length; k++) {
+    out.set(clean.subarray(kept[k] * frameSize, (kept[k] + 1) * frameSize), k * frameSize);
+  }
+
+  return {
+    out,
+    requestedKeepRatio: keepRatio,
+    silenceRatio: kept.length === 0 ? 0 : silenceKept / kept.length,
+  };
+}
