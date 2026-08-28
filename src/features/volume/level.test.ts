@@ -250,6 +250,51 @@ describe('VolumeMeter — 収束（フェーダーを動かした直後）', () 
     expect(meter.state.settlingRemainingSec).toBe(0);
   });
 
+  it('2回続けて動かしても残り秒数は巻き戻らない', () => {
+    // 「最も margin の大きい段差」を選んでいた頃は、古くて大きいほうが勝つので
+    // カウントダウンが 0.2秒 まで進んだ直後に 3.1秒 へ跳ね上がっていた。
+    // 操作の可否をカウントダウンで見て決める相手に、操作していないのに増える
+    // 数字は渡せない。増えてよいのは新しい操作をした瞬間だけである。
+    const meter = new VolumeMeter(SR);
+    feed(meter, LEQ_WINDOW_SEC, 1, 3);        // 窓を埋める
+    feed(meter, 3, 2, 4);                     // +6.02dB
+    feed(meter, 0.1, 1.585, 5);               // 3秒後に -2dB（ここだけ増えてよい）
+
+    // 2回目の操作は、新しい側が 0.2秒 に満たない間は位置を決められない
+    // （分割点は窓の両端に置けない）。検出できるようになるまで待ってから見る
+    for (let i = 0; i < 5; i++) feed(meter, 0.1, 1.585, 50 + i);
+
+    let prev = meter.state.settlingRemainingSec;
+    for (let i = 0; i < 120; i++) {           // 以後12秒、0.1秒ずつ進める
+      feed(meter, 0.1, 1.585, 100 + i);
+      const now = meter.state.settlingRemainingSec;
+      // 1フレーム(0.1秒)の揺れは素材のばらつきで分割点が隣に動くもの。
+      // 直したのは 0.2秒 → 3.1秒 のような、操作していないのに数秒戻る動きである
+      expect(now, `${i / 10}秒後に ${prev} から ${now} へ巻き戻った`)
+        .toBeLessThanOrEqual(prev + FRAME_MS / 1000 + 1e-9);
+      prev = now;
+    }
+    expect(prev).toBe(0);                     // 最後は収束している
+  });
+
+  it('3dB の山なら、上げて戻す操作でも収束前に確定した顔にしない', () => {
+    // 上げてから戻すと窓は3レベルの混合になり、山が中ほどにある間は
+    // どの単一分割でも前後がどちらも混合になる。宣言した分解能(1.5dB)と
+    // 同じ大きさの山は捕まえられないが、3dB あれば捕まえられる——
+    // ここが「捕まえられる」と言える下限なので固定する。
+    const meter = new VolumeMeter(SR);
+    feed(meter, LEQ_WINDOW_SEC, 1, 3);
+    feed(meter, 5, 1.413, 4);                 // +3.0dB を5秒
+    feed(meter, 1, 1, 5);                     // 元に戻す
+
+    // 山が窓から完全に出るまで（残り9秒）ずっと「収束中」であること
+    for (let i = 0; i < 85; i++) {
+      expect(meter.state.settlingRemainingSec, `${i / 10}秒後に収束済みと答えた`)
+        .toBeGreaterThan(0);
+      feed(meter, 0.1, 1, 200 + i);
+    }
+  });
+
   it('段差の大きさと、確定までの残り秒数を返す', () => {
     const meter = new VolumeMeter(SR);
     feed(meter, LEQ_WINDOW_SEC, 1, 3);        // 窓を埋める

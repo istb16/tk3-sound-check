@@ -209,15 +209,38 @@ export interface MeterState {
 export const FLOOR_DB = -120;
 
 /**
- * 窓の中の段差を探す。
+ * 窓が単一のレベルで満たされるまでに、あと何フレーム古い側が出ればよいかを返す。
  *
- * 分割点を1つ動かしながら、前後のパワー平均がいちばん離れる位置を選ぶ。
- * 本物の段差に対しては正確で、定常ピンクノイズに +6dB を与えた3秒後に
- * 「5.99dB / 旧フレーム残 70」（真値 70）を返す。
+ * **「最も margin の大きい段差を1つ選ぶ」ではなく「残りが均一になる位置を探す」。**
+ * 前者だと窓に段差が2つあるとき、古くて大きいほうが勝つので**残り秒数が巻き戻る**。
+ * 実測では +6dB(t=12s) → -2dB(t=15s) で、カウントダウンが 0.2秒 まで進んだ直後に
+ * 3.1秒 へ跳ね上がった。読む相手はカウントダウンを見て次の操作の可否を決めるので、
+ * 操作していないのに増える数字は使えない。
  *
- * ただし分割点は窓の両端 STEP_MIN_FRAMES フレーム(0.2秒)には置けないので、
- * **操作の直後と直前だけは位置が端に張り付く**。そのぶん残り秒数は 0.2〜9.8秒の
- * 範囲に収まり、真値が 9.8秒を超える最初の0.2秒間は動かない。
+ * そこで先頭を1フレームずつ削りながら段差を探し直し、**最後に見つかった段差の
+ * 位置**を答えとする。古い段差は削られて消えるので、残るのは最も新しい段差である。
+ * 段差が1つなら従来と同じ位置を返す。新しい操作をしたときだけ残り秒数が増える
+ * （それは正しい挙動）。
+ *
+ * 分割点は両端 STEP_MIN_FRAMES フレーム(0.2秒)には置けないので、**操作の直後と
+ * 直前だけは位置が端に張り付く**。そのぶん残り秒数は 0.2〜9.8秒の範囲に収まり、
+ * 真値が 9.8秒を超える最初の0.2秒間は動かない。
+ *
+ * **上げてから戻す操作には限界がある。** 粗く動かして行き過ぎに気づき戻す——
+ * 現場の普通の手順だが、そのとき窓は3レベルの混合になり、山が中ほどにある間は
+ * どの単一分割でも前後がどちらも混合なので閾値を超えない。この走査でも捕まらない。
+ * 見逃す量は実測で STEP_DB の水準に収まる（山の高さ・保持時間を振った測定）:
+ *
+ *   山の高さ | 見逃す時間 | そのときの表示誤差
+ *   1.5dB    | 最大 11.1秒 | 最大 1.10dB
+ *   2dB      | 最大  4.7秒 | 最大 1.12dB
+ *   3dB      | 最大  0.1秒 | 最大 0.04dB
+ *   4dB以上  |       0.0秒 |      0.00dB
+ *
+ * **3dB 以上の山は捕まえられるので、残るのは「宣言した分解能(STEP_DB=1.5dB)と
+ * 同じ大きさの山」だけ**である。それ以上を捕まえるには STEP_DB を下げるしかなく、
+ * それは誤検出（操作していないのに「収束中」）と直接取り引きになる。下げるなら
+ * 実素材で誤検出率を測り直してからにすること。
  *
  * 「フェーダーが動いたか」は分からない。分かるのは**10秒前と今でレベルが
  * 違うこと**だけで、それがこの表示に必要な全部である。
@@ -229,23 +252,46 @@ function detectStep(powers: readonly number[]): { stepDb: number; oldFrames: num
   const prefix = new Float64Array(n + 1);
   for (let i = 0; i < n; i++) prefix[i + 1] = prefix[i] + powers[i];
 
-  // 分割ごとに要求する段差量が違うので、**閾値をどれだけ上回ったか**で選ぶ。
-  // 絶対値で選ぶと、短くて当てにならない区間の大きな値が常に勝つ
-  let bestMargin = 0;
-  let bestDb = 0;
-  let bestSplit = 0;
-  for (let i = STEP_MIN_FRAMES; i <= n - STEP_MIN_FRAMES; i++) {
-    const older = prefix[i] / i;
-    const newer = (prefix[n] - prefix[i]) / (n - i);
-    if (older <= 0 || newer <= 0) continue;
-    const db = 10 * Math.log10(newer / older);
-    // 素材の自然な揺れを段差と呼ぶと、「収束中」が消えなくなって
-    // 注意書きとして機能しなくなる
-    const margin = Math.abs(db) - stepThresholdDb(Math.min(i, n - i));
-    if (margin > bestMargin) { bestMargin = margin; bestDb = db; bestSplit = i; }
-  }
+  /** [from, at) と [at, n) のパワー平均の比[dB]。どちらかが無音なら null */
+  const gapDb = (from: number, at: number): number | null => {
+    const older = (prefix[at] - prefix[from]) / (at - from);
+    const newer = (prefix[n] - prefix[at]) / (n - at);
+    if (older <= 0 || newer <= 0) return null;
+    return 10 * Math.log10(newer / older);
+  };
 
-  return bestSplit > 0 ? { stepDb: bestDb, oldFrames: bestSplit } : { stepDb: 0, oldFrames: 0 };
+  /**
+   * [from, n) の中でいちばんはっきりした段差の位置。無ければ null。
+   *
+   * 分割ごとに要求する段差量が違うので、**閾値をどれだけ上回ったか**で選ぶ。
+   * 絶対値で選ぶと、短くて当てにならない区間の大きな値が常に勝つ。
+   * 素材の自然な揺れを段差と呼ぶと「収束中」が消えなくなって注意書きとして
+   * 機能しなくなるので、閾値を超えたものだけを段差と呼ぶ。
+   */
+  const stepIn = (from: number): number | null => {
+    let bestMargin = 0;
+    let bestSplit = -1;
+    for (let i = from + STEP_MIN_FRAMES; i <= n - STEP_MIN_FRAMES; i++) {
+      const db = gapDb(from, i);
+      if (db === null) continue;
+      const margin = Math.abs(db) - stepThresholdDb(Math.min(i - from, n - i));
+      if (margin > bestMargin) { bestMargin = margin; bestSplit = i; }
+    }
+    return bestSplit < 0 ? null : bestSplit;
+  };
+
+  // 先頭を1フレームずつ削り、段差が見つからなくなるまで進む。答えは
+  // **最後に見つかった段差の位置**——古い段差は削られて消えるので、
+  // 残るのは最も新しい段差である。短い区間には分割点を置けないので必ず終わる。
+  let newestSplit = 0;
+  for (let from = 0; from < n; from++) {
+    const at = stepIn(from);
+    if (at === null) break;
+    newestSplit = at;
+  }
+  if (newestSplit === 0) return { stepDb: 0, oldFrames: 0 };
+
+  return { stepDb: gapDb(0, newestSplit) ?? 0, oldFrames: newestSplit };
 }
 
 /**
