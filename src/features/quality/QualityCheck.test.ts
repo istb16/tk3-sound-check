@@ -329,6 +329,34 @@ describe('音質チェック — 解析結果表示', () => {
     expect(document.querySelectorAll('.advice-list li')).toHaveLength(1);
   });
 
+  it('境界に近いときは「断定していない」ことが画面に出る', async () => {
+    // 判定の3値だけを見せると、境界の誤差圏内であることが利用者に伝わらない。
+    mockAnalysisSuccess({
+      ...mockScores,
+      verdict: { level: 'usable', limitingAxis: 'reverb', unconfirmed: 'near-boundary' },
+    });
+    mountApp();
+    selectFile(wavFile());
+    await expect.element(page.getByText('BREAKDOWN'), { timeout: 3000 }).toBeVisible();
+
+    const note = document.querySelector('.verdict-panel')?.textContent ?? '';
+    expect(note).toContain('境目');
+    expect(note).not.toContain('測定できなかった');
+  });
+
+  it('衝撃性ノイズを検出したら「この録音について」に出る', async () => {
+    mockAnalysisSuccess({
+      ...mockScores,
+      provenance: { ...cleanProvenance, impulsePeaksPerSec: 1.4, processed: true, flags: ['impulsive-noise'] },
+    });
+    mountApp();
+    selectFile(wavFile());
+    await expect.element(page.getByText('BREAKDOWN'), { timeout: 3000 }).toBeVisible();
+
+    await expect.element(page.getByText('この録音について')).toBeVisible();
+    expect(document.body.textContent).toContain('打鍵音');
+  });
+
   it('アドバイスが空の場合はアドバイスパネルが表示されない', async () => {
     mockAnalysisSuccess({ ...mockScores, advice: [] });
     mountApp();

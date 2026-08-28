@@ -43,6 +43,16 @@ describe('T — 翻訳データの完整性', () => {
     }
   });
 
+  it('境界に近いときの判定文が測定不能とも「足を引っ張っている」とも別文になっている', () => {
+    // 「測れなかった」と「測れたが境界の誤差圏内」は利用者にとって別の状況で、
+    // 取るべき行動も違う（録り直す / 気にしなくてよい）。流用してはいけない。
+    for (const lang of [T.ja, T.en]) {
+      expect(lang.verdictNearBoundary('X')).not.toBe(lang.verdictUnconfirmed('X'));
+      expect(lang.verdictNearBoundary('X')).not.toBe(lang.verdictLimitedBy('X'));
+      expect(lang.verdictNearBoundary('X').length).toBeGreaterThan(20);
+    }
+  });
+
   it('読み上げ文のサンプルが両言語にある', () => {
     expect(T.ja.micScript.length).toBeGreaterThan(0);
     expect(T.en.micScript.length).toBeGreaterThan(0);
