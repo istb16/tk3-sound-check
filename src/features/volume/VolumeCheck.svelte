@@ -4,6 +4,11 @@
    *
    * 音質チェックとは形が違う。終わりが無く、点数も無く、停止しても何も残らない。
    * だから AppState（idle/recording/analyzing/done）は共有しない。
+   *
+   * **測っているのは声である。** 会場で鳴っているのはマイクを通した人の声で、間が
+   * 空く。無音を混ぜて平均すると数値が喋りの密度で動くので、窓は「実時間の10秒」
+   * ではなく「声の10秒」で数える。画面の残り秒数もすべて声の秒数であり、
+   * **誰も喋っていない間は減らない**——そう書く。
    */
   import { onDestroy, onMount } from 'svelte';
   import type { Lang } from '../../shell/i18n.ts';
@@ -12,41 +17,43 @@
   import { monitorErrorMsg } from '../common-text.ts';
   import { formatSigned } from '../../lib/format.ts';
   import {
-    VolumeMeter, barRatio, FLOOR_DB, LEQ_WINDOW_SEC,
+    VolumeMeter, barRatio, FLOOR_DB, ACTIVE_WINDOW_SEC,
     BAND_MISMATCH_DB, NEAR_CLIP_WARN_SEC,
-    type MeterState,
+    type BlockedBy, type HeldReading, type MeterState, type Reference,
   } from './level.ts';
+  import {
+    REFERENCE_TOUCH_INTERVAL_MS,
+    clearStoredReference, loadReference, saveReference, touchReference,
+  } from './storage.ts';
 
   let { lang }: { lang: Lang } = $props();
   const t = $derived(T[lang]);
 
   let instantDb   = $state(FLOOR_DB);
-  let leqDb       = $state(FLOOR_DB);
-  let leqZDb      = $state(FLOOR_DB);
   let peakHoldDb  = $state(FLOOR_DB);
   let clipSeconds = $state(0);
   let nearClipSeconds = $state(0);
-  let leqReady    = $state(false);
-  let warmupSec   = $state(LEQ_WINDOW_SEC);
-  /** 段差の前のフレームが窓から出るまでの残り秒数。0 でなければ数値はまだ動く */
+  /** 窓が満たされるまでに足りない声の秒数。実時間ではない */
+  let speechNeededSec = $state(ACTIVE_WINDOW_SEC);
+  /** 段差の前の有音フレームが窓から出るまでの声の秒数。0 でなければ数値はまだ動く */
   let settlingSec = $state(0);
 
-  /** 基準にした時点の Leq。null なら未設定 */
-  let reference = $state<number | null>(null);
+  /** いま出してよい差。出せないときは null */
+  let diffDb  = $state<number | null>(null);
+  let diffZDb = $state<number | null>(null);
+  /** 数値を出せない理由。文面を選ぶためだけに使う */
+  let blockedBy = $state<BlockedBy | null>(null);
+  /** 声が足りない間ずっと出し続ける、最後に十分な声で測れた差 */
+  let held = $state<HeldReading | null>(null);
+
   /**
-   * 同じ瞬間の重み付け無し(Z特性) Leq。**基準と対で持つ。**
-   * 帯域別の操作で主役の数字が実際の変化を小さく見せていないかを確かめるためだけに使う。
+   * 基準。**解析器ではなくここが持つ**——中断すると解析器は作り直されるが、基準は
+   * 持ち越すのが約束である。解析器へは `adoptReference` で渡し直す。
    */
-  let referenceZ = $state<number | null>(null);
-  /** 基準を測っている最中か。押した時点から先の10秒を平均する */
+  let reference = $state<Reference | null>(null);
+  /** 基準を測っている最中か。押した時点から先の声10秒ぶんを平均する */
   let capturingRef = $state(false);
-  let refRemainingSec = $state(LEQ_WINDOW_SEC);
-  /**
-   * 基準を測っている間にレベルが変わったか。**基準を取り直すまで消えない。**
-   * 窓が入れ替われば収束中の断りは消えるので、これを持たないと
-   * 混合した基準からの差が確定した数値の顔で出続ける。
-   */
-  let referenceUnsettled = $state(false);
+  let refRemainingSec = $state(ACTIVE_WINDOW_SEC);
   /**
    * 再開時に基準を捨てた理由。空文字なら捨てていない。
    *
@@ -54,8 +61,35 @@
    * 後者で前者の文面を出すと**確かめていないことを断定する**ことになるからである。
    */
   let referenceDropped = $state<'' | 'device-changed' | 'device-unknown'>('');
+  /**
+   * 復元した基準を測り終えた時刻（epoch ms）。復元していなければ null。
+   *
+   * **黙って使い始めない。** 復元した基準から始めると `+0.0 dB` 付近から動くので、
+   * 取られたことに気づけない——「窓が埋まった時点での自動基準」を却下したのと
+   * 同じ事故になる。
+   *
+   * 古さは復元した瞬間の値で固めず、**時刻を持って毎フレーム数え直す**。固めると、
+   * 1時間測り続けたあとも「12分前」と言い続けることになり、古さを判断してもらう
+   * ために出している数字がいちばん当てにならなくなる。
+   */
+  let restoredCapturedAt = $state<number | null>(null);
+  /** 上の時刻から数えた古さ[分]。表示用 */
+  let restoredAgeMin = $state(0);
+
+  /** 最後に「まだ使っている」を書き戻した時刻。毎フレーム書かないための間引き */
+  let lastTouchedAt = 0;
 
   let meter: VolumeMeter | null = null;
+
+  /**
+   * 画面を離れている最中か。**「停止を押した」と「画面が消えた」を分けるための旗。**
+   *
+   * `session.dispose()` は `onStop('user')` を投げる（マイクを確実に閉じるため、
+   * 利用者が止めたのと同じ経路を通る）。そのままだと、リロードや画面遷移が
+   * 「終わりの宣言」として扱われ、**保存した基準がその場で消える**——この機能が
+   * 取り戻そうとしている消え方そのものを、自分で潰すことになる。
+   */
+  let leavingScreen = false;
 
   // マイクの開閉と失敗の分類は共有の状態機械に任せる。ここが持つのは測定だけ
   const session = new MonitorSession({
@@ -68,42 +102,58 @@
       // **同じ機材だと確かめられないときも破棄する。** マイク名が取れない環境では
       // 両方とも空文字になり、機材が変わっても食い違いを検出できない。そこで基準を
       // 持ち越すと、この道具がいちばん避けたい「意味のある形をした嘘」を出す側に
-      // 倒れる。取り直しは10秒で済むが、別の機材との差は取り返せない
+      // 倒れる。取り直しは声10秒で済むが、別の機材との差は取り返せない
       if (resumed && reference !== null) {
         if (!deviceLabel || !previousDeviceLabel) {
-          reference = referenceZ = null;
-          referenceUnsettled = false;
-          referenceDropped = 'device-unknown';
+          dropReference('device-unknown');
         } else if (deviceLabel !== previousDeviceLabel) {
-          reference = referenceZ = null;
-          referenceUnsettled = false;
-          referenceDropped = 'device-changed';
+          dropReference('device-changed');
         }
       }
+      // リロード・画面遷移・タブ破棄で消えたぶんを取り戻す。マイク名が一致し、
+      // 期限内のときだけ。**歩いて席を移ったかどうかは分からない**ので、
+      // 復元したことは画面に出す
+      if (reference === null && !capturingRef) {
+        const restored = loadReference(deviceLabel);
+        if (restored !== null) {
+          reference = restored.reference;
+          restoredCapturedAt = Date.now() - restored.ageMs;
+          restoredAgeMin = Math.floor(restored.ageMs / 60000);
+          referenceDropped = '';
+        }
+      }
+      meter.adoptReference(reference);
     },
     onChunk: (chunk) => {
       if (meter?.push(chunk)) applyState(meter.state);
     },
     onStop: (reason) => {
       meter = null;
-      instantDb   = leqDb = leqZDb = peakHoldDb = FLOOR_DB;
+      instantDb   = peakHoldDb = FLOOR_DB;
       clipSeconds = nearClipSeconds = 0;
-      leqReady    = false;
-      warmupSec   = LEQ_WINDOW_SEC;
+      speechNeededSec = ACTIVE_WINDOW_SEC;
       settlingSec = 0;
+      diffDb = diffZDb = null;
+      blockedBy = null;
+      held = null;
       // 測定中だった基準は解析器ごと消える。取り直してもらうしかない——
-      // 中断をまたいだフレームを混ぜた平均は、10秒の基準ではない
+      // 中断をまたいだフレームを混ぜた平均は、声10秒ぶんの基準ではない
       capturingRef    = false;
-      refRemainingSec = LEQ_WINDOW_SEC;
+      refRemainingSec = ACTIVE_WINDOW_SEC;
       // 中断（stalled）でも起動失敗（failed）でも基準を捨てない。同じ端末・
       // 同じ場所なら、再開しても基準はそのまま比較に使える——そして中断中に
       // 会場の状態は変わっているので、捨てると「さっきと比べてどうか」を
       // 取り戻す手立てが無くなる。**「基準は保持しています」と出した直後に
-      // 再開が失敗して黙って捨てる**のが、いちばん質の悪い裏切り方になる
+      // 再開が失敗して黙って捨てる**のが、いちばん質の悪い裏切り方になる。
+      //
+      // 自分で止めたときだけは捨てる。停止は「この測定は終わり」という唯一の
+      // 明確な意思表示なので、**保存したぶんも消す**——消さないと、捨てたはずの
+      // 基準が10分以内の再訪で黙って復元される
       if (reason === 'user') {
-        reference = referenceZ = null;
-        referenceUnsettled = false;
+        reference = null;
         referenceDropped = '';
+        restoredCapturedAt = null;
+        if (!leavingScreen) clearStoredReference();
       }
     },
     // 画面が消えて計測が止まったとき、固まった「+3.5dB」は正しい測定値と
@@ -124,17 +174,16 @@
   const agcStuck = $derived(session.autoGainControl);
 
   /**
-   * 画面に dB を出してよいか。**規則はこれ一本にする。**
+   * 画面に dB を出してよいか。**規則は解析器の側に一本化してある。**
    *
    * 校正されていない絶対 dBFS は単独では何も指していない。意味を持つのは差だけで、
-   * 差が正しいのは 10秒窓が埋まっているときだけである。中断からの再開では基準を
-   * 持ち越すが解析器は作り直すので、**基準があっても窓は空**——そのまま差を出すと
-   * フェーダーを触っていないのに `+7.3 dB` が出て、10秒かけて真値に寄っていく。
-   * 基準前の `-32.8`（意味が無いだけ）より質が悪い、意味のある形をした嘘になる。
+   * 差が正しいのは「声の窓が満たされている かつ 基準がある かつ 基準と同じ音を
+   * 測っている」ときだけである。中断からの再開では基準を持ち越すが解析器は作り直す
+   * ので、**基準があっても窓は空**——そのまま差を出すとフェーダーを触っていないのに
+   * `+7.3 dB` が出て、声10秒かけて真値に寄っていく。基準前の `-32.8`（意味が無い
+   * だけ）より質が悪い、意味のある形をした嘘になる。
    */
-  const showDb = $derived(leqReady && reference !== null);
-
-  const diffDb = $derived(showDb && reference !== null ? leqDb - reference : null);
+  const showDb = $derived(diffDb !== null);
 
   /**
    * 表示がまだ2つのレベルの混合であること。
@@ -142,19 +191,21 @@
    * 移動窓の必然であって不具合ではないが、**収束済みの +4.0dB と混合中の
    * +4.0dB は見分けがつかない**。足りないと読まれてもう一段動かされるのが
    * この道具のいちばん重い誤読なので、動いている間はそう書く。
-   * 数字自体は消さない——話し声のように素材が揺れる会場では収束中がほぼ
-   * 常時真になり、消す設計だと数値が出っぱなしで見えなくなる。
+   * 数字自体は消さない——声が揺れる会場では収束中がほぼ常時真になり、
+   * 消す設計だと数値が出っぱなしで見えなくなる。
    */
   const settling = $derived(diffDb !== null && settlingSec > 0);
 
   /**
-   * 数値を確定した顔で出してよくない状態。収束中か、基準が混合しているとき。
-   * どちらも「読んだ値を信じてフェーダーを動かす」のが危ない点で同じである。
+   * 数値を確定した顔で出してよくない状態。収束中か、基準が混合しているか、
+   * 保持している値か。どれも「読んだ値を信じてフェーダーを動かす」のが危ない点で同じ。
    */
-  const tentative = $derived(settling || referenceUnsettled);
+  const tentative = $derived(settling || reference?.unsettled === true || held !== null);
+
+  /** 画面の主役に出す差。保持中は保持した値を出す */
+  const shownDiffDb = $derived(diffDb ?? held?.diffDb ?? null);
 
   /** 同じ瞬間の重み付け無しの差。主役とは別物なので、食い違うときだけ出す */
-  const diffZDb = $derived(showDb && referenceZ !== null ? leqZDb - referenceZ : null);
   const bandMismatch = $derived(
     diffDb !== null && diffZDb !== null && Math.abs(diffZDb - diffDb) >= BAND_MISMATCH_DB,
   );
@@ -166,26 +217,51 @@
 
   const errorMsg = $derived(monitorErrorMsg(session.errorKind, session.errorDetail, t));
 
+  function dropReference(why: 'device-changed' | 'device-unknown'): void {
+    reference = null;
+    referenceDropped = why;
+    restoredCapturedAt = null;
+  }
+
   function applyState(s: MeterState): void {
     instantDb   = s.instantDb;
-    leqDb       = s.leqDb;
-    leqZDb      = s.leqZDb;
     peakHoldDb  = s.peakHoldDb;
     clipSeconds = s.clipSeconds;
     nearClipSeconds = s.nearClipSeconds;
-    leqReady    = s.leqReady;
-    warmupSec   = s.warmupRemainingSec;
+    speechNeededSec = s.activeRemainingSec;
     settlingSec = s.settlingRemainingSec;
+
+    diffDb    = s.diffDb;
+    diffZDb   = s.diffZDb;
+    blockedBy = s.blockedBy;
+    held      = s.held;
 
     capturingRef    = s.referenceCapturing;
     refRemainingSec = s.referenceRemainingSec;
-    // 測り終えた基準は自分の側へ写す。**解析器ではなくここが持つ**——中断すると
-    // 解析器は作り直されるが、基準は持ち越すのが約束である
-    if (s.referenceDb !== null && reference === null) {
-      reference  = s.referenceDb;
-      referenceZ = s.referenceZDb;
-      // 測っている10秒の中でレベルが変わっていたら、この基準は混合である
-      referenceUnsettled = s.referenceStepDb !== 0;
+    // 測り終えた基準は自分の側へ写して、そのまま保存する。**保存は自動**——
+    // リロードもタブ破棄も予告なく来るので、保存ボタンがあると押し忘れるのは
+    // いちばん焦っている本番中になる。信用できない基準（測っている間にレベルが
+    // 変わった）は `saveReference` の側で弾く
+    if (s.referenceResult !== null && reference === null) {
+      reference = s.referenceResult;
+      restoredCapturedAt = null;
+      lastTouchedAt = Date.now();
+      saveReference(reference, deviceLabel);
+    }
+
+    if (restoredCapturedAt !== null) {
+      restoredAgeMin = Math.floor((Date.now() - restoredCapturedAt) / 60000);
+    }
+
+    // **使い続けている間は期限を延ばす。** 測り終えた時刻から数えると、2時間の
+    // 本番の途中でタブが落ちたときに、ずっと有効に使っていた基準が期限切れで
+    // 復元できない——この機能が防ごうとしている消え方そのものになる
+    if (reference !== null) {
+      const now = Date.now();
+      if (now - lastTouchedAt >= REFERENCE_TOUCH_INTERVAL_MS) {
+        lastTouchedAt = now;
+        touchReference(deviceLabel);
+      }
     }
   }
 
@@ -205,28 +281,43 @@
   onMount(start);
 
   /**
-   * 基準の測定を始める。**押した時点の Leq を写すのではない。**
+   * 基準の測定を始める。**押した時点のレベルを写すのではない。**
    *
-   * 遡る10秒を基準にすると、押す前に起きたレベル変化が焼き付く——開始してから
+   * 遡る窓を基準にすると、押す前に起きたレベル変化が焼き付く——開始してから
    * 客席へ歩き、着席直後に押すと、窓の半分は歩行中の音である。以後フェーダーに
    * 触れていないのに差が出続け、しかも窓が入れ替わったあとは収束中の断りも
-   * 消えるので、確定した数値の顔で出る。押してからの10秒で測ればこれは起きない。
+   * 消えるので、確定した数値の顔で出る。押してからの声10秒ぶんで測れば起きない。
    */
   function setReference(): void {
-    reference = referenceZ = null;
-    referenceUnsettled = false;
+    reference = null;
+    restoredCapturedAt = null;
     meter?.beginReference();
     capturingRef = true;
-    refRemainingSec = LEQ_WINDOW_SEC;
+    refRemainingSec = ACTIVE_WINDOW_SEC;
     referenceDropped = '';
+    // **保存したぶんもここで捨てる。** 置き換えるつもりで測り始めたのだから、
+    // 古いほうが生き残ってはいけない。残すと、測定が中断で流れたときや、
+    // 測り終えた基準が信用できず保存されなかったとき（`unsettled`）に、
+    // **置き換えたはずの古い基準が次の再開・リロードで戻ってくる**
+    clearStoredReference();
   }
 
+  /**
+   * 基準を消す。**保存したぶんも消す。**
+   *
+   * 「この基準は使わない」という意思表示であり、これで消えないなら、このボタンは
+   * 何を消しているのか説明できない。
+   */
   function clearReference(): void {
-    reference = referenceZ = null;
-    referenceUnsettled = false;
+    reference = null;
+    restoredCapturedAt = null;
     meter?.clearReference();
     capturingRef = false;
+    diffDb = diffZDb = null;
+    held = null;
+    clearStoredReference();
   }
+
   /**
    * 中断からの再開。基準は持ち越す（別のマイクなら onStart が捨てる）。
    *
@@ -237,8 +328,9 @@
   const resume = (): void => { referenceDropped = ''; void session.start(); };
   const stop  = (): void => session.stop();
 
-  // 画面を離れたらマイクを必ず閉じる。録音インジケータが点いたままになるのは事故
-  onDestroy(() => session.dispose());
+  // 画面を離れたらマイクを必ず閉じる。録音インジケータが点いたままになるのは事故。
+  // ただしこれは「終わりの宣言」ではないので、保存した基準は残す
+  onDestroy(() => { leavingScreen = true; session.dispose(); });
 
   const fmt = (db: number): string => (db <= FLOOR_DB ? '--' : db.toFixed(1));
 </script>
@@ -279,7 +371,7 @@
         <p class="error" role="alert">{t.agcWarning}</p>
       {/if}
 
-      {#if referenceUnsettled}
+      {#if reference?.unsettled}
         <p class="error" role="status">{t.referenceUnsettled}</p>
       {/if}
 
@@ -289,36 +381,40 @@
         </p>
       {/if}
 
-      <!-- 主役の位置は常に埋める。①待ち→②基準待ち→③差 と移るとき、途中で
+      <!-- 前回の基準を復元した。黙って使い始めないための一行 -->
+      {#if restoredCapturedAt !== null && reference !== null}
+        <p class="restored" role="status">{t.restoredReference(restoredAgeMin)}</p>
+      {/if}
+
+      <!-- 主役の位置は常に埋める。①基準待ち→②声待ち→③差 と移るとき、途中で
            空くと「終わってしまった」と読まれる -->
       {#if capturingRef}
-        <!-- 押した時点から先の10秒を測っている。ここは待ってもらうしかない -->
+        <!-- 押した時点から先の声10秒ぶんを測っている。ここは待ってもらうしかない -->
         <p class="state-title">{t.capturingReferenceTitle}</p>
-        <p class="big big-count">{t.warmingUpRemaining(Math.ceil(refRemainingSec))}</p>
+        <p class="big big-count">{t.speechRemaining(Math.ceil(refRemainingSec))}</p>
       {:else if reference === null}
-        <!-- 基準は遡らないので、窓が埋まるのを待たずに押せる -->
+        <!-- 基準は遡らないので、窓が満たされるのを待たずに押せる -->
         <p class="state-title">{t.setReferenceTitle}</p>
         <p class="hint">{t.noReference}</p>
-      {:else if !leqReady}
-        <p class="state-title">{t.warmingUpTitle}</p>
-        <p class="big big-count">{t.warmingUpRemaining(Math.ceil(warmupSec))}</p>
-        <!-- 中断からの再開。差は出せないが、基準が生きていることは伝える -->
-        <p class="hint">{t.stalledKeepsReference}</p>
-      {:else if diffDb === null}
-        <p class="state-title">{t.setReferenceTitle}</p>
-        <p class="hint">{t.noReference}</p>
-      {:else}
-        <!-- 収束中は上下の色を付けない。動いている途中の値を「上がった」と
-             断言する見た目にすると、注意書きより先に色のほうが読まれる -->
+      {:else if shownDiffDb !== null}
+        <!-- 収束中と保持中は上下の色を付けない。動いている途中の値・古い値を
+             「上がった」と断言する見た目にすると、注意書きより先に色のほうが読まれる -->
         <p
           class="big"
           class:settling={tentative}
-          class:up={!tentative && diffDb > 0.05}
-          class:down={!tentative && diffDb < -0.05}
+          class:up={!tentative && shownDiffDb > 0.05}
+          class:down={!tentative && shownDiffDb < -0.05}
         >
-          {formatSigned(diffDb)}<span class="unit">dB</span>
+          {formatSigned(shownDiffDb)}<span class="unit">dB</span>
         </p>
-        {#if settling}
+        {#if held !== null}
+          <!-- 保持中。**いつ測った値かを必ず添える**——フェーダーを動かした直後に
+               喋りが途切れていると、動かす前の値がここに残る -->
+          <p class="settling-note" role="status">{t.heldNote(Math.round(held.ageSec))}</p>
+          {#if blockedBy === 'different-sound'}
+            <p class="band-note">{t.differentSoundNote}</p>
+          {/if}
+        {:else if settling}
           <p class="settling-note" role="status">{t.settlingNote(Math.ceil(settlingSec))}</p>
         {:else}
           <p class="leq-note">{t.leqNote}</p>
@@ -328,6 +424,18 @@
         {#if bandMismatch && diffZDb !== null}
           <p class="band-note">{t.bandMismatch(formatSigned(diffZDb))}</p>
         {/if}
+      {:else if blockedBy === 'different-sound'}
+        <!-- 拍手・映像・BGM。ゲートは「大きい側」を通すので、これを出さないと
+             拍手を声のつもりで平均した数値が確定した顔で出る -->
+        <p class="state-title">{t.differentSoundTitle}</p>
+        <p class="hint">{t.differentSoundNote}</p>
+      {:else}
+        <!-- 声が足りない。残り秒数は**声の秒数**で、誰も喋っていない間は減らない -->
+        <p class="state-title">{t.notEnoughSpeechTitle}</p>
+        <p class="big big-count">{t.speechRemaining(Math.ceil(speechNeededSec))}</p>
+        <!-- 中断から戻ったときの文面は流用しない。話者が黙っただけの場面に
+             「保持しています」と出すと、起きていない事故を探させることになる -->
+        <p class="hint">{t.referenceSet}</p>
       {/if}
 
       <div class="meter" aria-hidden="true">
@@ -362,8 +470,8 @@
 
     <div class="actions">
       {#if reference === null}
-        <!-- 基準は押した時点から先の10秒で測るので、窓が埋まるのを待つ必要が無い。
-             測っている最中の押し直しだけ塞ぐ（残り秒数が巻き戻るだけになる） -->
+        <!-- 基準は押した時点から先の声10秒ぶんで測るので、窓が満たされるのを待つ
+             必要が無い。測っている最中の押し直しだけ塞ぐ（残り秒数が巻き戻るだけ） -->
         <button class="btn-primary" onclick={setReference} disabled={capturingRef}>
           {t.setReferenceBtn}
         </button>
@@ -382,6 +490,15 @@
     color: var(--body);
   }
 
+  /* 前回の基準を復元したことの断り。警告ではないので error の赤は使わない */
+  .restored {
+    margin-top: 0.5rem;
+    font-size: 0.72rem;
+    line-height: 1.5;
+    color: var(--body);
+    text-align: left;
+  }
+
   /* 変化量が主役。会場では一目で読めることがすべて */
   .big {
     font-size: 3.2rem;
@@ -394,10 +511,10 @@
 
   .big.up   { color: var(--danger); }
   .big.down { color: #006E80; }
-  /* 収束中。数字は残すが、確定した値と同じ顔はさせない */
+  /* 収束中・保持中。数字は残すが、確定した値と同じ顔はさせない */
   .big.settling { color: var(--muted); }
 
-  /* 残り秒数。基準を取る前の主役はこれになる */
+  /* 残り秒数。基準を取る前・声が足りないときの主役はこれになる */
   .big-count { font-size: 2.6rem; }
 
   .state-title {
@@ -422,7 +539,7 @@
     color: var(--muted);
   }
 
-  /* 収束中の断り。leq-note と同じ位置に出るが、読み飛ばされては困る */
+  /* 収束中・保持中の断り。leq-note と同じ位置に出るが、読み飛ばされては困る */
   .settling-note {
     margin-top: 0.7rem;
     font-size: 0.72rem;

@@ -9,7 +9,7 @@ vi.mock('../../lib/audio/capture.ts', () => ({
 
 import VolumeCheck from './VolumeCheck.svelte';
 import { startMonitor } from '../../lib/audio/capture.ts';
-import { LEQ_WINDOW_SEC } from './level.ts';
+import { ACTIVE_MAX_SPAN_SEC, ACTIVE_WINDOW_SEC } from './level.ts';
 import { sine } from '../../test-support/signals.ts';
 
 /**
@@ -59,6 +59,9 @@ const peakText = (): string =>
   document.querySelector('.peak-row .mono')?.textContent?.trim() ?? '';
 
 beforeEach(() => {
+  // 基準は localStorage に自動保存されるので、テストごとに消す。
+  // 消さないと前のテストの基準が「前回の基準」として復元されてしまう
+  localStorage.clear();
   document.body.innerHTML = '';
   feed = null;
   stopSpy = vi.fn();
@@ -106,7 +109,7 @@ describe('ボリュームチェック — 測定中', () => {
     await startApp();
 
     // 振幅0.5の正弦波 → 実効値 -9.03dBFS。窓は埋まるが、基準がまだ無い
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.5, SR));
     await expect.element(page.getByText('基準を取ってください')).toBeVisible();
     await expect.element(page.getByText(/「基準を計測する」を押すと/)).toBeVisible();
     expect(document.body.textContent).not.toContain('-9.0');
@@ -129,13 +132,13 @@ describe('ボリュームチェック — 測定中', () => {
     await page.getByRole('button', { name: '基準を計測する' }).click();
 
     await expect.element(page.getByText('基準を測っています')).toBeVisible();
-    await expect.poll(bigText).toBe('あと 10 秒');
+    await expect.poll(bigText).toBe('声があと 10 秒ぶん');
     await expect.element(page.getByRole('button', { name: '基準を計測する' })).toBeDisabled();
 
     feed!(sine(1000, 1, 0.5, SR));
-    await expect.poll(bigText).toBe('あと 9 秒');
+    await expect.poll(bigText).toBe('声があと 9 秒ぶん');
 
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.5, SR));
     await expect.poll(bigText).toMatch(/±0\.0dB/);
   });
 
@@ -154,7 +157,7 @@ describe('ボリュームチェック — 基準との差', () => {
     await expect.element(page.getByText('基準を取ってください')).toBeVisible();
 
     await page.getByRole('button', { name: '基準を計測する' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
     await expect.poll(bigText).toMatch(/±0\.0dB/);
   });
 
@@ -165,10 +168,10 @@ describe('ボリュームチェック — 基準との差', () => {
     // 押してからの10秒が基準になる
     await expect.element(page.getByText('基準を取ってください')).toBeVisible();
     await page.getByRole('button', { name: '基準を計測する' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
 
     // 窓をすべて置き換える長さを流す
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.5, SR));
     await expect.poll(bigText).toMatch(/\+6\.0dB/);
   });
 
@@ -178,7 +181,7 @@ describe('ボリュームチェック — 基準との差', () => {
     mockMonitorOk();
     await startApp();
     await page.getByRole('button', { name: '基準を計測する' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
 
     await expect.poll(bigText).toMatch(/±0\.0dB/);
     // 「基準 -15.1 / 現在 -15.1」の並びは消した
@@ -192,7 +195,7 @@ describe('ボリュームチェック — 基準との差', () => {
     mockMonitorOk();
     await startApp();
     await page.getByRole('button', { name: '基準を計測する' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
     await expect.poll(bigText).toMatch(/±0\.0dB/);
 
     await page.getByRole('button', { name: '基準を消す' }).click();
@@ -207,7 +210,7 @@ describe('ボリュームチェック — 収束中（フェーダーを動か�
     mockMonitorOk();
     await startApp();
     await page.getByRole('button', { name: '基準を計測する' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
     await expect.poll(bigText).toMatch(/±0\.0dB/);
   }
 
@@ -219,25 +222,25 @@ describe('ボリュームチェック — 収束中（フェーダーを動か�
 
     feed!(sine(1000, 5, 0.5, SR));
     await expect.poll(bigText).toMatch(/\+4\.0dB/);
-    await expect.element(page.getByText(/確定まであと 5 秒/)).toBeVisible();
+    await expect.element(page.getByText(/声があと 5 秒ぶんで確定します/)).toBeVisible();
     expect(document.querySelector('.big.settling')).not.toBeNull();
   });
 
   it('窓が置き換わりきると断りが消え、真の変化量になる', async () => {
     await withReference();
 
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.5, SR));
     await expect.poll(bigText).toMatch(/\+6\.0dB/);
-    expect(document.body.textContent).not.toContain('確定まであと');
+    expect(document.body.textContent).not.toContain('ぶんで確定します');
     expect(document.querySelector('.big.settling')).toBeNull();
   });
 
   it('レベルが変わっていなければ断りを出さない', async () => {
     await withReference();
 
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
     await expect.poll(bigText).toMatch(/±0\.0dB/);
-    expect(document.body.textContent).not.toContain('確定まであと');
+    expect(document.body.textContent).not.toContain('ぶんで確定します');
   });
 });
 
@@ -252,22 +255,22 @@ describe('ボリュームチェック — 基準を測っている間のレベ�
 
     // 押した3秒後にフェーダーが +6dB 動いた形
     feed!(sine(1000, 3, 0.25, SR));
-    feed!(sine(1000, LEQ_WINDOW_SEC - 3, 0.5, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC - 3, 0.5, SR));
 
     await expect.element(page.getByText(/基準を測っている間にレベルが変わりました/))
       .toBeVisible();
     expect(document.querySelector('.big.settling')).not.toBeNull();
 
     // 窓が入れ替わると収束中は消えるが、基準の汚れは消えない
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
-    await expect.poll(() => document.body.textContent?.includes('確定まであと')).toBe(false);
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.5, SR));
+    await expect.poll(() => document.body.textContent?.includes('ぶんで確定します')).toBe(false);
     await expect.element(page.getByText(/基準を測っている間にレベルが変わりました/))
       .toBeVisible();
 
     // 取り直せば消える
     await page.getByRole('button', { name: '基準を消す' }).click();
     await page.getByRole('button', { name: '基準を計測する' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.5, SR));
     await expect.poll(bigText).toMatch(/±0\.0dB/);
     expect(document.body.textContent).not.toContain('基準を測っている間に');
   });
@@ -281,13 +284,13 @@ describe('ボリュームチェック — 帯域ごとに変化量が違うと�
     await startApp();
 
     await page.getByRole('button', { name: '基準を計測する' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
     await expect.poll(bigText).toMatch(/±0\.0dB/);
 
     // 60Hz を足す。A特性では約27dB落ちるので主役はほぼ動かないが、
     // 入力に入っているエネルギーは4倍になっている
-    const mixed = sine(1000, LEQ_WINDOW_SEC, 0.25, SR);
-    const low = sine(60, LEQ_WINDOW_SEC, 0.5, SR);
+    const mixed = sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR);
+    const low = sine(60, ACTIVE_WINDOW_SEC, 0.5, SR);
     for (let i = 0; i < mixed.length; i++) mixed[i] += low[i];
     feed!(mixed);
 
@@ -299,9 +302,9 @@ describe('ボリュームチェック — 帯域ごとに変化量が違うと�
     mockMonitorOk();
     await startApp();
     await page.getByRole('button', { name: '基準を計測する' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
 
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.5, SR));
     await expect.poll(bigText).toMatch(/\+6\.0dB/);
     expect(document.body.textContent).not.toContain('広帯域では');
   });
@@ -404,7 +407,7 @@ describe('ボリュームチェック — 停止と後片付け', () => {
     mockMonitorOk();
     await startApp();
     await page.getByRole('button', { name: '基準を計測する' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
     await expect.poll(bigText).toMatch(/±0\.0dB/);
 
     await page.getByRole('button', { name: '停止' }).click();
@@ -412,8 +415,117 @@ describe('ボリュームチェック — 停止と後片付け', () => {
 
     // 測り直しなので基準は戻らない。基準は遡らないので、窓の待ち時間も出ない
     await expect.element(page.getByText('基準を取ってください')).toBeVisible();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.25, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
     await expect.element(page.getByText('基準を取ってください')).toBeVisible();
+  });
+});
+
+describe('ボリュームチェック — 前回の基準（リロードをまたぐ）', () => {
+  /**
+   * 画面ごと作り直す。**リロード・画面遷移・タブ破棄がこの形である。**
+   * 中断からの再開とは違い、コンポーネントの状態は何も残らない。
+   */
+  async function remount(): Promise<void> {
+    if (app) { unmount(app); app = null; }
+    document.body.innerHTML = '';
+    feed = null;
+    await startApp();
+  }
+
+  it('同じマイクなら復元し、そのまま差を出す。復元したことは画面に出す', async () => {
+    // 取り直しのコストは声10秒（喋りが疎な会場なら壁時計で20〜30秒）。
+    // ただし**黙って使い始めない**——復元した基準から始めると +0.0dB 付近から
+    // 動くので、取られたことに気づけない
+    mockMonitorOk();
+    await startApp();
+    await page.getByRole('button', { name: '基準を計測する' }).click();
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
+    await expect.poll(bigText).toMatch(/±0\.0dB/);
+
+    await remount();
+    await expect.element(page.getByText(/前回の基準を使っています/)).toBeVisible();
+
+    // 基準を取り直さずに差が出る（窓が満たされるのは待つ）
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.5, SR));
+    await expect.poll(bigText).toMatch(/\+6\.0dB/);
+  });
+
+  it('取り直しを始めたら、古い基準は戻ってこない', async () => {
+    // 置き換えるつもりで測り始めたのだから、古いほうが生き残ってはいけない。
+    // 残すと、測定が中断で流れたときに**置き換えたはずの基準が戻ってくる**
+    mockMonitorOk();
+    await startApp();
+    await page.getByRole('button', { name: '基準を計測する' }).click();
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
+    await expect.poll(bigText).toMatch(/±0\.0dB/);
+
+    // 取り直しを始めるが、揃う前に画面が作り直される（リロード・タブ破棄）
+    await page.getByRole('button', { name: '基準を消す' }).click();
+    await page.getByRole('button', { name: '基準を計測する' }).click();
+    feed!(sine(1000, 2, 0.25, SR));
+    await remount();
+
+    await expect.element(page.getByText('基準を取ってください')).toBeVisible();
+    expect(document.body.textContent).not.toContain('前回の基準');
+  });
+
+  it('別のマイクなら復元しない', async () => {
+    // 感度の違う機材の値を引き算しても、意味の無い数字が出るだけである
+    mockMonitorOk('内蔵マイク');
+    await startApp();
+    await page.getByRole('button', { name: '基準を計測する' }).click();
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
+    await expect.poll(bigText).toMatch(/±0\.0dB/);
+
+    mockMonitorOk('USB Audio CODEC');
+    await remount();
+    await expect.element(page.getByText('基準を取ってください')).toBeVisible();
+    expect(document.body.textContent).not.toContain('前回の基準');
+  });
+
+  it('停止したら、保存した基準も復元しない', async () => {
+    // 停止は「この測定は終わり」という唯一の明確な意思表示である。それを黙って
+    // 裏返して10分以内の再訪で復元したら、停止が何をしたのか説明できない
+    mockMonitorOk();
+    await startApp();
+    await page.getByRole('button', { name: '基準を計測する' }).click();
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
+    await expect.poll(bigText).toMatch(/±0\.0dB/);
+
+    await page.getByRole('button', { name: '停止' }).click();
+    await remount();
+    await expect.element(page.getByText('基準を取ってください')).toBeVisible();
+    expect(document.body.textContent).not.toContain('前回の基準');
+  });
+
+  it('基準を消したら、保存した基準も復元しない', async () => {
+    mockMonitorOk();
+    await startApp();
+    await page.getByRole('button', { name: '基準を計測する' }).click();
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
+    await expect.poll(bigText).toMatch(/±0\.0dB/);
+
+    await page.getByRole('button', { name: '基準を消す' }).click();
+    await remount();
+    await expect.element(page.getByText('基準を取ってください')).toBeVisible();
+    expect(document.body.textContent).not.toContain('前回の基準');
+  });
+
+  it('基準を取り直すと「前回の基準」の断りは消える', async () => {
+    mockMonitorOk();
+    await startApp();
+    await page.getByRole('button', { name: '基準を計測する' }).click();
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
+    await expect.poll(bigText).toMatch(/±0\.0dB/);
+
+    await remount();
+    await expect.element(page.getByText(/前回の基準を使っています/)).toBeVisible();
+
+    await page.getByRole('button', { name: '基準を消す' }).click();
+    await page.getByRole('button', { name: '基準を計測する' }).click();
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
+    await expect.poll(bigText).toMatch(/±0\.0dB/);
+    expect(document.body.textContent).not.toContain('前回の基準');
   });
 });
 
@@ -500,7 +612,7 @@ describe('ボリュームチェック — 計測が止まったとき', () => {
   /** 基準を取れる状態まで進める */
   async function measureAndSetReference(): Promise<void> {
     await page.getByRole('button', { name: '基準を計測する' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.5, SR));
   }
 
   it('チャンクが途切れたら計測を止め、マイクも閉じてそう伝える', async () => {
@@ -526,7 +638,7 @@ describe('ボリュームチェック — 計測が止まったとき', () => {
     await expect.element(page.getByText('基準は保持しています。')).toBeVisible();
 
     await page.getByRole('button', { name: '測定を再開' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.5, SR));
     // 基準が残っているので、窓が埋まれば差の表示に戻る
     await expect.poll(bigText).toMatch(/±0\.0dB/);
     await expect.element(page.getByRole('button', { name: '基準を消す' })).toBeVisible();
@@ -543,11 +655,32 @@ describe('ボリュームチェック — 計測が止まったとき', () => {
     await expect.element(page.getByText('計測が止まりました')).toBeVisible();
 
     await page.getByRole('button', { name: '測定を再開' }).click();
-    feed!(sine(1000, 1, 0.1, SR)); // 基準より14dB小さい音。差を出せば嘘が見える
-    await expect.poll(bigText).toBe('あと 9 秒');
+    feed!(sine(1000, 1, 0.25, SR)); // 基準より6dB小さい音。差を出せば嘘が見える
+    await expect.poll(bigText).toBe('声があと 9 秒ぶん');
     expect(peakText()).toBe('--');
     // 基準が生きていることは伝える（消えたと誤解されると取り直されてしまう）
     await expect.element(page.getByText('基準は保持しています。')).toBeVisible();
+  });
+
+  it('基準より大きく下げた音は追わず、古い値だと言い続ける', async () => {
+    // ゲートの閾値は基準より下へ降りない（降ろすと、間が長引いたときに暗騒音を
+    // 有音と判定して確定した顔で -27dB を出す）。その代償として、基準から
+    // ACTIVE_RANGE_DB を超えて下げた音は追えなくなる。
+    //
+    // **そのとき出るのは -20dB ではなく、古い値と経過秒である。** 「フェーダーを
+    // 20dB下げた」と「番組が止まって暗騒音だけになった」はマイクから見て同じ
+    // なので、区別できないほうへ確信を持った数字を出すより、古いと言うほうを採る。
+    // 経過秒が伸び続けるので、取り直す判断は読む側でできる
+    mockMonitorOk();
+    await startApp();
+    await measureAndSetReference();
+    await expect.poll(bigText).toMatch(/±0\.0dB/);
+
+    // 窓は実時間で ACTIVE_MAX_SPAN_SEC 遡れるので、それを越えるまで流す
+    feed!(sine(1000, ACTIVE_MAX_SPAN_SEC + 5, 0.05, SR)); // -20dB
+    await expect.element(page.getByText(/秒前の声で測った値です/)).toBeVisible();
+    expect(document.body.textContent).not.toContain('-20.0');
+    expect(document.querySelector('.big.settling')).not.toBeNull();
   });
 
   it('再開したときに別のマイクが開いていたら基準を捨てて理由を出す', async () => {
@@ -561,7 +694,7 @@ describe('ボリュームチェック — 計測が止まったとき', () => {
     await page.getByRole('button', { name: '測定を再開' }).click();
 
     await expect.element(page.getByText(/基準を破棄しました/)).toBeVisible();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.5, SR));
     await expect.element(page.getByText(/「基準を計測する」を押すと/)).toBeVisible();
   });
 
@@ -579,7 +712,7 @@ describe('ボリュームチェック — 計測が止まったとき', () => {
     await expect.element(page.getByText(/同じマイクかを確認できなかったため/)).toBeVisible();
     // 「別のマイクが開いた」とは言わない。確かめていないことを断定しない
     expect(document.body.textContent).not.toContain('別のマイクが開いたため');
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.5, SR));
     await expect.element(page.getByText(/「基準を計測する」を押すと/)).toBeVisible();
   });
 
@@ -590,7 +723,7 @@ describe('ボリュームチェック — 計測が止まったとき', () => {
     await expect.element(page.getByText('計測が止まりました')).toBeVisible();
 
     await page.getByRole('button', { name: '測定を再開' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.5, SR));
 
     await expect.poll(bigText).toMatch(/±0\.0dB/);
     expect(document.body.textContent).not.toContain('破棄しました');
@@ -643,7 +776,7 @@ describe('ボリュームチェック — 計測が止まったとき', () => {
 
     mockMonitorOk();
     await page.getByRole('button', { name: 'もう一度試す' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.5, SR));
     await expect.poll(bigText).toMatch(/±0\.0dB/);
     await expect.element(page.getByRole('button', { name: '基準を消す' })).toBeVisible();
   });
@@ -660,7 +793,7 @@ describe('ボリュームチェック — 計測が止まったとき', () => {
     await expect.element(page.getByText(/基準を破棄しました/)).toBeVisible();
 
     await page.getByRole('button', { name: '基準を計測する' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.5, SR));
     await expect.poll(bigText).toMatch(/±0\.0dB/);
     expect(document.body.textContent).not.toContain('基準を破棄しました');
   });
@@ -673,7 +806,7 @@ describe('ボリュームチェック — 計測が止まったとき', () => {
 
     await page.getByRole('button', { name: '停止' }).click();
     await page.getByRole('button', { name: '測定を開始' }).click();
-    feed!(sine(1000, LEQ_WINDOW_SEC, 0.5, SR));
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.5, SR));
     await expect.element(page.getByText(/「基準を計測する」を押すと/)).toBeVisible();
   });
 });
