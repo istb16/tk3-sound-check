@@ -11,7 +11,8 @@
     "fetch-corpus": "node validation/fetch-corpus.ts",
     "fetch-mos-model": "node validation/fetch-mos-model.ts",
     "generate": "node validation/generate.ts",
-    "validate": "node validation/validate.ts"
+    "validate": "node validation/validate.ts",
+    "volume-gate": "node validation/volume-gate.ts"
   },
   "devDependencies": {
     "@vitest/browser": "^4.1.11",
