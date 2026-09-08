@@ -504,6 +504,28 @@ describe('VolumeMeter — 声で数える窓', () => {
     expect(meter.state.diffDb!).toBeCloseTo(0, 0);
   });
 
+  it('基準も実時間で遡れる範囲を超えない（疎な会場では揃わない）', () => {
+    // 比較側と同じ上限をかける。これが無いと、喋りが疎な会場で100枚たまるまでに
+    // 何分もかかり、**その間に会場が何度変わっても一本の基準として焼き付く**。
+    // 揃わないことは残り秒数が進まない形で画面に出るので、黙って数分の平均を
+    // 基準にするよりよい
+    const meter = new VolumeMeter(SR);
+    meter.beginReference();
+    talk(meter, 1.0, 3.0, 30);  // 有音率 25%（上限 30秒に 10秒ぶんが入らない）
+
+    expect(meter.state.referenceResult).toBeNull();
+    expect(meter.state.referenceCapturing).toBe(true);
+    expect(meter.state.referenceRemainingSec).toBeGreaterThan(0);
+  });
+
+  it('十分に喋っていれば基準は揃う', () => {
+    const meter = new VolumeMeter(SR);
+    meter.beginReference();
+    talk(meter, 1.0, 0.5, 16);  // 有音率 67%
+
+    expect(meter.state.referenceResult).not.toBeNull();
+  });
+
   it('声が途切れたら、十分な声で測れた最後の値を経過秒つきで保持する', () => {
     const meter = new VolumeMeter(SR);
     meter.beginReference();

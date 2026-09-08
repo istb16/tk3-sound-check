@@ -18,7 +18,7 @@
  * 復元したことを画面に出し、取り直しを1タップの位置に置くことで釣り合わせる。
  */
 
-import type { Reference } from './level.ts';
+import { SHAPE_BAND_COUNT, type Reference } from './level.ts';
 
 /** 言語設定と同じ接頭辞。同じアプリの持ち物であることを鍵から分かるようにする */
 const STORAGE_KEY = 'aqc-volume-reference';
@@ -34,27 +34,56 @@ const STORAGE_KEY = 'aqc-volume-reference';
  */
 export const REFERENCE_TTL_MS = 10 * 60 * 1000;
 
+/**
+ * 「まだ使っている」を書き戻す間隔[ミリ秒]。
+ *
+ * 毎フレーム書くと100msごとに localStorage を触ることになる。期限が10分なので、
+ * 1分おきに延ばせば取りこぼさない。
+ */
+export const REFERENCE_TOUCH_INTERVAL_MS = 60 * 1000;
+
 interface StoredReference {
   reference: Reference;
   /** 保存したときに開いていたマイクの名前。違えば復元しない */
   deviceLabel: string;
-  /** 保存した時刻（epoch ms） */
-  savedAt: number;
+  /**
+   * 基準を測り終えた時刻（epoch ms）。**画面に出す「N分前」はこちらから数える。**
+   * 利用者が知りたいのは「その基準がいつの会場のものか」であって、
+   * 最後にファイルへ書いた時刻ではない。
+   */
+  capturedAt: number;
+  /**
+   * 最後にこの基準で測っていた時刻（epoch ms）。**期限はこちらから数える。**
+   *
+   * 測り終えた時刻から数えると、**測り続けているだけで期限が切れる**——2時間の
+   * 本番で最初に基準を取り、40分後にタブが落ちると、ずっと有効に使っていた基準が
+   * 復元できない。この機能が防ごうとしている消え方そのものである。
+   */
+  lastUsedAt: number;
 }
 
 export interface RestoredReference {
   reference: Reference;
-  /** 保存されてからの経過[ミリ秒]。画面に出すため */
+  /** 測り終えてからの経過[ミリ秒]。画面に出すため */
   ageMs: number;
 }
 
+/**
+ * 読み戻した中身が基準として使える形か。
+ *
+ * **バンド数まで見る。** `shapeDistanceDb` は短いほうに合わせて比べるので、
+ * バンドの並びを変えた後に古い値が残っていても例外にならず、**少ないバンドで
+ * 比べた小さめの距離**が黙って出る。拍手や BGM を弾くための仕組みが、気づかない
+ * うちに緩むことになる。読めないものは捨てる。
+ */
 function isReference(v: unknown): v is Reference {
   if (typeof v !== 'object' || v === null) return false;
   const r = v as Record<string, unknown>;
   return typeof r.db === 'number' && Number.isFinite(r.db)
     && typeof r.zDb === 'number' && Number.isFinite(r.zDb)
     && typeof r.unsettled === 'boolean'
-    && Array.isArray(r.shape) && r.shape.every((n) => typeof n === 'number' && Number.isFinite(n));
+    && Array.isArray(r.shape) && r.shape.length === SHAPE_BAND_COUNT
+    && r.shape.every((n) => typeof n === 'number' && Number.isFinite(n));
 }
 
 /**
@@ -69,8 +98,49 @@ export function saveReference(
   reference: Reference, deviceLabel: string, now = Date.now(),
 ): void {
   if (reference.unsettled || !deviceLabel) return;
-  const stored: StoredReference = { reference, deviceLabel, savedAt: now };
+  const stored: StoredReference = {
+    reference, deviceLabel, capturedAt: now, lastUsedAt: now,
+  };
+  write(stored);
+}
+
+/**
+ * 「この基準でまだ測り続けている」と記録する。期限だけを延ばし、
+ * 測り終えた時刻（画面に出す古さ）は動かさない。
+ *
+ * 測定中に定期的に呼ぶ。呼ばないと、長い本番の途中でリロードしたときに
+ * **使い続けていた基準が期限切れで捨てられる**。
+ */
+export function touchReference(deviceLabel: string, now = Date.now()): void {
+  const stored = read();
+  if (stored === null || !deviceLabel || stored.deviceLabel !== deviceLabel) return;
+  write({ ...stored, lastUsedAt: now });
+}
+
+function write(stored: StoredReference): void {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stored)); } catch { /* 容量やプライベートモード */ }
+}
+
+/** 読めて、形が揃っているときだけ返す */
+function read(): StoredReference | null {
+  let raw: string | null = null;
+  try { raw = localStorage.getItem(STORAGE_KEY); } catch { return null; }
+  if (raw === null) return null;
+
+  let parsed: unknown;
+  try { parsed = JSON.parse(raw); } catch { return null; }
+  if (typeof parsed !== 'object' || parsed === null) return null;
+
+  const s = parsed as Record<string, unknown>;
+  if (typeof s.capturedAt !== 'number' || typeof s.lastUsedAt !== 'number') return null;
+  if (typeof s.deviceLabel !== 'string') return null;
+  if (!isReference(s.reference)) return null;
+  return {
+    reference: s.reference,
+    deviceLabel: s.deviceLabel,
+    capturedAt: s.capturedAt,
+    lastUsedAt: s.lastUsedAt,
+  };
 }
 
 /**
@@ -83,24 +153,16 @@ export function loadReference(
   deviceLabel: string, now = Date.now(),
 ): RestoredReference | null {
   if (!deviceLabel) return null;
-  let raw: string | null = null;
-  try { raw = localStorage.getItem(STORAGE_KEY); } catch { return null; }
-  if (raw === null) return null;
+  const stored = read();
+  if (stored === null || stored.deviceLabel !== deviceLabel) return null;
 
-  let parsed: unknown;
-  try { parsed = JSON.parse(raw); } catch { return null; }
-  if (typeof parsed !== 'object' || parsed === null) return null;
-
-  const s = parsed as Record<string, unknown>;
-  if (typeof s.savedAt !== 'number' || typeof s.deviceLabel !== 'string') return null;
-  if (!isReference(s.reference)) return null;
-  if (s.deviceLabel !== deviceLabel) return null;
-
-  const ageMs = now - s.savedAt;
+  // 期限は「最後に使っていた時刻」から、画面に出す古さは「測り終えた時刻」から
+  const idleMs = now - stored.lastUsedAt;
+  const ageMs  = now - stored.capturedAt;
   // 未来の時刻（端末の時計が動いた）は信用しない
-  if (ageMs < 0 || ageMs > REFERENCE_TTL_MS) return null;
+  if (idleMs < 0 || ageMs < 0 || idleMs > REFERENCE_TTL_MS) return null;
 
-  return { reference: s.reference, ageMs };
+  return { reference: stored.reference, ageMs };
 }
 
 /**

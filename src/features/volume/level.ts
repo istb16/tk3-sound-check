@@ -203,6 +203,15 @@ const SHAPE_FFT_SIZE = 2048;
 const SHAPE_BANDS_HZ = [250, 500, 1000, 2000, 4000, 8000] as const;
 
 /**
+ * 形が持つバンドの数。**保存した基準を読み戻すときの検算に使う。**
+ *
+ * `shapeDistanceDb` は短いほうに合わせて比べるので、長さの違う形が紛れ込んでも
+ * 例外にならず、**少ないバンドで比べた小さめの距離**が黙って出る。保存の側で
+ * 弾けるように公開している。
+ */
+export const SHAPE_BAND_COUNT = SHAPE_BANDS_HZ.length;
+
+/**
  * 形を測るときに、いちばん大きいバンドから何dB下までを見るか。
  *
  * これ以上下のバンドはFFTの漏れと暗騒音で決まるので、音源の識別には使えない。
@@ -446,9 +455,19 @@ export interface MeterState {
   /**
    * 窓が満たされるまでに足りない**声の秒数**。0 なら満たされている。
    *
-   * **実時間ではない。** 誰も喋っていない間は減らない。画面もそう書く——壁時計に
-   * 換算するには未来の喋りの密度を予測することになり、外れれば残り秒数が増える
-   * （巻き戻り）。
+   * **実時間ではない。** 壁時計に換算するには未来の喋りの密度を予測することになり、
+   * 外れれば数字が動く。
+   *
+   * **この数字は増えることがある。** 間が `ACTIVE_MAX_SPAN_SEC` を超えて続くと、
+   * 窓の古いほうから有音フレームが落ちていくので、足りない秒数は増えていく
+   * （実測: 窓が満たされた状態から無音を流すと 0.0 → 0.7 → 3.2 → 5.4 → 7.7 →
+   * 10.0秒 と伸びる）。これは会場で実際に起きていること——**さっきの声はもう
+   * 古すぎて使えない**——をそのまま映しているので、止めたり latch したりしない。
+   * 「0秒でよい」と言い続けて数値が出ないほうが質の悪い嘘になる。
+   *
+   * **`settlingRemainingSec` のほうは増えない。** あちらは「次の操作をしていいのは
+   * いつか」を決めるために読まれる数字で、増えると読めなくなる。窓が満たされて
+   * いる間しか出さないので、フレームが落ちた時点で 0 に戻る（増えない）。
    */
   activeRemainingSec: number;
   /** 更新されたフレーム数。テストと「まだ測っていない」の判定に使う */
@@ -647,6 +666,8 @@ export class VolumeMeter {
   private refPowers: number[] = [];
   private refPowersZ: number[] = [];
   private refBands: number[][] = [];
+  /** 基準に積んだ有音フレームを何フレーム目に取ったか。古すぎるものを落とすため */
+  private refAt: number[] = [];
 
   /** 保持している差。窓が満たされている間ずっと更新し、満たされなくなったら止める */
   private heldDiffDb: number | null = null;
@@ -700,6 +721,7 @@ export class VolumeMeter {
     this.refPowers = [];
     this.refPowersZ = [];
     this.refBands = [];
+    this.refAt = [];
     this.reference = null;
     this.heldDiffDb = null;
     this.heldDiffZDb = null;
@@ -711,6 +733,7 @@ export class VolumeMeter {
     this.refPowers = [];
     this.refPowersZ = [];
     this.refBands = [];
+    this.refAt = [];
     this.reference = null;
     this.heldDiffDb = null;
     this.heldDiffZDb = null;
@@ -801,10 +824,12 @@ export class VolumeMeter {
         this.refPowers.push(power);
         this.refPowersZ.push(powerZ);
         this.refBands.push(bands);
+        this.refAt.push(this.frames);
         if (this.refPowers.length >= ACTIVE_WINDOW_FRAMES) this.finishReference();
       }
     }
     this.active.expire(this.frames);
+    if (this.refCapturing) this.expireReferenceFrames();
 
     this.peaks.push(this.pendingPeak);
     this.clips.push(this.pendingPeak >= CLIP_THRESHOLD ? 1 : 0);
@@ -817,6 +842,30 @@ export class VolumeMeter {
     this.frames++;
 
     this.updateHold();
+  }
+
+  /**
+   * 基準に積んだフレームのうち、実時間で古すぎるものを落とす。
+   *
+   * **比較側と同じ上限（`ACTIVE_MAX_SPAN_SEC`）を基準側にもかける。** これが無いと、
+   * 喋りが疎な会場で100枚たまるまでに何分もかかり、**その間に会場が何度変わっても
+   * 一本の基準として焼き付く**。段差検出が拾えるのは持続した1回の変化だけなので、
+   * じわじわ動いた分はそのまま通ってしまう。設計文書が比較側で拒否している
+   * 「実時間の何分にもまたがった平均」を、基準側だけ許す理由が無い。
+   *
+   * 落とした結果、残り秒数は増える（`activeRemainingSec` と同じ理屈）。会場が
+   * 上限より疎ならカウントダウンは進まなくなるが、**進まないことが画面に出る**
+   * ぶん、黙って数分の平均を基準にするより良い。
+   */
+  private expireReferenceFrames(): void {
+    const oldest = this.frames - ACTIVE_MAX_SPAN_FRAMES;
+    let drop = 0;
+    while (drop < this.refAt.length && this.refAt[drop] < oldest) drop++;
+    if (drop === 0) return;
+    this.refPowers  = this.refPowers.slice(drop);
+    this.refPowersZ = this.refPowersZ.slice(drop);
+    this.refBands   = this.refBands.slice(drop);
+    this.refAt      = this.refAt.slice(drop);
   }
 
   private finishReference(): void {
@@ -839,6 +888,7 @@ export class VolumeMeter {
     this.refPowers = [];
     this.refPowersZ = [];
     this.refBands = [];
+    this.refAt = [];
     this.heldDiffDb = null;
     this.heldDiffZDb = null;
   }

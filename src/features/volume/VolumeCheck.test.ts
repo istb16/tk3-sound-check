@@ -450,6 +450,25 @@ describe('ボリュームチェック — 前回の基準（リロードをま�
     await expect.poll(bigText).toMatch(/\+6\.0dB/);
   });
 
+  it('取り直しを始めたら、古い基準は戻ってこない', async () => {
+    // 置き換えるつもりで測り始めたのだから、古いほうが生き残ってはいけない。
+    // 残すと、測定が中断で流れたときに**置き換えたはずの基準が戻ってくる**
+    mockMonitorOk();
+    await startApp();
+    await page.getByRole('button', { name: '基準を計測する' }).click();
+    feed!(sine(1000, ACTIVE_WINDOW_SEC, 0.25, SR));
+    await expect.poll(bigText).toMatch(/±0\.0dB/);
+
+    // 取り直しを始めるが、揃う前に画面が作り直される（リロード・タブ破棄）
+    await page.getByRole('button', { name: '基準を消す' }).click();
+    await page.getByRole('button', { name: '基準を計測する' }).click();
+    feed!(sine(1000, 2, 0.25, SR));
+    await remount();
+
+    await expect.element(page.getByText('基準を取ってください')).toBeVisible();
+    expect(document.body.textContent).not.toContain('前回の基準');
+  });
+
   it('別のマイクなら復元しない', async () => {
     // 感度の違う機材の値を引き算しても、意味の無い数字が出るだけである
     mockMonitorOk('内蔵マイク');

@@ -21,7 +21,10 @@
     BAND_MISMATCH_DB, NEAR_CLIP_WARN_SEC,
     type BlockedBy, type HeldReading, type MeterState, type Reference,
   } from './level.ts';
-  import { clearStoredReference, loadReference, saveReference } from './storage.ts';
+  import {
+    REFERENCE_TOUCH_INTERVAL_MS,
+    clearStoredReference, loadReference, saveReference, touchReference,
+  } from './storage.ts';
 
   let { lang }: { lang: Lang } = $props();
   const t = $derived(T[lang]);
@@ -59,13 +62,22 @@
    */
   let referenceDropped = $state<'' | 'device-changed' | 'device-unknown'>('');
   /**
-   * localStorage から復元した基準の古さ[分]。復元していなければ null。
+   * 復元した基準を測り終えた時刻（epoch ms）。復元していなければ null。
    *
    * **黙って使い始めない。** 復元した基準から始めると `+0.0 dB` 付近から動くので、
    * 取られたことに気づけない——「窓が埋まった時点での自動基準」を却下したのと
    * 同じ事故になる。
+   *
+   * 古さは復元した瞬間の値で固めず、**時刻を持って毎フレーム数え直す**。固めると、
+   * 1時間測り続けたあとも「12分前」と言い続けることになり、古さを判断してもらう
+   * ために出している数字がいちばん当てにならなくなる。
    */
-  let restoredAgeMin = $state<number | null>(null);
+  let restoredCapturedAt = $state<number | null>(null);
+  /** 上の時刻から数えた古さ[分]。表示用 */
+  let restoredAgeMin = $state(0);
+
+  /** 最後に「まだ使っている」を書き戻した時刻。毎フレーム書かないための間引き */
+  let lastTouchedAt = 0;
 
   let meter: VolumeMeter | null = null;
 
@@ -105,7 +117,8 @@
         const restored = loadReference(deviceLabel);
         if (restored !== null) {
           reference = restored.reference;
-          restoredAgeMin = Math.max(1, Math.round(restored.ageMs / 60000));
+          restoredCapturedAt = Date.now() - restored.ageMs;
+          restoredAgeMin = Math.floor(restored.ageMs / 60000);
           referenceDropped = '';
         }
       }
@@ -139,7 +152,7 @@
       if (reason === 'user') {
         reference = null;
         referenceDropped = '';
-        restoredAgeMin = null;
+        restoredCapturedAt = null;
         if (!leavingScreen) clearStoredReference();
       }
     },
@@ -207,7 +220,7 @@
   function dropReference(why: 'device-changed' | 'device-unknown'): void {
     reference = null;
     referenceDropped = why;
-    restoredAgeMin = null;
+    restoredCapturedAt = null;
   }
 
   function applyState(s: MeterState): void {
@@ -231,8 +244,24 @@
     // 変わった）は `saveReference` の側で弾く
     if (s.referenceResult !== null && reference === null) {
       reference = s.referenceResult;
-      restoredAgeMin = null;
+      restoredCapturedAt = null;
+      lastTouchedAt = Date.now();
       saveReference(reference, deviceLabel);
+    }
+
+    if (restoredCapturedAt !== null) {
+      restoredAgeMin = Math.floor((Date.now() - restoredCapturedAt) / 60000);
+    }
+
+    // **使い続けている間は期限を延ばす。** 測り終えた時刻から数えると、2時間の
+    // 本番の途中でタブが落ちたときに、ずっと有効に使っていた基準が期限切れで
+    // 復元できない——この機能が防ごうとしている消え方そのものになる
+    if (reference !== null) {
+      const now = Date.now();
+      if (now - lastTouchedAt >= REFERENCE_TOUCH_INTERVAL_MS) {
+        lastTouchedAt = now;
+        touchReference(deviceLabel);
+      }
     }
   }
 
@@ -261,11 +290,16 @@
    */
   function setReference(): void {
     reference = null;
-    restoredAgeMin = null;
+    restoredCapturedAt = null;
     meter?.beginReference();
     capturingRef = true;
     refRemainingSec = ACTIVE_WINDOW_SEC;
     referenceDropped = '';
+    // **保存したぶんもここで捨てる。** 置き換えるつもりで測り始めたのだから、
+    // 古いほうが生き残ってはいけない。残すと、測定が中断で流れたときや、
+    // 測り終えた基準が信用できず保存されなかったとき（`unsettled`）に、
+    // **置き換えたはずの古い基準が次の再開・リロードで戻ってくる**
+    clearStoredReference();
   }
 
   /**
@@ -276,7 +310,7 @@
    */
   function clearReference(): void {
     reference = null;
-    restoredAgeMin = null;
+    restoredCapturedAt = null;
     meter?.clearReference();
     capturingRef = false;
     diffDb = diffZDb = null;
@@ -348,7 +382,7 @@
       {/if}
 
       <!-- 前回の基準を復元した。黙って使い始めないための一行 -->
-      {#if restoredAgeMin !== null && reference !== null}
+      {#if restoredCapturedAt !== null && reference !== null}
         <p class="restored" role="status">{t.restoredReference(restoredAgeMin)}</p>
       {/if}
 
@@ -399,7 +433,9 @@
         <!-- 声が足りない。残り秒数は**声の秒数**で、誰も喋っていない間は減らない -->
         <p class="state-title">{t.notEnoughSpeechTitle}</p>
         <p class="big big-count">{t.speechRemaining(Math.ceil(speechNeededSec))}</p>
-        <p class="hint">{t.stalledKeepsReference}</p>
+        <!-- 中断から戻ったときの文面は流用しない。話者が黙っただけの場面に
+             「保持しています」と出すと、起きていない事故を探させることになる -->
+        <p class="hint">{t.referenceSet}</p>
       {/if}
 
       <div class="meter" aria-hidden="true">

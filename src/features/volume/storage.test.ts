@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  REFERENCE_TTL_MS, clearStoredReference, loadReference, saveReference,
+  REFERENCE_TTL_MS, clearStoredReference, loadReference, saveReference, touchReference,
 } from './storage.ts';
 import type { Reference } from './level.ts';
 
@@ -71,6 +71,31 @@ describe('基準の保存 — 復元してよいかの判定', () => {
     expect(loadReference(MIC, REFERENCE_TTL_MS + 1)).toBeNull();
   });
 
+  it('使い続けている間は期限が延びる', () => {
+    // 期限を「測り終えた時刻」から数えると、**測り続けているだけで切れる**——
+    // 2時間の本番で最初に基準を取り、40分後にタブが落ちると、ずっと有効に
+    // 使っていた基準が復元できない。この機能が防ごうとしている消え方そのもの
+    saveReference(REF, MIC, 0);
+    for (let t = 60_000; t <= 40 * 60_000; t += 60_000) touchReference(MIC, t);
+
+    const got = loadReference(MIC, 40 * 60_000 + 1000);
+    expect(got).not.toBeNull();
+    // **画面に出す古さは延びない。** 利用者が知りたいのは「いつの会場の基準か」
+    expect(got!.ageMs).toBe(40 * 60_000 + 1000);
+  });
+
+  it('別のマイクでは期限を延ばさない', () => {
+    saveReference(REF, MIC, 0);
+    touchReference('USB オーディオ', 5 * 60_000);
+    expect(loadReference(MIC, REFERENCE_TTL_MS + 1)).toBeNull();
+  });
+
+  it('使うのをやめれば期限は切れる', () => {
+    saveReference(REF, MIC, 0);
+    touchReference(MIC, 60_000);
+    expect(loadReference(MIC, 60_000 + REFERENCE_TTL_MS + 1)).toBeNull();
+  });
+
   it('端末の時計が巻き戻っていたら復元しない', () => {
     saveReference(REF, MIC, 10_000);
     expect(loadReference(MIC, 5_000)).toBeNull();
@@ -104,8 +129,26 @@ describe('基準の保存 — 壊れた中身', () => {
 
   it('数値でない基準は復元しない', () => {
     localStorage.setItem('aqc-volume-reference', JSON.stringify({
-      reference: { db: null, zDb: -28.1, shape: [0], unsettled: false },
-      deviceLabel: MIC, savedAt: 1000,
+      reference: { db: null, zDb: -28.1, shape: [0, 0, 0, 0, 0, 0], unsettled: false },
+      deviceLabel: MIC, capturedAt: 1000, lastUsedAt: 1000,
+    }));
+    expect(loadReference(MIC, 1000)).toBeNull();
+  });
+
+  it('バンド数の違う形は復元しない', () => {
+    // `shapeDistanceDb` は短いほうに合わせて比べるので、これを通すと**少ない
+    // バンドで比べた小さめの距離**が黙って出る。拍手や BGM を弾く仕組みが、
+    // 気づかないうちに緩む
+    localStorage.setItem('aqc-volume-reference', JSON.stringify({
+      reference: { db: -32.5, zDb: -28.1, shape: [1, -2, 3], unsettled: false },
+      deviceLabel: MIC, capturedAt: 1000, lastUsedAt: 1000,
+    }));
+    expect(loadReference(MIC, 1000)).toBeNull();
+  });
+
+  it('古い保存形式（時刻が1つしかない）は復元しない', () => {
+    localStorage.setItem('aqc-volume-reference', JSON.stringify({
+      reference: REF, deviceLabel: MIC, savedAt: 1000,
     }));
     expect(loadReference(MIC, 1000)).toBeNull();
   });

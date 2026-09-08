@@ -66,8 +66,21 @@ export type VolumeText = MonitorText & {
    *
    * 黙って使い始めない。取られたことに気づけない基準は、`+0.0 dB` から始まって
    * しまうぶん、基準が無いことより質が悪い。
+   *
+   * **経過分は測り終えてからの実時間で、画面に出している間ずっと増える。**
+   * 復元した瞬間の値で固めると、1時間測り続けたあとも「12分前」と言い続けることに
+   * なる。古さを判断してもらうために出している数字が、いちばん古くなった頃に
+   * いちばん嘘をつく。1分未満は分で言えないので、そう書く。
    */
   restoredReference: (minutes: number) => string;
+  /**
+   * 声が足りないときに、基準そのものは在ることを伝える一行。
+   *
+   * `stalledKeepsReference`（「基準は保持しています」）を流用しない——あちらは
+   * 中断から戻ったときの文面で、**何かが起きて助かった**ことを含意する。
+   * 話者が黙っただけの場面に出すと、起きていない事故を探させることになる。
+   */
+  referenceSet: string;
   peakLabel: string;
   leqNote: string;
   /**
@@ -104,9 +117,14 @@ export type VolumeText = MonitorText & {
   /**
    * 窓が満たされるまでに足りない**声の秒数**。
    *
-   * 壁時計ではないので、誰も喋っていない間は減らない。**止まることは巻き戻りでは
-   * ない**（巻き戻りは操作していないのに増えること）し、止まる理由は会場に実在する。
-   * 壁時計に換算するには未来の喋りの密度を予測することになり、外れれば増える。
+   * 壁時計ではないので、誰も喋っていない間は減らない。壁時計に換算するには未来の
+   * 喋りの密度を予測することになり、外れる。
+   *
+   * **間が長引くとこの数字は増える。** 窓の古いほうから声が落ちていくので、
+   * 足りない秒数は本当に増えていく。会場で起きていること——さっきの声はもう
+   * 古すぎて使えない——をそのまま映しているので、止めない。
+   * 「声が」で始めているのは、これを壁時計のカウントダウンとして読ませないためで、
+   * 増えても文面として嘘にならない。
    */
   speechRemaining: (sec: number) => string;
   clipLabel: string;
@@ -155,8 +173,9 @@ export const T: Record<Lang, VolumeText> = {
       '声が戻れば数値も戻ります。',
     heldNote:          (sec) => `${sec} 秒前の声で測った値です`,
     restoredReference: (min) =>
-      `前回の基準を使っています（${min}分前）。` +
+      `前回の基準を使っています（${min < 1 ? '1分以内' : `${min}分前`}）。` +
       'マイクを動かした・場所を変えた場合は取り直してください。',
+    referenceSet:      '基準は取れています。',
     peakLabel:         'ピーク',
     leqNote:           '直近の声10秒ぶんの平均（A特性）',
     settlingNote:      (sec) =>
@@ -214,8 +233,9 @@ export const T: Record<Lang, VolumeText> = {
       'reference was set on. The number comes back when the speech does.',
     heldNote:          (sec) => `Measured on speech ${sec} s ago`,
     restoredReference: (min) =>
-      `Using your previous reference (${min} min ago). ` +
+      `Using your previous reference (${min < 1 ? 'under a minute' : `${min} min`} ago). ` +
       'Set it again if the microphone or your position has moved.',
+    referenceSet:      'Your reference is set.',
     peakLabel:         'Peak',
     leqNote:           'Average of the last 10 s of speech (A-weighted)',
     settlingNote:      (sec) =>
