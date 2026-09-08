@@ -31,22 +31,55 @@ export type VolumeText = MonitorText & {
   /** 窓が埋まって、まだ基準が無いときの見出し */
   setReferenceTitle: string;
   /**
-   * 基準を測っている最中の見出し。残り秒数は warmingUpRemaining を使う。
+   * 基準を測っている最中の見出し。残り秒数は speechRemaining を使う。
    *
-   * 基準は押した時点から先の10秒で測る。遡って測ると押す前のレベル変化が
+   * 基準は押した時点から先の「声10秒ぶん」で測る。遡って測ると押す前のレベル変化が
    * 焼き付くので、ここは待ってもらうしかない。
    */
   capturingReferenceTitle: string;
   /** 基準を取る前の案内 */
   noReference: string;
+  /**
+   * 声が足りなくて数値を出せないときの見出し。
+   *
+   * 間・休憩・無音。窓は有音フレームで数えるので、誰も喋っていない間は進まない。
+   */
+  notEnoughSpeechTitle: string;
+  /**
+   * 基準を取ったときと違う音を測っているときの見出しと説明。
+   *
+   * 拍手・映像・BGM だけの区間。ゲートは「大きい側」を通すので、これが無いと
+   * 拍手を声のつもりで平均して、確定した顔で誤った差を出す。
+   */
+  differentSoundTitle: string;
+  differentSoundNote: string;
+  /**
+   * 保持している数値の但し書き。**経過秒は実時間である。**
+   *
+   * フェーダーを動かした直後に喋りが途切れていることは普通にあるので、そこで
+   * 数値を消すと動かした量を確認する手段がその場で無くなる。残す代わりに、
+   * いつ測った値かを必ず添える。
+   */
+  heldNote: (sec: number) => string;
+  /**
+   * 前回の基準を localStorage から復元して使っていることの断り。
+   *
+   * 黙って使い始めない。取られたことに気づけない基準は、`+0.0 dB` から始まって
+   * しまうぶん、基準が無いことより質が悪い。
+   */
+  restoredReference: (minutes: number) => string;
   peakLabel: string;
   leqNote: string;
   /**
-   * 表示がまだ収束していないときの断りと、確定までの残り秒数。
+   * 表示がまだ収束していないときの断りと、確定までの**声の秒数**。
    *
-   * 10秒の移動窓は、フェーダーを動かした直後は操作前と操作後の混合になる。
-   * +6dB 動かした5秒後の表示は理論値どおり +4.0dB で、**収束済みの +4.0dB と
-   * 見分けがつかない**。読んで足りないと判断されると、そのぶん行き過ぎる。
+   * 移動窓は、フェーダーを動かした直後は操作前と操作後の混合になる。+6dB 動かした
+   * 声5秒ぶん後の表示は理論値どおり +4.0dB で、**収束済みの +4.0dB と見分けが
+   * つかない**。読んで足りないと判断されると、そのぶん行き過ぎる。
+   *
+   * **秒数が実時間ではないことを文面で言い切る。** この数字は「次の操作をして
+   * いいのはいつか」を決めるために読まれるので、壁時計と取り違えられるのが
+   * いちばん重い誤読になる。
    */
   settlingNote: (sec: number) => string;
   /**
@@ -69,11 +102,13 @@ export type VolumeText = MonitorText & {
    */
   referenceUnsettled: string;
   /**
-   * Leq の窓が埋まるまでの見出しと残り秒数。埋まるまで基準は取れず、dB も出さない。
-   * 見出しと秒数を分けているのは、秒数だけを大きく出すため
+   * 窓が満たされるまでに足りない**声の秒数**。
+   *
+   * 壁時計ではないので、誰も喋っていない間は減らない。**止まることは巻き戻りでは
+   * ない**（巻き戻りは操作していないのに増えること）し、止まる理由は会場に実在する。
+   * 壁時計に換算するには未来の喋りの密度を予測することになり、外れれば増える。
    */
-  warmingUpTitle: string;
-  warmingUpRemaining: (sec: number) => string;
+  speechRemaining: (sec: number) => string;
   clipLabel: string;
   /**
    * 音割れの量。「回数」ではなく時間で持つ——クリップした波形は半周期ごとに
@@ -94,13 +129,14 @@ export const T: Record<Lang, VolumeText> = {
     note:
       '会場でPAから流れている音をマイクで拾い続け、「基準を計測する」を押した時点からの' +
       '変化量を dB で表示します。フェーダーをどれだけ動かしたかが数値で見えます。\n' +
+      '平均するのは声が出ている時間だけです（間は数えません）。\n' +
       'マイクの感度が判別できないため、実際の音圧（dBA）は原理的に出せません。',
     startBtn:          '測定を開始',
     resumeBtn:         '測定を再開',
     stalledBody:
       '端末の画面が消えると、ブラウザがマイクの取り込みを止めます。' +
       '固まった数字を出し続けるより、止まったことをお伝えします。\n' +
-      '再開すると測り直します（平均が安定するまで10秒かかります）。',
+      '再開すると測り直します（平均が安定するまで声10秒ぶんかかります）。',
     stalledKeepsReference: '基準は保持しています。',
     referenceDropped:
       '再開したときに別のマイクが開いたため、基準を破棄しました。取り直してください。',
@@ -110,10 +146,21 @@ export const T: Record<Lang, VolumeText> = {
     clearReferenceBtn: '基準を消す',
     setReferenceTitle: '基準を取ってください',
     capturingReferenceTitle: '基準を測っています',
-    noReference:       '「基準を計測する」を押すと、そこから10秒の平均を基準にして、変化量を表示します。',
+    noReference:
+      '「基準を計測する」を押すと、そこから声10秒ぶんの平均を基準にして、変化量を表示します。',
+    notEnoughSpeechTitle: '声が足りません',
+    differentSoundTitle:  '基準と違う音を測っています',
+    differentSoundNote:
+      '拍手・映像・BGM など、基準を取ったときと違う音が主になっています。' +
+      '声が戻れば数値も戻ります。',
+    heldNote:          (sec) => `${sec} 秒前の声で測った値です`,
+    restoredReference: (min) =>
+      `前回の基準を使っています（${min}分前）。` +
+      'マイクを動かした・場所を変えた場合は取り直してください。',
     peakLabel:         'ピーク',
-    leqNote:           '直近10秒の平均（A特性）',
-    settlingNote:      (sec) => `レベルが変わりました。確定まであと ${sec} 秒（この数値はまだ動きます）`,
+    leqNote:           '直近の声10秒ぶんの平均（A特性）',
+    settlingNote:      (sec) =>
+      `レベルが変わりました。声があと ${sec} 秒ぶんで確定します（この数値はまだ動きます）`,
     bandMismatch:      (db) => `広帯域では ${db} dB。帯域ごとに変化量が違うため、この数値だけでは読めません。`,
     nearClipWarning:   (sec) =>
       `入力が限界に近い状態が直近10秒のうち ${sec.toFixed(1)} 秒ありました。` +
@@ -124,8 +171,7 @@ export const T: Record<Lang, VolumeText> = {
     referenceUnsettled:
       '基準を測っている間にレベルが変わりました。この基準からの差は信用できません。' +
       '取り直してください。',
-    warmingUpTitle:      '測定を安定させています',
-    warmingUpRemaining:  (sec) => `あと ${sec} 秒`,
+    speechRemaining:     (sec) => `声があと ${sec} 秒ぶん`,
     clipLabel:         '音割れ',
     clipDuration:      (sec) => `直近10秒のうち ${sec.toFixed(1)} 秒`,
     clipNone:          'なし',
@@ -142,13 +188,14 @@ export const T: Record<Lang, VolumeText> = {
       'It listens to what the PA is playing and shows how far the level has moved, in dB, ' +
       'from the moment you press "Measure reference". You can see exactly how much a fader move changed.\n' +
       'The microphone sensitivity cannot be determined, so absolute sound pressure (dBA) ' +
-      'is impossible in principle.',
+      'is impossible in principle.\n' +
+      'Only the time someone is speaking is averaged; the pauses are not counted.',
     startBtn:          'Start measuring',
     resumeBtn:         'Resume measuring',
     stalledBody:
       'When the screen turns off, the browser stops capturing from the microphone. ' +
       'Rather than keep showing a frozen number, we tell you it stopped.\n' +
-      'Resuming starts a fresh measurement (the average needs 10 s to settle).',
+      'Resuming starts a fresh measurement (the average needs 10 s of speech to settle).',
     stalledKeepsReference: 'Your reference has been kept.',
     referenceDropped:
       'A different microphone opened on resume, so the reference was dropped. Set it again.',
@@ -159,10 +206,21 @@ export const T: Record<Lang, VolumeText> = {
     setReferenceTitle: 'Set a reference',
     capturingReferenceTitle: 'Measuring the reference',
     noReference:
-      'Press "Measure reference" to average the next 10 seconds and show the change from there.',
+      'Press "Measure reference" to average the next 10 seconds of speech and show the change from there.',
+    notEnoughSpeechTitle: 'Not enough speech',
+    differentSoundTitle:  'This is not the sound you set the reference on',
+    differentSoundNote:
+      'Applause, video or music is mostly what is coming through now, not the voice the ' +
+      'reference was set on. The number comes back when the speech does.',
+    heldNote:          (sec) => `Measured on speech ${sec} s ago`,
+    restoredReference: (min) =>
+      `Using your previous reference (${min} min ago). ` +
+      'Set it again if the microphone or your position has moved.',
     peakLabel:         'Peak',
-    leqNote:           '10-second average (A-weighted)',
-    settlingNote:      (sec) => `The level changed. ${sec} s until this settles (the number is still moving)`,
+    leqNote:           'Average of the last 10 s of speech (A-weighted)',
+    settlingNote:      (sec) =>
+      `The level changed. ${sec} more seconds of speech until this settles ` +
+      '(the number is still moving)',
     bandMismatch:      (db) => `Broadband it is ${db} dB. The change is not the same across the spectrum, so this number alone does not tell you.`,
     nearClipWarning:   (sec) =>
       `The input was near its limit for ${sec.toFixed(1)} s of the last 10 s. ` +
@@ -173,8 +231,7 @@ export const T: Record<Lang, VolumeText> = {
     referenceUnsettled:
       'The level changed while the reference was being measured, so the change shown from it ' +
       'cannot be trusted. Set the reference again.',
-    warmingUpTitle:      'Settling the measurement',
-    warmingUpRemaining:  (sec) => `${sec} s to go`,
+    speechRemaining:     (sec) => `${sec} s of speech to go`,
     clipLabel:         'Clipping',
     clipDuration:      (sec) => `${sec.toFixed(1)} s of the last 10 s`,
     clipNone:          'none',

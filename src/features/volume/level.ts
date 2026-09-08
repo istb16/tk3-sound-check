@@ -5,19 +5,74 @@
  * **絶対音圧(dBA)は出さない。** マイクの感度が判別できないので、dBFS からの
  * 換算は原理的に不可能である。したがってここが返すのは「フルスケールに対する
  * A特性重み付けレベル」であり、それ自体には意味が無い。意味を持つのは差だけ。
+ *
+ * **測るのは「声の10秒」であって「実時間の10秒」ではない。** 会場で鳴っているのは
+ * マイクを通した人の声で、間が空く。実時間の窓で全フレームを平均すると、平均が
+ * 喋りの密度で動く——フェーダーに触れていなくても、よく喋る区間で基準を取って
+ * 間の多い区間と比べれば数dBの差が出る。有音フレームだけを、決まった枚数ぶん
+ * 集めて平均する（`ActiveWindow`）。
  */
 
-import { dbfs, maxAbs } from '../../lib/dsp/stats.ts';
+import { dbfs, maxAbs, percentile } from '../../lib/dsp/stats.ts';
 import { AWeightingFilter } from '../../lib/dsp/weighting.ts';
-import { FrameSplitter, RingWindow } from '../../lib/stream/frames.ts';
+import { FrameSplitter, RingWindow, SampleRing } from '../../lib/stream/frames.ts';
+import { blackmanHarrisWindow, fft } from '../../lib/dsp/fft.ts';
 
-/** 表示とLeqの更新間隔。バーの手応えと計算量の折り合い */
+/** 表示とレベルの更新間隔。バーの手応えと計算量の折り合い */
 export const FRAME_MS = 100;
-/** 比較に使う等価レベルの窓。PAの音は瞬間ごとに10dB以上揺れるので平均で見る */
-export const LEQ_WINDOW_SEC = 10;
-/** 音割れ回数を数える窓。原因を取り除けば自動で消える長さ */
+
+/**
+ * 比較に使う等価レベルの窓。**実時間ではなく有音フレームで数える。**
+ *
+ * 10秒を選んだ理由は元々「PAの音は瞬間ごとに10dB以上揺れるので平均で見る」で、
+ * これは平均に要る長さの話である。無音を混ぜても揺れは平らにならない（むしろ
+ * 喋りの密度という別の変数が入る）ので、10秒は**声の10秒**として読み替える。
+ */
+export const ACTIVE_WINDOW_SEC = 10;
+
+/**
+ * 有音フレームの窓が実時間で遡ってよい上限[秒]。
+ *
+ * 喋りが疎な会場では、直近100枚の有音フレームが数分前まで遡りうる。設計文書は
+ * 中断の扱いで「実時間の何分にもまたがった平均」を明確に拒否している——その間に
+ * 会場は何度でも変わる。上限に当たった古い有音フレームは窓から落とし、窓が
+ * 埋まらなくなった時点で数値を保持に落とす。
+ *
+ * **この値は「どれだけ喋っていれば数値を出すか」も同時に決めている。**
+ * 30秒に10秒ぶんなので、有音率 33% を下回ると数値が出なくなる。別に比率の
+ * しきい値を持たないのは、2つの数字が食い違ったときにどちらが効いているのかが
+ * 画面から分からなくなるためである。
+ */
+export const ACTIVE_MAX_SPAN_SEC = 30;
+
+/**
+ * ゲートの閾値を決めるための履歴の長さ[秒]。実時間で数える。
+ *
+ * 閾値は「この履歴のp95から `ACTIVE_RANGE_DB` 下」に置く。履歴が短いと、長い間の
+ * あいだに履歴が無音だけで埋まり、閾値が無音まで下がって**間を有音と判定する**。
+ * 長すぎると、フェーダーを大きく下げた直後に古い大きな音が p95 を支え続け、
+ * 下げた後の声を無音と判定する。20秒はその折り合いである（`ACTIVE_RANGE_DB` を
+ * 超える下げ幅では、履歴が入れ替わるまで声を取り落とす）。
+ */
+export const GATE_HISTORY_SEC = 20;
+
+/**
+ * 有音とみなすレベル範囲[dB]。履歴のp95からこれだけ下までを有音とする。
+ *
+ * **平均ではなくp95を基準にするのが要点である。** BS.1770 の相対ゲートは「全体
+ * 平均から -10dB」だが、その全体平均は喋りの密度そのもので動く——直したい病気で
+ * 閾値が動くことになる。p95 は「いちばん大きく喋っているところ」にぶら下がるので、
+ * 間の多寡でほとんど動かない。音質チェックの `estimateLevel`（ITU-T P.56 の
+ * 考え方）と同じ形だが、**定数は共有しない**——あちらは録音全体から有効音声レベルを
+ * 出すための幅(25dB)で、こちらは会場で声の下に敷かれた BGM を落とすための幅である。
+ *
+ * 値の根拠は `validation/volume-gate.md` の実測表。
+ */
+export const ACTIVE_RANGE_DB = 12;
+
+/** 音割れ回数を数える窓[秒]。実時間。原因を取り除けば自動で消える長さ */
 export const CLIP_WINDOW_SEC = 10;
-/** ピークホールドの保持時間 */
+/** ピークホールドの保持時間[秒]。実時間 */
 export const PEAK_HOLD_SEC = 1;
 
 /**
@@ -50,9 +105,12 @@ const NEAR_CLIP_THRESHOLD = 0.708;
  *
  * 実素材で「操作していないのに検出される段差」を測って決めた。1.5dB なら定常素材で
  * 一度も出ず、±2dB で変調した音楽でも出るのは1%未満の時間に留まる
- * （STEP_MIN_FRAMES の表を参照）。**話し声では頻繁に真になるが、それは誤検出では
- * ない**——無音区間を挟む素材では10秒平均が本当に動いており、数値を信じてよい
- * 状態では無い。
+ * （STEP_MIN_FRAMES の表を参照）。
+ *
+ * **有音フレームだけの窓で見るようになったぶん、話し声での誤検出は減る。**
+ * 以前は無音区間が窓に入るせいで10秒平均が本当に動いており、それを段差として
+ * 拾っていた（それは誤検出ではなかった）。窓から無音が消えたので、いま残る段差は
+ * 会場のレベルが動いたときのものである。
  */
 export const STEP_DB = 1.5;
 
@@ -75,7 +133,26 @@ export const BAND_MISMATCH_DB = 1.0;
 export const NEAR_CLIP_WARN_SEC = 2;
 
 /**
- * 段差判定で前後それぞれに許す最小フレーム数(0.2秒)。
+ * 基準と「違う音」とみなすスペクトル距離[dB]。
+ *
+ * **ゲートは声の検出器ではなく「大きい側の検出器」である。** 拍手は大きく、10秒
+ * 持続する。ゲートは全通しするので有音率は 100% になり、「声が足りません」は
+ * 発火しない。ゲートを入れたぶん拍手だけが平均を占めるので、**入れる前よりはっきり
+ * 間違った数値**が出る。そこで基準を取ったときのスペクトルの形を憶えておき、形が
+ * 違う音を測っている間は数値を出さない。
+ *
+ * 判定するのは「基準と違う音か」だけで、**声かどうかは判定しない**。話者性の判定は
+ * 無校正のマイクとオクターブ6バンドでできることではないし、この道具に要るのは
+ * 「憶えた音と同じものを測り続けているか」だけである。
+ *
+ * 値の根拠は `validation/volume-gate.md` の実測表。**同じ話者の別の発話・話者交代で
+ * 超えず、拍手・BGM・映像で超える**位置を探し、迷ったら検出する側（黙る側）に
+ * 倒している——空振りしても数値は保持に落ちるだけで、嘘は出ない。
+ */
+export const SHAPE_DISTANCE_DB = 5.0;
+
+/**
+ * 段差判定で前後それぞれに許す最小フレーム数(0.2秒ぶんの声)。
  *
  * **これが「操作した直後に気づけるか」と「残り秒数がどこまで出せるか」を決める。**
  * 新しい側がこの長さに満たない間は真の分割点に置けず、薄まった分割でしか見えない。
@@ -100,6 +177,70 @@ const STEP_MIN_FRAMES = 200 / FRAME_MS;
 const STEP_FULL_FRAMES = 500 / FRAME_MS;
 
 /**
+ * 保持中の段差判定に使う、届いた有音フレームの枚数と、判定に要る最小枚数。
+ *
+ * 少ない枚数の平均は当てにならないので、1秒ぶん（10枚）届くまでは判定しない。
+ * 単発のフレームで保持を捨てると、拍手の1発で数値が消える。
+ */
+const POST_HOLD_FRAMES = 2000 / FRAME_MS;
+const POST_HOLD_MIN_FRAMES = 1000 / FRAME_MS;
+
+/** 有音フレームの窓が満たされる枚数 */
+const ACTIVE_WINDOW_FRAMES = (ACTIVE_WINDOW_SEC * 1000) / FRAME_MS;
+/** 有音フレームが遡ってよい上限（フレーム数） */
+const ACTIVE_MAX_SPAN_FRAMES = (ACTIVE_MAX_SPAN_SEC * 1000) / FRAME_MS;
+
+/** スペクトルの形を測るFFT長。100msフレームごとに直近この長さを見る */
+const SHAPE_FFT_SIZE = 2048;
+
+/**
+ * 形を測るオクターブバンドの中心周波数[Hz]。
+ *
+ * ハウリングチェックの表示バンドと同じ並びを使う。下を250Hzで切るのは同じ理由
+ * （48kHz・FFT では下側のビンが足りない）に加えて、**低域は定在波で場所ごとに
+ * 10dB以上変わる**ので、形の比較にいちばん向かない成分だからである。
+ */
+const SHAPE_BANDS_HZ = [250, 500, 1000, 2000, 4000, 8000] as const;
+
+/**
+ * 形を測るときに、いちばん大きいバンドから何dB下までを見るか。
+ *
+ * これ以上下のバンドはFFTの漏れと暗騒音で決まるので、音源の識別には使えない。
+ * 床を置かないと、そういうバンドの値がそのまま距離に効いてしまう。
+ */
+const SHAPE_FLOOR_DB = 60;
+
+/**
+ * 有音とみなす下限[dBFS]。履歴のp95から `rangeDb` 下。
+ * 履歴が無い／完全な無音しか無いなら null（下限を引けない）。
+ *
+ * **基準があるときは、閾値を基準より下へ降ろさない。** p95 だけで決めると、間が
+ * 履歴（`GATE_HISTORY_SEC`）より長く続いたときに履歴が暗騒音だけで埋まり、閾値が
+ * そこまで下がって**暗騒音を有音と判定し始める**。窓は暗騒音で満たされ、確定した顔で
+ * `-27.9 dB` が出る——この道具がいちばん避けたい壊れ方である（実装して実際にそうなった）。
+ * 基準は「測りたい音のレベル」そのものなので、そこを床にすれば起きない。
+ *
+ * 代償として、**基準から `ACTIVE_RANGE_DB` を超えて下げた音は追えなくなる**。
+ * 12dB を超える下げは画面に「声が足りません」を出し、基準の取り直しを促す形になる。
+ * 黙るほうへ倒したのは、この道具で重いのは沈黙ではなく確信を持った誤りだからである。
+ *
+ * **関数として切り出してあるのは、検証スクリプトが幅を振るためである。**
+ * 幅を決めるための実測（`validation/volume-gate.ts`）が、製品が使うのと違う規則を
+ * 測っていたら意味が無い。
+ */
+export function gateThresholdDb(
+  historyDb: readonly number[], rangeDb: number = ACTIVE_RANGE_DB,
+  referenceDb: number | null = null,
+): number | null {
+  if (historyDb.length === 0) return null;
+  const p95 = percentile([...historyDb], 0.95);
+  if (p95 <= FLOOR_DB) return null;
+  // 基準があるなら、閾値は基準より下へは降りない（`anchor` の注記を参照）
+  const anchor = referenceDb === null ? p95 : Math.max(p95, referenceDb);
+  return anchor - rangeDb;
+}
+
+/**
  * 短いほうの区間が `frames` のときに要求する段差量[dB]。
  *
  * 平均の標準誤差が 1/√n で縮むことに合わせて `√(基準長/実長)` を掛ける。
@@ -110,99 +251,262 @@ function stepThresholdDb(frames: number): number {
 }
 
 // ==========================================================================
+// スペクトルの形
+// ==========================================================================
+
+/**
+ * バンドパワーを「形」に直す。**レベルを落として形だけを残す。**
+ *
+ * 各バンドを dB にしてから全体の平均を引く。こうすると、同じ音源のままフェーダーを
+ * 動かしても形は変わらない——変わったら音源が変わったことになる。
+ */
+export function shapeOf(bandPowers: readonly number[]): number[] {
+  const raw = bandPowers.map((p) => (p > 0 ? 10 * Math.log10(p) : -Infinity));
+  // **床はいちばん大きいバンドからの相対で置く。** 絶対値で置くと、床に当たる
+  // バンドがあるときにフェーダーを動かすだけで形が変わる——1kHz の正弦波で
+  // 実際にそうなった（他のバンドは漏れしか無く、その漏れは音量に比例するのに
+  // 床は動かないので、+6dB で形が別物になった）。60dB 下のバンドは漏れと
+  // 暗騒音で決まっており、音源が何かについて何も語っていない。
+  const max = Math.max(...raw);
+  if (!Number.isFinite(max)) return bandPowers.map(() => 0);
+  const db = raw.map((v) => Math.max(v, max - SHAPE_FLOOR_DB));
+  const mean = db.reduce((a, b) => a + b, 0) / db.length;
+  return db.map((v) => v - mean);
+}
+
+/** 2つの形の距離[dB]。バンドごとの差の絶対値の平均 */
+export function shapeDistanceDb(a: readonly number[], b: readonly number[]): number {
+  const n = Math.min(a.length, b.length);
+  if (n === 0) return 0;
+  let sum = 0;
+  for (let i = 0; i < n; i++) sum += Math.abs(a[i] - b[i]);
+  return sum / n;
+}
+
+// ==========================================================================
+// 有音フレームの窓
+// ==========================================================================
+
+interface ActiveFrame {
+  /** A特性パワー */
+  power: number;
+  /** 重み付け無し(Z特性)パワー */
+  powerZ: number;
+  /** オクターブバンドのパワー。形の比較に使う */
+  bands: number[];
+  /** 何フレーム目に取ったか。実時間での古さを見るため */
+  at: number;
+}
+
+/**
+ * 有音フレームだけを、決まった枚数まで保つ窓。
+ *
+ * `RingWindow` と分けたのは、**捨てる条件が2つある**ためである——枚数で溢れたら
+ * 古いほうから捨て、実時間で古すぎるものも捨てる。後者があるので、この窓は
+ * 「満たされている」状態から、何も足さなくても「満たされていない」状態に落ちる。
+ * その落ちる瞬間が、画面が数値を保持に切り替える瞬間になる。
+ */
+class ActiveWindow {
+  private items: ActiveFrame[] = [];
+
+  push(frame: ActiveFrame): void {
+    this.items.push(frame);
+    if (this.items.length > ACTIVE_WINDOW_FRAMES) this.items.shift();
+  }
+
+  /** `now` から見て古すぎる有音フレームを落とす。毎フレーム呼ぶ */
+  expire(now: number): void {
+    const oldest = now - ACTIVE_MAX_SPAN_FRAMES;
+    let drop = 0;
+    while (drop < this.items.length && this.items[drop].at < oldest) drop++;
+    if (drop > 0) this.items = this.items.slice(drop);
+  }
+
+  get length(): number { return this.items.length; }
+  get full(): boolean { return this.items.length >= ACTIVE_WINDOW_FRAMES; }
+  get powers(): number[] { return this.items.map((f) => f.power); }
+
+  clear(): void { this.items = []; }
+
+  meanPower(): number {
+    if (this.items.length === 0) return 0;
+    let s = 0;
+    for (const f of this.items) s += f.power;
+    return s / this.items.length;
+  }
+
+  meanPowerZ(): number {
+    if (this.items.length === 0) return 0;
+    let s = 0;
+    for (const f of this.items) s += f.powerZ;
+    return s / this.items.length;
+  }
+
+  /** 窓に入っている有音フレームの平均バンドパワー。形の比較に使う */
+  meanBands(): number[] | null {
+    if (this.items.length === 0) return null;
+    const n = this.items[0].bands.length;
+    const out = new Array<number>(n).fill(0);
+    for (const f of this.items) for (let i = 0; i < n; i++) out[i] += f.bands[i];
+    for (let i = 0; i < n; i++) out[i] /= this.items.length;
+    return out;
+  }
+}
+
+// ==========================================================================
+// 基準
+// ==========================================================================
+
+/**
+ * 測り終えた基準。
+ *
+ * **これを持つのは画面側である。** 中断から再開すると解析器は作り直されるが、
+ * 基準は持ち越すのが約束なので、解析器の寿命に縛られる場所には置けない。
+ * 解析器へは `adoptReference` で渡し直す。localStorage へ保存するのもこの形。
+ */
+export interface Reference {
+  /** A特性の基準レベル[dBFS] */
+  db: number;
+  /** 同じ区間の重み付け無し(Z特性)の基準レベル[dBFS] */
+  zDb: number;
+  /** 同じ区間のスペクトルの形。違う音を測り始めたことに気づくため */
+  shape: number[];
+  /**
+   * 測っている間にレベルが変わったか。**取り直すまで消えない。**
+   *
+   * 遡らないだけでは足りない——測っている最中に変われば混合した基準が焼き付く。
+   * 窓が入れ替われば収束中の断りは消えるので、これが無いと確定した数値の顔で
+   * 誤った差が出続ける。
+   */
+  unsettled: boolean;
+}
+
+/** 数値を出せない理由。画面はこれで文面を選ぶ */
+export type BlockedBy =
+  /** 有音フレームが足りない。間・休憩・無音 */
+  | 'not-enough-speech'
+  /** 基準を取ったときと違う音を測っている。拍手・BGM・映像 */
+  | 'different-sound';
+
+/** 保持している数値。声が足りない間、最後に十分な声で測れた差を出し続ける */
+export interface HeldReading {
+  diffDb: number;
+  diffZDb: number | null;
+  /** 測ってから何秒経ったか（実時間） */
+  ageSec: number;
+}
+
+// ==========================================================================
 // メーター
 // ==========================================================================
 
 export interface MeterState {
   /** 直近フレームのA特性レベル[dBFS]。バーを動かすための瞬時値 */
   instantDb: number;
-  /** 直近 LEQ_WINDOW_SEC の等価レベル[dBFS]。比較に使うのはこちら */
+  /**
+   * 有音フレームの窓のA特性等価レベル[dBFS]。比較に使うのはこちら。
+   * **無音は入っていない**ので、喋りの密度では動かない。
+   */
   leqDb: number;
   /**
-   * 直近 LEQ_WINDOW_SEC の等価レベル[dBFS]、**重み付け無し(Z特性)**。
+   * 同じ窓の等価レベル[dBFS]、**重み付け無し(Z特性)**。
    *
-   * A特性の差と食い違ったときにだけ画面へ出す。差が正しいのは「全帯域が
-   * 一律に動いたとき」だけで、低域だけを動かす操作では両者が離れる——
-   * 実測で、120Hz以下に +6dB のシェルフをかけたとき A特性は +1.01dB、
-   * Z特性は +2.45dB を示した。A特性ひとつでは、その食い違いに気づけない。
+   * A特性の差と食い違ったときにだけ画面へ出す。差が正しいのは「全帯域が一律に
+   * 動いたとき」だけで、低域だけを動かす操作では両者が離れる——実測で、120Hz以下に
+   * +6dB のシェルフをかけたとき A特性は +1.01dB、Z特性は +2.45dB を示した。
+   * A特性ひとつでは、その食い違いに気づけない。
    */
   leqZDb: number;
   /**
    * 直近 PEAK_HOLD_SEC の**サンプルピーク**[dBFS]。重み付け前の波形で取る。
    *
-   * 100msのRMSではない。RMSの最大値だと波高を示さないうえ、A特性後では
-   * 入力段の話にもならない——振り切った60Hzのサイン波(-0.01dBFS)が
-   * -30dBFS と表示される。ピークを出す言い分は「校正と無関係に入力段が0に
-   * 当たるかを示す」ことなので、当たるかどうかを見ている値でなければならない。
+   * 100msのRMSではない。RMSの最大値だと波高を示さないうえ、A特性後では入力段の
+   * 話にもならない——振り切った60Hzのサイン波(-0.01dBFS)が -30dBFS と表示される。
+   * ピークを出す言い分は「校正と無関係に入力段が0に当たるかを示す」ことなので、
+   * 当たるかどうかを見ている値でなければならない。
    */
   peakHoldDb: number;
   /**
- * 直近 CLIP_WINDOW_SEC のうち、音割れが含まれていた時間[秒]。
- *
- * 「回数」では数えられない。クリップした波形は半周期ごとに閾値を下回るので、
- * 閾値の再突入を数えると 1kHz の正弦波を3dB突っ込んだだけで10秒間に20000回になる。
- * かといって近接した突入をまとめて「1回」にすると、鳴りっぱなしのときに
- * 移動窓が始点を通り過ぎた時点で0に戻ってしまう。
- * フレーム単位の時間で持てば、単発は 0.1秒、鳴りっぱなしは 10.0秒 と素直に出る。
- */
+   * 直近 CLIP_WINDOW_SEC のうち、音割れが含まれていた時間[秒]。
+   *
+   * 「回数」では数えられない。クリップした波形は半周期ごとに閾値を下回るので、
+   * 閾値の再突入を数えると 1kHz の正弦波を3dB突っ込んだだけで10秒間に20000回になる。
+   * かといって近接した突入をまとめて「1回」にすると、鳴りっぱなしのときに移動窓が
+   * 始点を通り過ぎた時点で0に戻ってしまう。フレーム単位の時間で持てば、単発は
+   * 0.1秒、鳴りっぱなしは 10.0秒 と素直に出る。
+   */
   clipSeconds: number;
   /**
    * 直近 CLIP_WINDOW_SEC のうち、入力段が限界に近かった時間[秒]。
    * 割れてはいないが差が縮み始める領域（NEAR_CLIP_THRESHOLD 参照）。
    */
   nearClipSeconds: number;
-  /** Leq の窓が埋まったか。埋まる前の値は参考値 */
-  leqReady: boolean;
+  /** 有音フレームの窓が満たされたか。満たされていない間は数値を出さない */
+  activeReady: boolean;
+  /**
+   * 窓が満たされるまでに足りない**声の秒数**。0 なら満たされている。
+   *
+   * **実時間ではない。** 誰も喋っていない間は減らない。画面もそう書く——壁時計に
+   * 換算するには未来の喋りの密度を予測することになり、外れれば残り秒数が増える
+   * （巻き戻り）。
+   */
+  activeRemainingSec: number;
   /** 更新されたフレーム数。テストと「まだ測っていない」の判定に使う */
   frames: number;
-  /** Leq の窓が埋まるまでの残り秒数。0 なら埋まっている */
-  warmupRemainingSec: number;
   /**
    * 窓の中で見つかった段差[dB]。0 なら窓は単一のレベルで満たされている。
    * 符号は「新しいほうが大きければ正」。
    *
-   * **画面には出さない。** 変化量は基準との差が伝えており、段差量を並べても
-   * 読む相手が増えるだけである。ここに置いてあるのは、検出が正しい大きさを
-   * 見つけているかをテストから確かめるため——`settlingRemainingSec` だけだと
-   * 「たまたま何かを見つけた」と「+6dB を見つけた」が区別できない。
+   * **画面には出さない。** 変化量は基準との差が伝えており、段差量を並べても読む
+   * 相手が増えるだけである。ここに置いてあるのは、検出が正しい大きさを見つけて
+   * いるかをテストから確かめるため——`settlingRemainingSec` だけだと「たまたま何かを
+   * 見つけた」と「+6dB を見つけた」が区別できない。
    */
   stepDb: number;
   /**
-   * 段差の前のフレームが窓から出るまでの残り秒数。0 なら収束済み。
+   * 段差の前の有音フレームが窓から出るまでの**声の秒数**。0 なら収束済み。
    *
-   * **これが 0 でない間、leqDb は2つのレベルの混合である。** 移動窓の必然で
-   * あって実装の不具合ではない——+6dB のフェーダー操作から5秒後、10秒窓の
-   * 半分はまだ操作前なので、表示は理論値どおり +4.0dB になる。問題は、
-   * その +4.0 が収束済みの +4.0 と見分けがつかないことのほうにある。
+   * **これが 0 でない間、leqDb は2つのレベルの混合である。** 移動窓の必然であって
+   * 実装の不具合ではない——+6dB のフェーダー操作から声5秒ぶん後、窓の半分はまだ
+   * 操作前なので、表示は理論値どおり +4.0dB になる。問題は、その +4.0 が収束済みの
+   * +4.0 と見分けがつかないことのほうにある。
+   *
+   * **これも実時間ではない。** この数字は「次の操作をしていいのはいつか」を決める
+   * ために読まれるので、壁時計と取り違えられるといちばん重い誤読になる。画面には
+   * 「声があと N 秒ぶんで確定します」と書く。
    */
   settlingRemainingSec: number;
-  /**
-   * 測り終えた基準レベル[dBFS]。まだ揃っていなければ null。
-   *
-   * **押した時点から先の10秒**で測る。遡って測ると、押す前に起きたレベル変化が
-   * 基準に焼き付く——開始してから客席へ歩き、着席直後に押すと、歩行中の音が
-   * 基準の半分を占める。実測で、押す5秒前に +6dB のレベル変化があった場合、
-   * 遡る窓は真値から 2.0dB（実音声では 4.7dB）ずれ、押してからの窓は
-   * 0.02dB（同 0.60dB）に収まった。レベル変化が無い場合も遡る窓より悪くならない
-   * （実音声で RMS 2.04dB → 1.33dB）。
-   */
-  referenceDb: number | null;
-  /** 同じ区間の重み付け無し(Z特性)の基準レベル[dBFS] */
-  referenceZDb: number | null;
+
   /** 基準を測っている最中か */
   referenceCapturing: boolean;
-  /** 基準が揃うまでの残り秒数 */
+  /** 基準が揃うまでに足りない**声の秒数** */
   referenceRemainingSec: number;
+  /** いま解析器が持っている基準。測り終えた瞬間にここへ現れる */
+  referenceResult: Reference | null;
+
   /**
-   * 基準を測っている10秒の中で見つかった段差[dB]。0 なら単一のレベルだった。
+   * いま出してよい差[dB]。出せないときは null。
    *
-   * **遡らないだけでは足りない。** 押す前のレベル変化は混ざらなくなったが、
-   * 測っている最中に変わればやはり混合した基準が焼き付く——押した3秒後に
-   * +6.02dB 動かすと、以後ずっと +1.07dB が出続ける。しかも窓が入れ替われば
-   * `settlingRemainingSec` は 0 に戻るので、**確定した数値の顔で出る**。
-   * 基準が揃った時点の窓はちょうど測定区間と一致するので、そこで段差を見る。
+   * 出せるのは「基準がある かつ 有音フレームの窓が満たされている かつ 基準と同じ音を
+   * 測っている」ときだけ。
    */
-  referenceStepDb: number;
+  diffDb: number | null;
+  /** 同じ瞬間の重み付け無しの差。主役とは別物なので、食い違うときだけ画面に出す */
+  diffZDb: number | null;
+  /** 数値を出せない理由。出せているときは null */
+  blockedBy: BlockedBy | null;
+  /** 基準の形との距離[dB]。基準か窓が無ければ null */
+  shapeDistanceDb: number | null;
+  /**
+   * 声が足りない間、最後に十分な声で測れた差。
+   *
+   * **凍らせるのは「声が消えた瞬間の値」ではない。** 声は瞬間的に消えるのではなく
+   * 窓から抜けていくので、消えた瞬間の値は残り2〜3枚の有音フレームで計算された
+   * **その回でいちばん当てにならない平均**である。窓が満たされている間ずっと更新し
+   * 続け、満たされなくなった時点で更新を止めることで、保持される値は必ず「十分な声で
+   * 測られた値」になる。
+   */
+  held: HeldReading | null;
 }
 
 /** 無音（完全な0）のときに返す下限。-Infinity を画面に出さないため */
@@ -226,9 +530,9 @@ export const FLOOR_DB = -120;
  * 直前だけは位置が端に張り付く**。そのぶん残り秒数は 0.2〜9.8秒の範囲に収まり、
  * 真値が 9.8秒を超える最初の0.2秒間は動かない。
  *
- * **上げてから戻す操作には限界がある。** 粗く動かして行き過ぎに気づき戻す——
- * 現場の普通の手順だが、そのとき窓は3レベルの混合になり、山が中ほどにある間は
- * どの単一分割でも前後がどちらも混合なので閾値を超えない。この走査でも捕まらない。
+ * **上げてから戻す操作には限界がある。** 粗く動かして行き過ぎに気づき戻す——現場の
+ * 普通の手順だが、そのとき窓は3レベルの混合になり、山が中ほどにある間はどの単一
+ * 分割でも前後がどちらも混合なので閾値を超えない。この走査でも捕まらない。
  * 見逃す量は実測で STEP_DB の水準に収まる（山の高さ・保持時間を振った測定）:
  *
  *   山の高さ | 見逃す時間 | そのときの表示誤差
@@ -242,7 +546,7 @@ export const FLOOR_DB = -120;
  * それは誤検出（操作していないのに「収束中」）と直接取り引きになる。下げるなら
  * 実素材で誤検出率を測り直してからにすること。
  *
- * 「フェーダーが動いたか」は分からない。分かるのは**10秒前と今でレベルが
+ * 「フェーダーが動いたか」は分からない。分かるのは**声10秒ぶん前と今でレベルが
  * 違うこと**だけで、それがこの表示に必要な全部である。
  */
 function detectStep(powers: readonly number[]): { stepDb: number; oldFrames: number } {
@@ -264,9 +568,9 @@ function detectStep(powers: readonly number[]): { stepDb: number; oldFrames: num
    * [from, n) の中でいちばんはっきりした段差の位置。無ければ null。
    *
    * 分割ごとに要求する段差量が違うので、**閾値をどれだけ上回ったか**で選ぶ。
-   * 絶対値で選ぶと、短くて当てにならない区間の大きな値が常に勝つ。
-   * 素材の自然な揺れを段差と呼ぶと「収束中」が消えなくなって注意書きとして
-   * 機能しなくなるので、閾値を超えたものだけを段差と呼ぶ。
+   * 絶対値で選ぶと、短くて当てにならない区間の大きな値が常に勝つ。素材の自然な
+   * 揺れを段差と呼ぶと「収束中」が消えなくなって注意書きとして機能しなくなるので、
+   * 閾値を超えたものだけを段差と呼ぶ。
    */
   const stepIn = (from: number): number | null => {
     let bestMargin = 0;
@@ -297,9 +601,10 @@ function detectStep(powers: readonly number[]): { stepDb: number; oldFrames: num
 /**
  * 流れてくるPCMを受け取り、100msごとに測定値を更新する。
  *
- * 設計上の要点は「バーは瞬時値、比較は平均」。PAから流れる音楽や話し声は
- * 瞬間ごとに10dB以上揺れるので、瞬時値どうしを引き算してもフェーダーを
- * 何dB動かせばよいか決まらない。
+ * 設計上の要点は2つ。「バーは瞬時値、比較は平均」——PAから流れる音楽や話し声は
+ * 瞬間ごとに10dB以上揺れるので、瞬時値どうしを引き算してもフェーダーを何dB
+ * 動かせばよいか決まらない。そして「平均するのは声だけ」——無音を混ぜると平均が
+ * 喋りの密度で動く。
  */
 export class VolumeMeter {
   private readonly filter: AWeightingFilter;
@@ -311,10 +616,10 @@ export class VolumeMeter {
   /** フレーム内のサンプルピーク（重み付け前）。割れ・限界・波高を1回の走査で賄う */
   private pendingPeak = 0;
 
-  /** フレームごとのA特性パワー（振幅の二乗平均）。Leq の窓 */
-  private readonly powers: RingWindow;
-  /** フレームごとの重み付け無しパワー。帯域別の操作を見抜くための窓 */
-  private readonly powersZ: RingWindow;
+  /** 有音フレームだけの窓。Leq と段差はここから出す */
+  private readonly active = new ActiveWindow();
+  /** ゲートの閾値を決めるための、全フレームのA特性レベル[dBFS]の履歴 */
+  private readonly gateHistory: RingWindow;
   /** フレームごとのサンプルピーク（振幅）。ピークホールドの窓 */
   private readonly peaks: RingWindow;
   /** フレームごとに、そのフレームが音割れを含んでいたか（1/0）。クリップの窓 */
@@ -322,55 +627,93 @@ export class VolumeMeter {
   /** 同上、入力段が限界に近かったか（1/0） */
   private readonly nearClips: RingWindow;
 
+  /** 形を測るための生波形。FFT長ぶんだけ持つ */
+  private readonly shapeRing = new SampleRing(SHAPE_FFT_SIZE);
+  private readonly shapeWindow = blackmanHarrisWindow(SHAPE_FFT_SIZE);
+  private readonly shapeSamples = new Float32Array(SHAPE_FFT_SIZE);
+  private readonly shapeRe = new Float32Array(SHAPE_FFT_SIZE);
+  private readonly shapeIm = new Float32Array(SHAPE_FFT_SIZE);
+  /** バンドごとの [開始ビン, 終了ビン)。サンプルレートが決まれば固定 */
+  private readonly bandBins: Array<[number, number]>;
+
   private lastInstantDb = FLOOR_DB;
   private frames = 0;
 
-  /** 基準の測定。`refTarget` が 0 なら測っていない */
-  private refSum = 0;
-  private refSumZ = 0;
-  private refFrames = 0;
-  private refTarget = 0;
-  private refDb: number | null = null;
-  private refZDb: number | null = null;
-  private refStepDb = 0;
+  /** 画面から渡された基準。解析器はこれを写しで持つだけで、寿命を持たない */
+  private reference: Reference | null = null;
+
+  /** 基準の測定。`refCapturing` が false なら測っていない */
+  private refCapturing = false;
+  private refPowers: number[] = [];
+  private refPowersZ: number[] = [];
+  private refBands: number[][] = [];
+
+  /** 保持している差。窓が満たされている間ずっと更新し、満たされなくなったら止める */
+  private heldDiffDb: number | null = null;
+  private heldDiffZDb: number | null = null;
+  private heldAtFrame = 0;
+  /** 保持を始めた時点の有音窓のレベル[dBFS]。保持中に段差が来たかを見る */
+  private heldLeqDb = FLOOR_DB;
+  /** 保持を始めた後に届いた有音フレームのパワー。これと比べて段差を見る */
+  private postHoldPowers: number[] = [];
 
   constructor(sampleRate: number) {
     this.filter = new AWeightingFilter(sampleRate);
     this.framer = new FrameSplitter((sampleRate * FRAME_MS) / 1000);
-    this.powers    = new RingWindow((LEQ_WINDOW_SEC * 1000) / FRAME_MS);
-    this.powersZ   = new RingWindow((LEQ_WINDOW_SEC * 1000) / FRAME_MS);
+    this.gateHistory = new RingWindow((GATE_HISTORY_SEC * 1000) / FRAME_MS);
     this.peaks     = new RingWindow((PEAK_HOLD_SEC * 1000) / FRAME_MS);
     this.clips     = new RingWindow((CLIP_WINDOW_SEC * 1000) / FRAME_MS);
     this.nearClips = new RingWindow((CLIP_WINDOW_SEC * 1000) / FRAME_MS);
+
+    const binHz = sampleRate / SHAPE_FFT_SIZE;
+    const half  = SHAPE_FFT_SIZE >> 1;
+    this.bandBins = SHAPE_BANDS_HZ.map((center) => {
+      const lo = Math.max(1, Math.floor((center * Math.SQRT1_2) / binHz));
+      const hi = Math.min(half, Math.ceil((center * Math.SQRT2) / binHz));
+      return [lo, Math.max(lo + 1, hi)] as [number, number];
+    });
   }
 
   /**
-   * 基準の測定を始める。ここから LEQ_WINDOW_SEC 秒ぶんのフレームを平均する。
+   * 画面が持っている基準を渡す。中断からの再開・localStorage からの復元で使う。
    *
-   * **遡らないのが要点。** 「基準にする」は「いまの音を憶えておけ」という意思表示
-   * であって、「さっきまでの音を憶えておけ」ではない。遡って測ると、押す前に
-   * 起きたレベル変化——客席へ歩く、演目が変わる——が基準に混ざり、
-   * **フェーダーに触れていないのに差が出る**（`MeterState.referenceDb` 参照）。
+   * 解析器は中断のたびに作り直されるので、基準の所有者にはなれない。ここが持つのは
+   * 差を計算するための写しだけである。
+   */
+  adoptReference(reference: Reference | null): void {
+    this.reference = reference;
+    this.heldDiffDb = null;
+    this.heldDiffZDb = null;
+  }
+
+  /**
+   * 基準の測定を始める。ここから**有音フレームが `ACTIVE_WINDOW_SEC` 秒ぶん**
+   * たまるまで平均する。壁時計では何秒かかるか分からない。
+   *
+   * **遡らないのが要点。** 「基準にする」は「いまの音を憶えておけ」という意思表示で
+   * あって、「さっきまでの音を憶えておけ」ではない。遡って測ると、押す前に起きた
+   * レベル変化——客席へ歩く、演目が変わる——が基準に混ざり、**フェーダーに触れて
+   * いないのに差が出る**。
    */
   beginReference(): void {
-    this.refSum = 0;
-    this.refSumZ = 0;
-    this.refFrames = 0;
-    this.refTarget = (LEQ_WINDOW_SEC * 1000) / FRAME_MS;
-    this.refDb = null;
-    this.refZDb = null;
-    this.refStepDb = 0;
+    this.refCapturing = true;
+    this.refPowers = [];
+    this.refPowersZ = [];
+    this.refBands = [];
+    this.reference = null;
+    this.heldDiffDb = null;
+    this.heldDiffZDb = null;
   }
 
   /** 基準を捨てる。測定中なら中止する */
   clearReference(): void {
-    this.refSum = 0;
-    this.refSumZ = 0;
-    this.refFrames = 0;
-    this.refTarget = 0;
-    this.refDb = null;
-    this.refZDb = null;
-    this.refStepDb = 0;
+    this.refCapturing = false;
+    this.refPowers = [];
+    this.refPowersZ = [];
+    this.refBands = [];
+    this.reference = null;
+    this.heldDiffDb = null;
+    this.heldDiffZDb = null;
   }
 
   /**
@@ -392,65 +735,197 @@ export class VolumeMeter {
       // 聞こえ方の話ではない——60Hz はA特性で27dB落ちるが、入力段では割れている
       const peak = maxAbs(chunk, offset, length);
       if (peak > this.pendingPeak) this.pendingPeak = peak;
+      // 形は生波形から取る。音源が何かの話なので、聞こえ方の重み付けは要らない
+      this.shapeRing.write(chunk, offset, length);
 
       if (completed) this.commitFrame();
     });
   }
 
+  /**
+   * このフレームが有音か。**履歴のp95から `ACTIVE_RANGE_DB` 下までを有音とする。**
+   *
+   * 完全な無音（デジタルの0）だけは、履歴もろとも下限に張り付くので明示的に外す。
+   * それ以外に絶対的な下限は置かない——会場の暗騒音がどのレベルに来るかはマイクの
+   * 感度次第で、この道具はそれを知らない。
+   */
+  private isActive(levelDb: number): boolean {
+    if (levelDb <= FLOOR_DB) return false;
+    const threshold = gateThresholdDb(
+      this.gateHistory.values, ACTIVE_RANGE_DB, this.reference?.db ?? null,
+    );
+    return threshold === null || levelDb >= threshold;
+  }
+
+  /** 直近 SHAPE_FFT_SIZE サンプルのオクターブバンドパワー */
+  private currentBands(): number[] {
+    const out = new Array<number>(this.bandBins.length).fill(0);
+    if (this.shapeRing.filled < SHAPE_FFT_SIZE) return out;
+
+    this.shapeRing.readInto(this.shapeSamples);
+    for (let i = 0; i < SHAPE_FFT_SIZE; i++) {
+      this.shapeRe[i] = this.shapeSamples[i] * this.shapeWindow[i];
+      this.shapeIm[i] = 0;
+    }
+    fft(this.shapeRe, this.shapeIm);
+
+    for (let b = 0; b < this.bandBins.length; b++) {
+      const [lo, hi] = this.bandBins[b];
+      let sum = 0;
+      for (let k = lo; k < hi; k++) {
+        sum += this.shapeRe[k] * this.shapeRe[k] + this.shapeIm[k] * this.shapeIm[k];
+      }
+      out[b] = sum / (hi - lo);
+    }
+    return out;
+  }
+
   private commitFrame(): void {
     const power  = this.pendingSum  / this.framer.frameSize;
     const powerZ = this.pendingSumZ / this.framer.frameSize;
-    this.powers.push(power);
-    this.powersZ.push(powerZ);
+    const levelDb = power > 0 ? dbfs(Math.sqrt(power)) : FLOOR_DB;
 
-    // 基準は押した時点から先へ積む。遡らないので、押す前のレベル変化は混ざらない
-    if (this.refTarget > 0) {
-      this.refSum  += power;
-      this.refSumZ += powerZ;
-      this.refFrames++;
-      if (this.refFrames >= this.refTarget) {
-        const m  = this.refSum  / this.refFrames;
-        const mz = this.refSumZ / this.refFrames;
-        this.refDb  = m  > 0 ? dbfs(Math.sqrt(m))  : FLOOR_DB;
-        this.refZDb = mz > 0 ? dbfs(Math.sqrt(mz)) : FLOOR_DB;
-        // このとき powers の窓はちょうど測定区間と一致する。測っている最中に
-        // レベルが変わっていたら、この基準からの差は信用できない
-        this.refStepDb = this.powers.full ? detectStep(this.powers.values).stepDb : 0;
-        this.refTarget = 0;
+    const active = this.isActive(levelDb);
+    this.gateHistory.push(levelDb);
+
+    if (active) {
+      const bands = this.currentBands();
+      this.active.push({ power, powerZ, bands, at: this.frames });
+      if (this.heldDiffDb !== null) {
+        this.postHoldPowers.push(power);
+        if (this.postHoldPowers.length > POST_HOLD_FRAMES) this.postHoldPowers.shift();
+      }
+
+      // 基準も有音フレームだけを数える。壁時計で10秒ではなく、声で10秒
+      if (this.refCapturing) {
+        this.refPowers.push(power);
+        this.refPowersZ.push(powerZ);
+        this.refBands.push(bands);
+        if (this.refPowers.length >= ACTIVE_WINDOW_FRAMES) this.finishReference();
       }
     }
+    this.active.expire(this.frames);
 
     this.peaks.push(this.pendingPeak);
     this.clips.push(this.pendingPeak >= CLIP_THRESHOLD ? 1 : 0);
     this.nearClips.push(this.pendingPeak >= NEAR_CLIP_THRESHOLD ? 1 : 0);
-    this.lastInstantDb = power > 0 ? dbfs(Math.sqrt(power)) : FLOOR_DB;
+    this.lastInstantDb = levelDb;
 
     this.pendingSum = 0;
     this.pendingSumZ = 0;
     this.pendingPeak = 0;
     this.frames++;
+
+    this.updateHold();
+  }
+
+  private finishReference(): void {
+    const mean  = this.refPowers.reduce((a, b) => a + b, 0)  / this.refPowers.length;
+    const meanZ = this.refPowersZ.reduce((a, b) => a + b, 0) / this.refPowersZ.length;
+
+    const nBands = this.refBands[0].length;
+    const bands = new Array<number>(nBands).fill(0);
+    for (const b of this.refBands) for (let i = 0; i < nBands; i++) bands[i] += b[i];
+    for (let i = 0; i < nBands; i++) bands[i] /= this.refBands.length;
+
+    this.reference = {
+      db:  mean  > 0 ? dbfs(Math.sqrt(mean))  : FLOOR_DB,
+      zDb: meanZ > 0 ? dbfs(Math.sqrt(meanZ)) : FLOOR_DB,
+      shape: shapeOf(bands),
+      // 測ったフレームそのものに段差があれば、この基準は2つのレベルの混合である
+      unsettled: detectStep(this.refPowers).stepDb !== 0,
+    };
+    this.refCapturing = false;
+    this.refPowers = [];
+    this.refPowersZ = [];
+    this.refBands = [];
+    this.heldDiffDb = null;
+    this.heldDiffZDb = null;
+  }
+
+  /**
+   * 保持する値の更新。
+   *
+   * 窓が満たされ、基準と同じ音を測っている間は毎フレーム更新する。そうでなくなった
+   * 時点で更新を止め、**そこから先はその値を経過秒つきで出す**。凍結点を後から
+   * 探さないので、保持される値は必ず「十分な声で測られた値」になる。
+   *
+   * **保持中に有音のレベルが段差ぶん動いたら捨てる。** 時間では消さない
+   * （ハウリングチェックが鳴き終わった周波数を残すのと同じ理由——画面を開いた理由
+   * そのものが消える）が、こちらが残しているのはフェーダーの位置に依存する差で
+   * あり、動かされた瞬間に嘘になる。声が無くても、拍手や BGM のようにゲートを通る音が
+   * あればレベルの変化は見える。**間の最中に動かされた場合は見えない**——そのときは
+   * 声が戻った時点で段差として検出され、保持は捨てられる。
+   */
+  private updateHold(): void {
+    const diff = this.liveDiff();
+    if (diff !== null) {
+      this.heldDiffDb  = diff.diffDb;
+      this.heldDiffZDb = diff.diffZDb;
+      this.heldAtFrame = this.frames;
+      this.heldLeqDb   = this.activeLeqDb();
+      this.postHoldPowers = [];
+      return;
+    }
+    if (this.heldDiffDb === null) return;
+
+    // **比べるのは「保持を始めた後に届いた有音フレーム」だけである。**
+    // いま窓に入っているものと比べると、窓が痩せていく途中で中身が入れ替わり、
+    // レベルが動いていなくても差が出る（実装したら、間が続くだけで保持が
+    // 消えるようになった）。届いた側だけを見れば、それは起きない。
+    if (this.postHoldPowers.length < POST_HOLD_MIN_FRAMES) return;
+    const mean = this.postHoldPowers.reduce((a, b) => a + b, 0) / this.postHoldPowers.length;
+    const now = mean > 0 ? dbfs(Math.sqrt(mean)) : FLOOR_DB;
+    if (now > FLOOR_DB && this.heldLeqDb > FLOOR_DB
+        && Math.abs(now - this.heldLeqDb) >= STEP_DB) {
+      this.heldDiffDb = null;
+      this.heldDiffZDb = null;
+    }
+  }
+
+  private activeLeqDb(): number {
+    const m = this.active.meanPower();
+    return m > 0 ? dbfs(Math.sqrt(m)) : FLOOR_DB;
+  }
+
+  /** いま差を出してよいか。出してよければ差を返す */
+  private liveDiff(): { diffDb: number; diffZDb: number | null } | null {
+    if (this.reference === null || !this.active.full) return null;
+    const distance = this.shapeDistance();
+    if (distance !== null && distance >= SHAPE_DISTANCE_DB) return null;
+
+    const meanZ = this.active.meanPowerZ();
+    const leqZ  = meanZ > 0 ? dbfs(Math.sqrt(meanZ)) : FLOOR_DB;
+    return {
+      diffDb:  this.activeLeqDb() - this.reference.db,
+      diffZDb: leqZ - this.reference.zDb,
+    };
+  }
+
+  private shapeDistance(): number | null {
+    if (this.reference === null) return null;
+    const bands = this.active.meanBands();
+    if (bands === null) return null;
+    return shapeDistanceDb(shapeOf(bands), this.reference.shape);
   }
 
   get state(): MeterState {
-    if (this.frames === 0) {
-      return {
-        instantDb: FLOOR_DB, leqDb: FLOOR_DB, leqZDb: FLOOR_DB, peakHoldDb: FLOOR_DB,
-        clipSeconds: 0, nearClipSeconds: 0, leqReady: false, frames: 0,
-        warmupRemainingSec: LEQ_WINDOW_SEC,
-        stepDb: 0, settlingRemainingSec: 0,
-        ...this.referenceState,
-      };
-    }
-    // Leq はパワーの平均を dB にする（dB の平均ではない）
-    const meanPower  = this.powers.mean();
-    const meanPowerZ = this.powersZ.mean();
     const peak = this.peaks.max();
+    const meanPower  = this.active.meanPower();
+    const meanPowerZ = this.active.meanPowerZ();
 
-    // 窓が埋まる前は「あと何秒で収束するか」を言えない（そもそも全体が
-    // 収束前である）。埋まってから初めて段差を探す
-    const step = this.powers.full
-      ? detectStep(this.powers.values)
+    // 窓が満たされる前は「あと何秒で収束するか」を言えない（そもそも全体が
+    // 収束前である）。満たされてから初めて段差を探す
+    const step = this.active.full
+      ? detectStep(this.active.powers)
       : { stepDb: 0, oldFrames: 0 };
+
+    const live = this.liveDiff();
+    const distance = this.shapeDistance();
+    const blockedBy: BlockedBy | null =
+      live !== null || this.reference === null ? null
+      : distance !== null && distance >= SHAPE_DISTANCE_DB ? 'different-sound'
+      : 'not-enough-speech';
 
     return {
       instantDb:  this.lastInstantDb,
@@ -459,28 +934,30 @@ export class VolumeMeter {
       peakHoldDb: peak > 0 ? dbfs(peak) : FLOOR_DB,
       clipSeconds:     (this.clips.count((c) => c === 1) * FRAME_MS) / 1000,
       nearClipSeconds: (this.nearClips.count((c) => c === 1) * FRAME_MS) / 1000,
-      leqReady:   this.powers.full,
+      activeReady: this.active.full,
+      activeRemainingSec:
+        Math.max(0, (ACTIVE_WINDOW_FRAMES - this.active.length) * FRAME_MS) / 1000,
       frames:     this.frames,
-      warmupRemainingSec:
-        Math.max(0, (this.powers.capacity - this.powers.length) * FRAME_MS) / 1000,
       stepDb: step.stepDb,
       settlingRemainingSec: (step.oldFrames * FRAME_MS) / 1000,
-      ...this.referenceState,
-    };
-  }
 
-  private get referenceState(): Pick<
-    MeterState,
-    | 'referenceDb' | 'referenceZDb' | 'referenceCapturing'
-    | 'referenceRemainingSec' | 'referenceStepDb'
-  > {
-    return {
-      referenceDb:  this.refDb,
-      referenceZDb: this.refZDb,
-      referenceCapturing: this.refTarget > 0,
-      referenceRemainingSec:
-        this.refTarget > 0 ? ((this.refTarget - this.refFrames) * FRAME_MS) / 1000 : 0,
-      referenceStepDb: this.refStepDb,
+      referenceCapturing: this.refCapturing,
+      referenceRemainingSec: this.refCapturing
+        ? ((ACTIVE_WINDOW_FRAMES - this.refPowers.length) * FRAME_MS) / 1000
+        : 0,
+      referenceResult: this.reference,
+
+      diffDb:  live?.diffDb  ?? null,
+      diffZDb: live?.diffZDb ?? null,
+      blockedBy,
+      shapeDistanceDb: distance,
+      held: live === null && this.heldDiffDb !== null
+        ? {
+            diffDb:  this.heldDiffDb,
+            diffZDb: this.heldDiffZDb,
+            ageSec:  ((this.frames - this.heldAtFrame) * FRAME_MS) / 1000,
+          }
+        : null,
     };
   }
 }
