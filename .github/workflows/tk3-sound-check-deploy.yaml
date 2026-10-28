@@ -19,6 +19,9 @@ jobs:
           node-version: '24'
       - name: install
         working-directory: ${{ env.working-directory }}
+        env:
+          # 検証スクリプトは CPU で動かすので、linux/x64 で取りに行く CUDA 版は要らない
+          ONNXRUNTIME_NODE_INSTALL: skip
         run: npm ci
       - name: Install Playwright browsers
         working-directory: ${{ env.working-directory }}
