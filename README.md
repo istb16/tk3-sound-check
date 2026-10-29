@@ -224,6 +224,14 @@ FFT・突出度・オクターブバンドの定義・フレーム化は `lib/`�
 - [Vite](https://vite.dev/)
 - [Vitest](https://vitest.dev/) + Playwright（ブラウザテスト）
 
+TypeScript は 6 系に据え置き（Dependabot でも 7 以上は無視している）。以下が TS 7 に対応したら上げる。
+
+- いま入っている依存には TS 7 を阻むものは無い（`typescript` を peer に取る・TS の JS API を呼ぶパッケージは入っていない）。
+- 型チェックや Lint を足すときに使う道具が TS 7 を受け付けないため、それらが対応するまで待つ:
+  - `svelte-check`（4.7.7）: peerDependencies が `typescript: ^5.0.0 || ^6.0.0`。中で TS の JS API（Language Service）を使う。
+  - `typescript-eslint`（8.72.1）: peerDependencies が `typescript: >=4.8.4 <6.1.0`。TS の JS API で型情報を取る。
+- TS 7（`tsc` のネイティブ版）は JS API を持たないため、上の道具が TS 7 向けの API に乗り換えた時点で見直す。
+
 ## セットアップ
 
 ```bash
