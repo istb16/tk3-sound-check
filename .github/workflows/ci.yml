@@ -1,0 +1,31 @@
+# PR の検証。デプロイのワークフローと同じ検証を、マージの前に流す（デプロイはしない）。
+name: CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 同じ PR に続けて push したら、古い実行は捨てる。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+      - run: npm run build
