@@ -39,7 +39,7 @@ jobs:
           echo "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > /tmp/sa.json
           export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
           set +e
-          npx firebase-tools@15.34.1 deploy --only hosting --project tk3-sound-check --json 2>&1 | tee /tmp/firebase_out.txt
+          npx firebase-tools@15.36.0 deploy --only hosting --project tk3-sound-check --json 2>&1 | tee /tmp/firebase_out.txt
           EXIT_CODE=${PIPESTATUS[0]}
           set -e
           if [ $EXIT_CODE -ne 0 ]; then
