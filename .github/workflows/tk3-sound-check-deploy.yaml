@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Only read the repository; deploy credentials come from secrets.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
