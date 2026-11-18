@@ -89,14 +89,21 @@
     transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
   }
 
+  /* 機能の色を枠や輪郭に使うときの色。暗い配色では地が暗いので明るく寄せる */
+  .tile { --tile-ink: var(--tile-accent); }
+
+  @media (prefers-color-scheme: dark) {
+    .tile { --tile-ink: color-mix(in oklch, var(--tile-accent) 55%, white); }
+  }
+
   .tile:hover {
-    border-color: var(--tile-accent);
+    border-color: var(--tile-ink);
     box-shadow: 0 2px 10px rgb(26 28 46 / 0.09);
   }
 
   /* 押した手応え。タップできることが指で分かる */
   .tile:active { transform: translateY(1px); box-shadow: none; }
-  .tile:focus-visible { outline: 2px solid var(--tile-accent); outline-offset: 2px; }
+  .tile:focus-visible { outline: 2px solid var(--tile-ink); outline-offset: 2px; }
 
   /* 色が乗るのはここだけ。文字は白地の上に残すのでコントラストが落ちない
      ——この道具は照明の暗い会場や逆光の窓際で開かれる */
@@ -143,5 +150,5 @@
   }
 
   .chevron svg { inline-size: 100%; block-size: 100%; display: block; }
-  .tile:hover .chevron { color: var(--tile-accent); }
+  .tile:hover .chevron { color: var(--tile-ink); }
 </style>

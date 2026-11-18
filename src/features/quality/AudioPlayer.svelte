@@ -81,8 +81,8 @@
     width: 2.25rem;
     height: 2.25rem;
     border-radius: 50%;
-    background: #1A1C2E;
-    color: #ECEEF5;
+    background: var(--ink);
+    color: var(--on-ink);
     border: none;
     cursor: pointer;
     display: flex;
@@ -92,8 +92,8 @@
     transition: background 0.15s;
   }
 
-  .play-btn:hover { background: #006E80; }
-  .play-btn:focus-visible { outline: 2px solid #006E80; outline-offset: 2px; }
+  .play-btn:hover { background: var(--accent); }
+  .play-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   .progress-wrap {
     flex: 1;
@@ -107,14 +107,14 @@
     width: 100%;
     height: 4px;
     cursor: pointer;
-    accent-color: #006E80;
+    accent-color: var(--accent);
   }
 
   .times {
     display: flex;
     justify-content: space-between;
     font-size: 0.65rem;
-    color: #8A8CA8;
+    color: var(--muted);
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.02em;
   }

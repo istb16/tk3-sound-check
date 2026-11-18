@@ -510,7 +510,7 @@
   }
 
   .big.up   { color: var(--danger); }
-  .big.down { color: #006E80; }
+  .big.down { color: var(--accent); }
   /* 収束中・保持中。数字は残すが、確定した値と同じ顔はさせない */
   .big.settling { color: var(--muted); }
 
@@ -560,7 +560,7 @@
     position: relative;
     margin-top: 1.1rem;
     height: 12px;
-    background: #E3E5EF;
+    background: var(--track);
     border-radius: 2px;
     overflow: hidden;
   }

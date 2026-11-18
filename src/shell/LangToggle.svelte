@@ -12,7 +12,7 @@
 <style>
   .lang-toggle {
     display: flex;
-    border: 1px solid #CDD0E0;
+    border: 1px solid var(--line);
     border-radius: 4px;
     overflow: hidden;
   }
@@ -24,23 +24,23 @@
     letter-spacing: 0.1em;
     border: none;
     background: transparent;
-    color: #8A8CA8;
+    color: var(--muted);
     cursor: pointer;
     transition: background 0.12s, color 0.12s;
     line-height: 1;
   }
 
   .lang-toggle button:first-child {
-    border-right: 1px solid #CDD0E0;
+    border-right: 1px solid var(--line);
   }
 
   .lang-toggle button.active {
-    background: #1A1C2E;
-    color: #ECEEF5;
+    background: var(--ink);
+    color: var(--on-ink);
   }
 
   .lang-toggle button:focus-visible {
-    outline: 2px solid #006E80;
+    outline: 2px solid var(--accent);
     outline-offset: -2px;
   }
 </style>

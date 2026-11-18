@@ -56,14 +56,14 @@
   {#each gridPolygons as pts, lvl}
     <polygon
       points={polyStr(pts)}
-      fill={lvl === levels - 1 ? '#F3F4FA' : 'none'}
-      stroke="#DDE0EE"
+      style:fill={lvl === levels - 1 ? 'var(--surface-alt)' : 'none'}
+      style:stroke="var(--track)"
       stroke-width="1"
     />
   {/each}
 
   {#each axes as ax}
-    <line x1={cx} y1={cy} x2={ax.end.x} y2={ax.end.y} stroke="#DDE0EE" stroke-width="1" />
+    <line x1={cx} y1={cy} x2={ax.end.x} y2={ax.end.y} style:stroke="var(--track)" stroke-width="1" />
     <text
       x={ax.labelPos.x}
       y={ax.labelPos.y}
@@ -72,7 +72,7 @@
       font-size="10"
       font-weight="600"
       letter-spacing="0.04em"
-      fill="#474964"
+      style:fill="var(--body)"
       font-family="system-ui, sans-serif"
       text-transform="uppercase"
     >{ax.label}</text>
@@ -80,14 +80,14 @@
 
   <polygon
     points={polyStr(dataPoints)}
-    fill="rgba(0,110,128,0.12)"
-    stroke="#006E80"
+    style:fill="color-mix(in srgb, var(--score-good) 12%, transparent)"
+    style:stroke="var(--score-good)"
     stroke-width="2"
     stroke-linejoin="round"
   />
 
   {#each dataPoints as pt, i}
     {@const val = scores[labels[i]] ?? 0}
-    <circle cx={pt.x} cy={pt.y} r="4.5" fill={scoreColor(val)} stroke="#FFFFFF" stroke-width="1.5" />
+    <circle cx={pt.x} cy={pt.y} r="4.5" style:fill={scoreColor(val)} style:stroke="var(--surface)" stroke-width="1.5" />
   {/each}
 </svg>

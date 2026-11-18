@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MediaQuery } from 'svelte/reactivity';
   import { segColor, gradeCls, SEGMENTS } from './scores.ts';
   import type { QualityText } from './i18n.ts';
 
@@ -11,10 +12,18 @@
 
   let displayed = $state(0);
 
+  // 「視差効果を減らす」を選んでいる人には数え上げを見せず、最初から点数を出す。
+  // MediaQuery は設定が途中で変わっても追従する
+  const reducedMotion = new MediaQuery('(prefers-reduced-motion: reduce)');
+
   function easeOut(x: number): number { return 1 - Math.pow(1 - x, 3); }
 
   $effect(() => {
     const target = score;
+    if (reducedMotion.current) {
+      displayed = target;
+      return;
+    }
     let start: number | null = null;
     let rafId: number;
 

@@ -137,7 +137,15 @@
 
   /* ---- 機能ページ ---- */
 
-  .feature-head { text-align: center; }
+  .feature-head {
+    text-align: center;
+    /* 機能の色を字や線に使うときの色。暗い配色では地が暗いので明るく寄せる */
+    --feature-ink: var(--feature-accent);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .feature-head { --feature-ink: color-mix(in oklch, var(--feature-accent) 55%, white); }
+  }
 
   .back {
     display: inline-flex;
@@ -146,10 +154,10 @@
     /* 指の的として 44px を割らない */
     min-block-size: 40px;
     padding: 0.4rem 0.8rem 0.4rem 0.55rem;
-    border: 1px solid var(--feature-accent);
+    border: 1px solid var(--feature-ink);
     border-radius: 999px;
     background: var(--surface);
-    color: var(--feature-accent);
+    color: var(--feature-ink);
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.02em;
@@ -161,7 +169,7 @@
   .back svg { inline-size: 15px; block-size: 15px; }
 
   .back:hover { background: var(--feature-accent); color: #FFFFFF; }
-  .back:focus-visible { outline: 2px solid var(--feature-accent); outline-offset: 2px; }
+  .back:focus-visible { outline: 2px solid var(--feature-ink); outline-offset: 2px; }
 
   .page-title {
     font-size: clamp(1.8rem, 8vw, 2.4rem);
@@ -180,6 +188,6 @@
     block-size: 3px;
     margin: 0.5rem auto 0;
     border-radius: 2px;
-    background: var(--feature-accent);
+    background: var(--feature-ink);
   }
 </style>
