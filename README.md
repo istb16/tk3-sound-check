@@ -190,7 +190,8 @@ ISO 3382 の残響時間、ITU-T の広帯域音声帯域）。絶対音圧(dBA)
 ```
 src/
   App.svelte              シェル。ルーティングとヘッダーだけを持つ
-  shell/                  機能に依らない層（ルーター・言語・共通CSS）
+  shell/                  機能に依らない層（ルーター・言語・共通CSS。tk-base.css は
+                          tk3 apps 共通の土台の写しで、手を加えない）
   pages/                  メニュー
   features/
     registry.ts           機能の一覧。ここに1行足すとメニューとURLが増える

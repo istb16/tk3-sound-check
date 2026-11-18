@@ -13,6 +13,10 @@ vi.mock('./features/quality/AudioAnalyzer.ts', () => ({
   analyzeAudio: vi.fn(),
 }));
 
+// 画面の大きさを実測するテストがあるので、本番と同じく全体の CSS を読み込む
+// （main.ts と同じ順。読み込まないとヘッダーの帯や余白が本番と違う形で測られる）
+import './shell/tk-base.css';
+import './shell/app.css';
 import App from './App.svelte';
 import { router, normalizePath } from './shell/router.svelte.ts';
 import { FEATURES } from './features/registry.ts';
@@ -278,8 +282,9 @@ describe('シェル — ルーティング', () => {
     await expect.element(page.getByRole('heading', { name: 'SOUND CHECK' })).toBeVisible();
   });
 
-  it('機能ページでは機能名が主役で、看板は下ろす', async () => {
-    // 中にいる人に重要なのは、いまどの道具を開いているか。サイトの名前ではない
+  it('機能ページでは機能名が主役で、看板は見出しにしない', async () => {
+    // 中にいる人に重要なのは、いまどの道具を開いているか。サイトの名前ではない。
+    // 看板は上の帯に小さく残るが、見出し（.wordmark の h1）はトップだけ
     router.path = '/quality';
     mountApp();
     await expect.element(page.getByRole('heading', { name: '音質チェック' })).toBeVisible();

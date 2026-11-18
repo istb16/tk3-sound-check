@@ -83,7 +83,7 @@
     padding: 1rem;
     background: var(--surface);
     border: 1px solid var(--line);
-    border-radius: 10px;
+    border-radius: var(--tk-radius);
     text-decoration: none;
     cursor: pointer;
     transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
@@ -98,7 +98,7 @@
 
   .tile:hover {
     border-color: var(--tile-ink);
-    box-shadow: 0 2px 10px rgb(26 28 46 / 0.09);
+    box-shadow: var(--tk-shadow);
   }
 
   /* 押した手応え。タップできることが指で分かる */
@@ -114,7 +114,7 @@
     padding: 12px;
     border-radius: 14px;
     background: var(--tile-accent);
-    color: #FFFFFF;
+    color: var(--on-feature);
     display: flex;
   }
 

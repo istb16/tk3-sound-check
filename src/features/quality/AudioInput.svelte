@@ -96,7 +96,8 @@
   .dropzone {
     position: relative;
     background: var(--surface);
-    border: 1.5px solid var(--line);
+    /* 枠が「ここに入れる」ことを示す部品なので、区切り線より濃い入力欄の枠の色にする */
+    border: 1.5px solid var(--tk-line-strong);
     border-radius: 6px;
     padding: 2.75rem 1.5rem;
     display: flex;
