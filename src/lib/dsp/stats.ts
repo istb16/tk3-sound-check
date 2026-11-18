@@ -44,7 +44,7 @@ export function percentileSorted(sorted: number[], p: number): number {
 }
 
 export function percentile(values: number[], p: number): number {
-  return percentileSorted([...values].sort((a, b) => a - b), p);
+  return percentileSorted(values.toSorted((a, b) => a - b), p);
 }
 
 /**
