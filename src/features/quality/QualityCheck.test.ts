@@ -460,9 +460,14 @@ describe('音質チェック — 結果の並び', () => {
 });
 
 describe('配信されるもの', () => {
-  it('favicon が小さい（公開サイトなので全員が落とす）', async () => {
-    const res = await fetch('/favicon.png');
-    const size = (await res.blob()).size;
-    expect(size, `favicon.png が ${(size / 1024).toFixed(0)}KB`).toBeLessThan(100 * 1024);
-  });
+  it.each(['/icon.svg', '/icon-32.png', '/apple-touch-icon.png'])(
+    'アイコン %s が小さい（公開サイトなので全員が落とす）',
+    async (path) => {
+      const res = await fetch(path);
+      expect(res.ok, `${path} が配信されていない`).toBe(true);
+      expect(res.headers.get('content-type') ?? '').not.toContain('text/html');
+      const size = (await res.blob()).size;
+      expect(size, `${path} が ${(size / 1024).toFixed(0)}KB`).toBeLessThan(100 * 1024);
+    },
+  );
 });

@@ -6,10 +6,13 @@
    * ハウリングとボリュームは受動リアルタイム（終わりが無く点数も無い）で、
    * 共通の状態機械に乗せると両方が歪むため。
    *
-   * header の主役はページによって入れ替わる。**トップでは看板、機能ページでは機能名。**
-   * 「大きいロゴは押せない」が web の常識なので、看板を目立たせるほど
-   * 「押せば戻れる」は伝わらなくなる。1つの要素に2役を負わせるのをやめ、
-   * 機能ページでは看板を下ろして `← メニュー` を置いている。
+   * 画面の上には tk3 apps 共通の `.tk-header`（アイコン＋「SOUND CHECK」、右に言語切替）を
+   * どのページにも置く。看板はこの小さな帯に収め、大きな看板は掲げない。
+   *
+   * 主役の見出しはページによって入れ替わる。**トップでは看板（帯の中の h1）、
+   * 機能ページでは機能名。** 帯の看板も押せばメニューへ戻るが、それだけでは
+   * 「押せば戻れる」は伝わりにくいので、機能ページには行き先を書いた
+   * `← メニュー` を別に置いている。
    */
   import { onMount } from 'svelte';
   import { SHELL, WORDMARK, initLang, saveLang, type Lang } from './shell/i18n.ts';
@@ -42,41 +45,57 @@
   }
 </script>
 
-<main class:full={!feature}>
-  {#if feature}
-    <header class="feature-head" style="--feature-accent: {feature.accent}">
-      <div class="head-row">
-        <!-- 行き先の名前を書く。「SOUND CHECK」は行き先が何なのか言っていないが
-             「メニュー」は言っている。スマホの左上は最も届きにくい場所なので、
-             文字数も短いほうがよい -->
-        <a class="back" href="/" onclick={toMenu}>
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2"
-                  stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-          {s.backToMenu}
-        </a>
-        <LangToggle bind:lang />
-      </div>
-      <h1 class="page-title">{feature.text[lang].name}</h1>
-    </header>
+<header class="tk-header">
+  <a class="tk-header__home" href="/" onclick={toMenu}>
+    <img class="tk-header__icon" src="/icon.svg" alt="" width="32" height="32" />
+    <!-- 看板は英字固定。JA/EN を切り替えるサイトでは、
+         翻訳しなくて済む名前のほうが看板に向く。
+         トップではこれがページの見出し、機能ページでは機能名に見出しを譲る -->
+    {#if feature}
+      <span class="tk-header__name">{WORDMARK}</span>
+    {:else}
+      <h1 class="tk-header__name wordmark">{WORDMARK}</h1>
+    {/if}
+  </a>
+  <div class="tk-header__end">
+    <LangToggle bind:lang />
+  </div>
+</header>
 
-    {@const Feature = feature.component}
-    <Feature {lang} />
-  {:else}
-    <header class="hero">
-      <div class="head-row head-row-end">
-        <LangToggle bind:lang />
-      </div>
-      <!-- 看板は英字固定。JA/EN を切り替えるサイトでは、
-           翻訳しなくて済む名前のほうが看板に向く -->
-      <h1 class="wordmark">{WORDMARK}</h1>
-      <p class="tagline">{s.tagline}</p>
-    </header>
+<div class="page">
+  <main class:full={!feature}>
+    {#if feature}
+      <header class="feature-head" style="--feature-accent: {feature.accent}">
+        <div class="head-row">
+          <!-- 行き先の名前を書く。「SOUND CHECK」は行き先が何なのか言っていないが
+               「メニュー」は言っている。スマホの左上は最も届きにくい場所なので、
+               文字数も短いほうがよい -->
+          <a class="back" href="/" onclick={toMenu}>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2"
+                    stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            {s.backToMenu}
+          </a>
+        </div>
+        <h1 class="page-title">{feature.text[lang].name}</h1>
+      </header>
 
-    <Menu {lang} />
-  {/if}
-</main>
+      {@const Feature = feature.component}
+      <Feature {lang} />
+    {:else}
+      <header class="hero">
+        <p class="tagline">{s.tagline}</p>
+      </header>
+
+      <Menu {lang} />
+    {/if}
+  </main>
+</div>
+
+<footer class="tk-footer">
+  <a href="https://tk3.biz/">tk3.biz</a>
+</footer>
 
 <style>
   /*
@@ -89,6 +108,9 @@
    * メニューだけは全幅を使う。3枚のタイルを1行に並べるため——2列だと
    * 必ず1枚余って歯抜けになる。
    */
+  /* 画面の端との余白。ヘッダーとフッターは端から端まで敷くので、body ではなくここに置く */
+  .page { padding: 1.75rem 1.5rem 3rem; }
+
   main {
     inline-size: min(100%, max(55vw, 300px));
     max-inline-size: 1100px;
@@ -101,34 +123,23 @@
 
   main.full { inline-size: min(100%, 1100px); }
 
-  /* 戻る／言語切替の行。タイトルとは行を分ける——幅320pxでは
-     戻る・タイトル・言語切替の3つは1行に収まらない */
+  /* 帯の中の看板。見出しの既定の大きさ・余白を消し、帯の文字の形に合わせる */
+  .wordmark { font-size: 1.125rem; font-weight: 600; margin: 0; }
+
+  /* 戻るの行。タイトルとは行を分ける——幅320pxでは
+     戻るとタイトルは1行に収まらない */
   .head-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 0.75rem;
     margin-block-end: 0.7rem;
   }
-
-  .head-row-end { justify-content: flex-end; }
 
   /* ---- トップページ ---- */
 
   .hero { text-align: center; }
 
-  .wordmark {
-    font-size: clamp(1.9rem, 9vw, 2.7rem);
-    font-weight: 900;
-    letter-spacing: 0.1em;
-    /* 字間を空けたぶん、中央からずれて見えるのを戻す */
-    text-indent: 0.1em;
-    line-height: 1;
-    color: var(--ink);
-  }
-
   .tagline {
-    margin-block-start: 0.7rem;
     font-size: 0.84rem;
     line-height: 1.7;
     color: var(--body);
@@ -168,7 +179,7 @@
 
   .back svg { inline-size: 15px; block-size: 15px; }
 
-  .back:hover { background: var(--feature-accent); color: #FFFFFF; }
+  .back:hover { background: var(--feature-accent); color: var(--on-feature); }
   .back:focus-visible { outline: 2px solid var(--feature-ink); outline-offset: 2px; }
 
   .page-title {

@@ -1,4 +1,6 @@
 import { mount } from 'svelte';
+// tk3 apps 共通の土台を、アプリの全体の CSS より先に読み込む
+import './shell/tk-base.css';
 import './shell/app.css';
 import App from './App.svelte';
 

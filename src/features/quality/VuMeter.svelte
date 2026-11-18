@@ -63,8 +63,16 @@
 
 <style>
   .vu-card {
-    background: #1A1C2E;
-    border-radius: 6px;
+    background: var(--vu-board);
+    border: 1px solid var(--vu-edge);
+    border-radius: var(--tk-radius);
+
+    /* 板は明暗どちらでも暗いので、目盛りは暗い板の上で読める採点色に差し替える
+       （scores.ts の segColor は var(--score-…) を返す） */
+    --score-good: var(--vu-good);
+    --score-ok:   var(--vu-ok);
+    --score-warn: var(--vu-warn);
+    --score-bad:  var(--vu-bad);
     padding: 1.4rem 1.25rem 1.1rem;
   }
 
@@ -72,7 +80,7 @@
     font-size: 0.6rem;
     font-weight: 700;
     letter-spacing: 0.16em;
-    color: #6063A0;
+    color: var(--vu-label);
     margin-bottom: 1rem;
     text-transform: uppercase;
   }
@@ -86,7 +94,7 @@
   .vu-seg {
     flex: 1;
     height: 100%;
-    background: #2E3050;
+    background: var(--vu-seg-off);
     border-radius: 2px;
     transition: background 0.04s linear;
   }
@@ -102,7 +110,7 @@
     display: flex;
     justify-content: space-between;
     font-size: 0.55rem;
-    color: #4A4C6E;
+    color: var(--vu-scale);
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.04em;
     font-weight: 600;
@@ -118,7 +126,7 @@
   .vu-num {
     font-size: 2.6rem;
     font-weight: 900;
-    color: #ECEEF5;
+    color: var(--vu-num);
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.05em;
     line-height: 1;
@@ -132,8 +140,8 @@
     border-radius: 3px;
   }
 
-  .grade-good { background: #003D45; color: #00C4D8; }
-  .grade-ok   { background: #3D2800; color: #E8A000; }
-  .grade-warn { background: #2D2D00; color: #B8A000; }
-  .grade-bad  { background: #3D0005; color: #FF4455; }
+  .grade-good { background: var(--vu-good-bg); color: var(--vu-good); }
+  .grade-ok   { background: var(--vu-ok-bg);   color: var(--vu-ok); }
+  .grade-warn { background: var(--vu-warn-bg); color: var(--vu-warn); }
+  .grade-bad  { background: var(--vu-bad-bg);  color: var(--vu-bad); }
 </style>

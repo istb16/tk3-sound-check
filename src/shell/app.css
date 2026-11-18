@@ -1,9 +1,11 @@
 /**
  * アプリ全体で共有する下地。
  *
- * ここに置くのは「どの機能でも同じ意味を持つもの」だけ——配色、余白の基準、
- * パネルという入れ物、控えめなボタン。機能固有の見た目は各コンポーネントの
- * <style> に置く（Svelte のスコープが効くので混ざらない）。
+ * 色・フォント・角丸・影の土台は tk3 apps で共通の `tk-base.css`（`--tk-*`）で、
+ * このファイルはその後に読み込む（main.ts）。ここに置くのは、土台の上に重ねる
+ * 「どの機能でも同じ意味を持つもの」だけ——土台の変数をこのアプリの名前で引く別名、
+ * このアプリにしかない色、余白の基準、パネルという入れ物、控えめなボタン。
+ * 機能固有の見た目は各コンポーネントの <style> に置く（Svelte のスコープが効くので混ざらない）。
  *
  * パネルは以前 4 つのコンポーネントに同じ定義が複製されていた。機能が増えるたびに
  * 複製が増える形だったので、ここに集約した。個別の差分（余白やアクセント）は
@@ -12,12 +14,31 @@
  */
 
 :root {
-  --bg:      #ECEEF5;
-  --ink:     #1A1C2E;
-  --body:    #474964;
-  --muted:   #8A8CA8;
-  --line:    #CDD0E0;
-  --surface: #FFFFFF;
+  /*
+   * アプリのアクセント（ヘッダーのアイコン、ブラウザが描くフォーム部品の色、
+   * 土台の部品のフォーカスリング）。tk3 apps で SOUND CHECK は青。
+   * 計測の基調色の `--accent`（下）とは別物である。
+   */
+  --tk-accent: var(--tk-blue);
+
+  /*
+   * 土台と意味が同じ色は、土台の変数をそのまま引く。明暗の切り替えも土台が持つ。
+   * コンポーネントはこれまでどおり短い名前（--ink など）で書く。
+   */
+  --bg:          var(--tk-bg);
+  --surface:     var(--tk-surface);
+  --surface-alt: var(--tk-surface-2);  /* パネルの中で一段下げた地 */
+  --ink:         var(--tk-ink);
+  --body:        var(--tk-body);
+  --muted:       var(--tk-muted);
+  --line:        var(--tk-line);
+  --on-ink:      var(--tk-surface);    /* --ink を地にしたボタンの字 */
+
+  /*
+   * 計測の基調色。バー・ゲージの通常の状態と、計測の部品のフォーカスリングに使う。
+   * 土台のアクセント（青）とは役目が違う——閾値を超えるとこの色から `--danger` へ
+   * 変わることで異常を示すので、青緑のまま残している。
+   */
   --accent:  #006E80;
   /*
    * 「何かがおかしい」専用の赤。**この色を他の意味に使わない。**
@@ -26,24 +47,27 @@
    * `--accent` からこの色へ変わることで異常を示している。赤を通常の状態にも
    * 使うほど、その変化が読めなくなる（features/registry.ts の accent も参照）。
    *
-   * 音質チェックの採点色（`features/quality/scores.ts` の #BF0009 ほか）は
-   * 別系統である。あちらは 4 段の階調を作る色で、二値の合図ではない。
+   * 土台の `--tk-danger` は使わない。あちらの赤（#B3261E）は琥珀寄りで、
+   * ハウリングチェックの機能色（琥珀 #A85400）との色相差が 35° を割る
+   * （App.test.ts の「警告の赤と色相が十分に離れている」）。
+   *
+   * 音質チェックの採点色（`--score-*`）は別系統である。あちらは 4 段の階調を
+   * 作る色で、二値の合図ではない。
    */
   --danger:  #B00020;
 
   /* 上の基調色に付く脇役。どれも「どの機能でも同じ意味」の色だけを置く */
-  --faint:       #AEB1CB;  /* 補足よりさらに控えめな字（ファイル名の拡張子など） */
-  --track:       #DDE0EE;  /* バー・ゲージの溝、区切り線 */
-  --surface-alt: #F5F6FB;  /* パネルの中で一段下げた地 */
-  --body-strong: #3C3E58;  /* 本文より一段濃い字 */
-  --body-soft:   #5A5C78;  /* 本文より一段淡い字 */
-  --on-ink:      #ECEEF5;  /* --ink を地にしたボタンの字 */
-  --ink-hover:   #2E3050;  /* --ink を地にしたボタンの hover */
+  --faint:       #707480;  /* 補足よりさらに控えめな字（ファイル名の拡張子など） */
+  --track:       #E1E3E9;  /* バー・ゲージの溝、区切り線 */
+  --body-strong: #33363D;  /* 本文より一段濃い字 */
+  --body-soft:   #565A63;  /* 本文より一段淡い字 */
+  --ink-hover:   #3A3C44;  /* --ink を地にしたボタンの hover */
   --danger-bg:   #FFF2F2;  /* --danger の断りを入れる箱 */
   --danger-line: #F0C0C0;
 
   /* 加工済み音声の警告（琥珀）の箱 */
-  --amber:       #B86000;
+  /* #B86000 だと白地で 4.46:1 で、字として 4.5:1 をわずかに割るので一段落とす */
+  --amber:       #A85400;
   --amber-bg:    #FFF7EC;
   --amber-line:  #E5B77C;
   --amber-ink:   #5C4420;
@@ -54,34 +78,52 @@
    * 二値の合図である --danger とは別系統。
    */
   --score-good: #006E80;
-  --score-ok:   #B86000;
+  --score-ok:   #A85400;  /* --amber と同じ理由で #B86000 から一段落とす */
   --score-warn: #5A7800;
   --score-bad:  #BF0009;
 
   /*
+   * 機能色（registry.ts の accent）を地にしたときの字。メニューのチップと、
+   * 戻るボタンの hover。地が元の機能色のままなので、明暗どちらでも白
+   * （白とのコントラストは App.test.ts が守っている）。
+   */
+  --on-feature: #FFFFFF;
+
+  /*
+   * 音質チェックの VU メーター。明るい配色でももともと暗い板なので、
+   * 明暗で値を変えない。暗い配色では地との境目だけ線で出す。
+   */
+  --vu-board:     #1A1C2E;
+  --vu-edge:      transparent;
+  --vu-label:     #9295CC;  /* 板の上の小さな見出し */
+  --vu-seg-off:   #2E3050;  /* 点いていない目盛り */
+  --vu-scale:     #8A8DB8;  /* 0〜100 の目盛りの数字 */
+  --vu-num:       #ECEEF5;
+  --vu-good-bg:   #003D45;
+  --vu-good:      #00C4D8;
+  --vu-ok-bg:     #3D2800;
+  --vu-ok:        #E8A000;
+  --vu-warn-bg:   #2D2D00;
+  --vu-warn:      #B8A000;
+  --vu-bad-bg:    #3D0005;
+  --vu-bad:       #FF4455;
+
+  /*
    * 暗い配色。端末の設定（prefers-color-scheme）に合わせて切り替える。
    *
-   * light-dark() はまだ「新しく使えるようになった」段階の機能なので使わず、
-   * どのブラウザでも効くメディアクエリで変数を差し替える。明るい配色の値は
-   * 上のまま変えない。
+   * 土台の変数は tk-base.css の側で切り替わる。ここで差し替えるのは、
+   * このアプリにしかない色だけ。light-dark() はまだ「新しく使えるようになった」
+   * 段階の機能なので使わず、どのブラウザでも効くメディアクエリで変数を差し替える。
    */
   @media (prefers-color-scheme: dark) {
-    --bg:      #12131C;
-    --ink:     #E6E8F2;
-    --body:    #B4B7CE;
-    --muted:   #8A8CA8;
-    --line:    #34374D;
-    --surface: #1B1D2A;
     --accent:  #3FB8C9;
     --danger:  #FF6B7A;
 
-    --faint:       #5C5F7A;
-    --track:       #2C2F42;
-    --surface-alt: #222436;
-    --body-strong: #CDD0E0;
-    --body-soft:   #A3A6BE;
-    --on-ink:      #12131C;
-    --ink-hover:   #C9CBDD;
+    --faint:       #8A8E99;
+    --track:       #2E3036;
+    --body-strong: #D3D5DC;
+    --body-soft:   #A9ACB6;
+    --ink-hover:   #C9CBD3;
     --danger-bg:   #2E1519;
     --danger-line: #6E2D35;
 
@@ -95,28 +137,28 @@
     --score-ok:   #F0A040;
     --score-warn: #A8C840;
     --score-bad:  #FF5A66;
-  }
 
-  /* スクロールバーやフォーム部品など、ブラウザが描く部分も配色に合わせる */
-  color-scheme: light dark;
+    --vu-edge:    var(--tk-line);
+  }
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 /*
+ * 地・字の色・フォントは tk-base.css の body が決める。
+ *
  * 中央寄せは flex ではなく `margin-inline: auto` で行う。
  *
  * body を flex にすると、間に挟まる `#app`（ただの div）が flex アイテムになり
  * **中身に合わせて縮む**。その中の `main { inline-size: 100% }` は縮んだ親に
  * 対する100%なので効かず、`min-inline-size` の値が実効幅になっていた。
  * デスクトップでメニューが3列にならず2列＋歯抜けになっていたのはこれが原因。
+ *
+ * 余白は body ではなく App.svelte の `.page` が持つ。ヘッダー（.tk-header）は
+ * 画面の端から端まで敷くため。
  */
 body {
-  background: var(--bg);
-  color: var(--ink);
-  font-family: 'Hiragino Sans', 'Yu Gothic UI', system-ui, sans-serif;
   min-block-size: 100vh;
-  padding: 2.5rem 1.5rem 5rem;
 }
 
 /* 入力・ステータスのような単段の画面を中央に固定幅で置く */
@@ -126,10 +168,12 @@ body {
   margin: 0 auto;
 }
 
+/* 土台の .tk-panel と同じ地・線・角丸・影。余白だけこのアプリの基準にしてある */
 .panel {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--tk-radius);
+  box-shadow: var(--tk-shadow);
   padding: 1.2rem;
 }
 
@@ -149,7 +193,7 @@ body {
   background: transparent;
   color: var(--body);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--tk-radius-sm);
   font-size: 0.88rem;
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -178,7 +222,7 @@ body {
   background: var(--ink);
   color: var(--on-ink);
   border: 1px solid var(--ink);
-  border-radius: 6px;
+  border-radius: var(--tk-radius-sm);
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
