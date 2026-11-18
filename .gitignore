@@ -38,4 +38,5 @@ skills-lock.json
 
 # テスト失敗時の添付・スクリーンショット（実行ごとに変わる生成物）
 /.vitest-attachments/
+.vitest
 **/__screenshots__/
