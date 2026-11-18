@@ -244,11 +244,11 @@
 <style>
   /* ---- 加工済み音声の警告 ---- */
   .prov-panel {
-    background: #FFF7EC;
-    border-color: #E5B77C;
+    background: var(--amber-bg);
+    border-color: var(--amber-line);
   }
 
-  .prov-label { color: #B86000; }
+  .prov-label { color: var(--amber); }
 
   .save-wav {
     margin: 0.5rem 0 0;
@@ -265,7 +265,7 @@
   .prov-intro {
     font-size: 0.82rem;
     line-height: 1.65;
-    color: #5C4420;
+    color: var(--amber-ink);
     font-weight: 700;
   }
 
@@ -282,7 +282,7 @@
     padding-left: 0.9rem;
     font-size: 0.78rem;
     line-height: 1.6;
-    color: #6B5230;
+    color: var(--amber-body);
   }
 
   .prov-list li::before {
@@ -293,7 +293,7 @@
     width: 4px;
     height: 4px;
     border-radius: 50%;
-    background: #B86000;
+    background: var(--amber);
   }
 
   /* ---- 結果画面: モバイルは縦積み、デスクトップは2カラムグリッド ---- */
@@ -340,6 +340,6 @@
     gap: 0.5rem;
     font-size: 0.82rem;
     line-height: 1.5;
-    color: #474964;
+    color: var(--body);
   }
 </style>

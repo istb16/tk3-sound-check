@@ -29,15 +29,15 @@
   .mic-guide {
     margin-top: 0.9rem;
     padding: 0.85rem 1rem;
-    background: #F5F6FB;
-    border: 1px solid #DDE0EE;
+    background: var(--surface-alt);
+    border: 1px solid var(--track);
     border-radius: 6px;
   }
 
   .mic-hint {
     font-size: 0.78rem;
     line-height: 1.65;
-    color: #3C3E58;
+    color: var(--body-strong);
   }
 
   .mic-script-label {
@@ -45,7 +45,7 @@
     font-size: 0.6rem;
     font-weight: 700;
     letter-spacing: 0.14em;
-    color: #8A8CA8;
+    color: var(--muted);
     text-transform: uppercase;
   }
 
@@ -60,7 +60,7 @@
   .mic-script li {
     font-size: 0.82rem;
     line-height: 1.6;
-    color: #1A1C2E;
+    color: var(--ink);
     font-weight: 700;
   }
 </style>

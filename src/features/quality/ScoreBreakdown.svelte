@@ -30,7 +30,7 @@
           <span class="b-val">{v}</span>
         </div>
         <div class="b-track">
-          <div class="b-fill" style="width:{v}%; background:{scoreColor(v)}"></div>
+          <div class="b-fill" style:--v={v} style:background={scoreColor(v)}></div>
         </div>
       </li>
     {/each}
@@ -57,7 +57,7 @@
   .b-name {
     font-size: 0.85rem;
     font-weight: 700;
-    color: #1A1C2E;
+    color: var(--ink);
     letter-spacing: -0.01em;
     white-space: nowrap;
   }
@@ -73,19 +73,19 @@
   .b-flag {
     display: inline-block;
     padding: 0.05rem 0.35rem;
-    border: 1px solid #B86000;
+    border: 1px solid var(--amber);
     border-radius: 3px;
     font-size: 0.58rem;
     font-weight: 700;
     letter-spacing: 0.04em;
-    color: #B86000;
+    color: var(--amber);
     vertical-align: 0.08em;
     white-space: nowrap;
   }
 
   .b-desc {
     font-size: 0.68rem;
-    color: #8A8CA8;
+    color: var(--muted);
     letter-spacing: 0.01em;
     white-space: nowrap;
     overflow: hidden;
@@ -96,25 +96,31 @@
     font-size: 0.85rem;
     font-weight: 900;
     font-variant-numeric: tabular-nums;
-    color: #1A1C2E;
+    color: var(--ink);
     letter-spacing: -0.02em;
     white-space: nowrap;
   }
 
   .b-track {
     height: 5px;
-    background: #DDE0EE;
+    background: var(--track);
     border-radius: 9999px;
     overflow: hidden;
   }
 
+  /*
+   * 長さは width ではなく translate で出す。幅いっぱいのバーを左へずらし、はみ出した分は
+   * .b-track の overflow: hidden で隠す。width を動かすと毎フレーム配置の計算が走るが、
+   * translate なら合成だけで済む（scaleX だと右端の丸みが潰れるので使わない）。
+   */
   .b-fill {
     height: 100%;
     border-radius: 9999px;
-    transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-  }
+    translate: calc(var(--v) * 1% - 100%) 0;
 
-  @media (prefers-reduced-motion: reduce) {
-    .b-fill { transition: none; }
+    /* 動きは「視差効果を減らす」を選んでいない人にだけ付ける */
+    @media (prefers-reduced-motion: no-preference) {
+      transition: translate 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    }
   }
 </style>

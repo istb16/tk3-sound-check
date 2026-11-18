@@ -57,23 +57,23 @@
 
   .panel-label { margin-bottom: 0.7rem; }
 
-  .v-good   { border-left-color: #006E80; }
-  .v-usable { border-left-color: #B86000; }
-  .v-poor   { border-left-color: #BF0009; }
+  .v-good   { border-left-color: var(--score-good); }
+  .v-usable { border-left-color: var(--score-ok); }
+  .v-poor   { border-left-color: var(--score-bad); }
 
   .v-main {
     font-size: 1rem;
     font-weight: 700;
     line-height: 1.55;
     letter-spacing: -0.01em;
-    color: #1A1C2E;
+    color: var(--ink);
   }
 
   .v-limit {
     margin-top: 0.4rem;
     font-size: 0.82rem;
     line-height: 1.6;
-    color: #5A5C78;
+    color: var(--body-soft);
   }
 
   .v-facts-label {
@@ -81,7 +81,7 @@
     font-size: 0.6rem;
     font-weight: 700;
     letter-spacing: 0.16em;
-    color: #8A8CA8;
+    color: var(--muted);
     text-transform: uppercase;
   }
 
@@ -96,7 +96,7 @@
   .v-facts li {
     font-size: 0.78rem;
     line-height: 1.6;
-    color: #3C3E58;
+    color: var(--body-strong);
     font-variant-numeric: tabular-nums;
   }
 </style>

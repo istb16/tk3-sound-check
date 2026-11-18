@@ -48,7 +48,7 @@
     <svg class="bg-wave" viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true">
       <path
         d="M0,30 C8,10 17,10 25,30 C33,50 42,50 50,30 C58,10 67,10 75,30 C83,50 92,50 100,30 C108,10 117,10 125,30 C133,50 142,50 150,30 C158,10 167,10 175,30 C183,50 192,50 200,30 C208,10 217,10 225,30 C233,50 242,50 250,30 C258,10 267,10 275,30 C283,50 292,50 300,30 C308,10 317,10 325,30 C333,50 342,50 350,30 C358,10 367,10 375,30 C383,50 392,50 400,30"
-        fill="none" stroke="#006E80" stroke-width="1.5"
+        fill="none" stroke="var(--accent)" stroke-width="1.5"
       />
     </svg>
     <div class="drop-content">
@@ -95,8 +95,8 @@
 
   .dropzone {
     position: relative;
-    background: #FFFFFF;
-    border: 1.5px solid #CDD0E0;
+    background: var(--surface);
+    border: 1.5px solid var(--line);
     border-radius: 6px;
     padding: 2.75rem 1.5rem;
     display: flex;
@@ -109,7 +109,7 @@
   }
 
   .dropzone:hover, .dropzone:focus-visible, .dropzone.drag-over {
-    border-color: #006E80;
+    border-color: var(--accent);
   }
 
   .bg-wave {
@@ -139,13 +139,13 @@
   .drop-main {
     font-size: 0.92rem;
     font-weight: 700;
-    color: #1A1C2E;
+    color: var(--ink);
     letter-spacing: -0.01em;
   }
 
   .drop-sub {
     font-size: 0.75rem;
-    color: #8A8CA8;
+    color: var(--muted);
     letter-spacing: 0.02em;
   }
 
@@ -156,14 +156,14 @@
     font-size: 0.65rem;
     font-weight: 700;
     letter-spacing: 0.1em;
-    color: #AEB1CB;
+    color: var(--faint);
   }
 
   .or-divider::before, .or-divider::after {
     content: '';
     flex: 1;
     height: 1px;
-    background: #CDD0E0;
+    background: var(--line);
   }
 
   .btn-mic {
@@ -173,8 +173,8 @@
     gap: 0.5rem;
     width: 100%;
     padding: 0.85rem;
-    background: #1A1C2E;
-    color: #ECEEF5;
+    background: var(--ink);
+    color: var(--on-ink);
     border: none;
     border-radius: 6px;
     font-size: 0.92rem;
@@ -184,15 +184,15 @@
     transition: background 0.15s;
   }
 
-  .btn-mic:hover { background: #2E3050; }
-  .btn-mic:focus-visible { outline: 2px solid #006E80; outline-offset: 2px; }
+  .btn-mic:hover { background: var(--ink-hover); }
+  .btn-mic:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   .error-box {
     display: flex;
     align-items: flex-start;
     gap: 0.5rem;
-    background: #FFF2F2;
-    border: 1px solid #F0C0C0;
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-line);
     border-radius: 5px;
     padding: 0.7rem 0.9rem;
     font-size: 0.8rem;

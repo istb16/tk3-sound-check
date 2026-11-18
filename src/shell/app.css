@@ -30,6 +30,75 @@
    * 別系統である。あちらは 4 段の階調を作る色で、二値の合図ではない。
    */
   --danger:  #B00020;
+
+  /* 上の基調色に付く脇役。どれも「どの機能でも同じ意味」の色だけを置く */
+  --faint:       #AEB1CB;  /* 補足よりさらに控えめな字（ファイル名の拡張子など） */
+  --track:       #DDE0EE;  /* バー・ゲージの溝、区切り線 */
+  --surface-alt: #F5F6FB;  /* パネルの中で一段下げた地 */
+  --body-strong: #3C3E58;  /* 本文より一段濃い字 */
+  --body-soft:   #5A5C78;  /* 本文より一段淡い字 */
+  --on-ink:      #ECEEF5;  /* --ink を地にしたボタンの字 */
+  --ink-hover:   #2E3050;  /* --ink を地にしたボタンの hover */
+  --danger-bg:   #FFF2F2;  /* --danger の断りを入れる箱 */
+  --danger-line: #F0C0C0;
+
+  /* 加工済み音声の警告（琥珀）の箱 */
+  --amber:       #B86000;
+  --amber-bg:    #FFF7EC;
+  --amber-line:  #E5B77C;
+  --amber-ink:   #5C4420;
+  --amber-body:  #6B5230;
+
+  /*
+   * 音質チェックの採点色（4 段の階調）。features/quality/scores.ts から参照する。
+   * 二値の合図である --danger とは別系統。
+   */
+  --score-good: #006E80;
+  --score-ok:   #B86000;
+  --score-warn: #5A7800;
+  --score-bad:  #BF0009;
+
+  /*
+   * 暗い配色。端末の設定（prefers-color-scheme）に合わせて切り替える。
+   *
+   * light-dark() はまだ「新しく使えるようになった」段階の機能なので使わず、
+   * どのブラウザでも効くメディアクエリで変数を差し替える。明るい配色の値は
+   * 上のまま変えない。
+   */
+  @media (prefers-color-scheme: dark) {
+    --bg:      #12131C;
+    --ink:     #E6E8F2;
+    --body:    #B4B7CE;
+    --muted:   #8A8CA8;
+    --line:    #34374D;
+    --surface: #1B1D2A;
+    --accent:  #3FB8C9;
+    --danger:  #FF6B7A;
+
+    --faint:       #5C5F7A;
+    --track:       #2C2F42;
+    --surface-alt: #222436;
+    --body-strong: #CDD0E0;
+    --body-soft:   #A3A6BE;
+    --on-ink:      #12131C;
+    --ink-hover:   #C9CBDD;
+    --danger-bg:   #2E1519;
+    --danger-line: #6E2D35;
+
+    --amber:       #F0A040;
+    --amber-bg:    #2A2114;
+    --amber-line:  #6B5025;
+    --amber-ink:   #EBD6B4;
+    --amber-body:  #D6BE98;
+
+    --score-good: #3FB8C9;
+    --score-ok:   #F0A040;
+    --score-warn: #A8C840;
+    --score-bad:  #FF5A66;
+  }
+
+  /* スクロールバーやフォーム部品など、ブラウザが描く部分も配色に合わせる */
+  color-scheme: light dark;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -107,7 +176,7 @@ body {
   margin-top: 1.1rem;
   padding: 0.85rem;
   background: var(--ink);
-  color: #ECEEF5;
+  color: var(--on-ink);
   border: 1px solid var(--ink);
   border-radius: 6px;
   font-size: 0.9rem;

@@ -251,7 +251,7 @@
   .bar-track {
     position: relative;
     height: 84px;
-    background: #E3E5EF;
+    background: var(--track);
     border-radius: 2px;
     overflow: hidden;
   }
