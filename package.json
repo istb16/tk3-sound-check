@@ -15,7 +15,7 @@
     "volume-gate": "node validation/volume-gate.ts"
   },
   "devDependencies": {
-    "@vitest/browser": "^5.1.0",
+    "@vitest/browser": "^5.1.1",
     "@vitest/browser-playwright": "^5.0.5",
     "onnxruntime-node": "^1.31.1",
     "playwright": "^1.65.0",
@@ -25,6 +25,6 @@
   },
   "dependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
-    "svelte": "^5.57.3"
+    "svelte": "^5.59.1"
   }
 }
